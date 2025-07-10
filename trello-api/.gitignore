@@ -14,3 +14,5 @@ dist-ssr
 *.suo
 *.env
 .history
+config/firebase-service-account.json
+test.js
