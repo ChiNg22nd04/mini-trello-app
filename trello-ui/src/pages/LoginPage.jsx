@@ -1,6 +1,7 @@
 import React from "react";
 import API_BASE_URL from "../../config/index";
 import { Icon } from "@iconify/react";
+import Button from "../components";
 import "./LoginPage.css";
 
 const LoginPage = () => {
@@ -11,12 +12,12 @@ const LoginPage = () => {
     return (
         <div className="login-container">
             {/* Decorative background elements */}
-            <div className="bg-decoration bg-decoration-1"></div>
-            <div className="bg-decoration bg-decoration-2"></div>
-            <div className="bg-decoration bg-decoration-3"></div>
+            <div className="bg-decoration bg-decoration-1 animate-float"></div>
+            <div className="bg-decoration bg-decoration-2 animate-float"></div>
+            <div className="bg-decoration bg-decoration-3 animate-float"></div>
 
             <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100 p-3">
-                <div className="login-card">
+                <div className="login-card animate-slideUp">
                     <div className="login-card-header">
                         <div className="logo-container">
                             <Icon icon="mdi:trello" className="logo-icon" />
@@ -26,16 +27,13 @@ const LoginPage = () => {
                     </div>
 
                     <div className="login-card-body">
-                        <button type="button" className="login-btn login-btn-primary" onClick={loginWithGitHub}>
-                            <Icon icon="grommet-icons:github" className="btn-icon" />
-                            <span>Continue with GitHub</span>
-                        </button>
+                        <Button variant="primary" icon="grommet-icons:github" iconColor="github" onClick={loginWithGitHub}>
+                            Continue with GitHub
+                        </Button>
 
-                        <button type="button" className="login-btn login-btn-secondary" disabled>
-                            <Icon icon="grommet-icons:google" className="btn-icon google-icon" />
-                            <span>Continue with Google</span>
-                            <span className="coming-soon">Coming Soon</span>
-                        </button>
+                        <Button variant="secondary" icon="grommet-icons:google" iconColor="google" badge="Coming Soon" disabled>
+                            Continue with Google
+                        </Button>
                     </div>
 
                     <div className="login-card-footer">

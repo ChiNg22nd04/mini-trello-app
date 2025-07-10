@@ -1,0 +1,101 @@
+/* Button Component Styles */
+.button {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 18px;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: "Quicksand", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+}
+
+.button:hover {
+    transform: scale(1.05);
+}
+
+.button:active {
+    transform: scale(0.98);
+}
+
+/* Primary Button */
+.button-primary {
+    background: var(--color-gradient-main-text);
+    color: white;
+    box-shadow: 0 8px 25px var(--color-gradient-background);
+}
+
+.button-primary:hover {
+    transform: scale(1.05);
+}
+
+/* Secondary Button */
+.button-secondary {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--color-text-secondary);
+    border: 2px solid rgba(230, 230, 230, 0.8);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    position: relative;
+}
+
+.button-secondary:hover {
+    transform: scale(1.03);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Disabled State */
+.button-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.button-secondary:disabled:hover {
+    transform: none;
+}
+
+.button-secondary:hover .coming-soon {
+    transform: scale(1.05);
+}
+
+/* Button Icon */
+.button-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.button:hover .button-icon {
+    transform: scale(1.1);
+}
+
+/* Badge/Coming Soon */
+.button-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-size: 12px;
+    padding: 8px 15px 3px 12px;
+    border-radius: 15px;
+    font-weight: 500;
+    box-shadow: -3px 0 13px 7px rgba(240, 147, 251, 0.4);
+    transition: transform 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .login-button {
+        padding: 16px 24px;
+        font-size: 16px;
+    }
+}

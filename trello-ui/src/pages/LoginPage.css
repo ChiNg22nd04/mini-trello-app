@@ -1,4 +1,3 @@
-/* Modern Login Page Styles */
 .login-container {
     min-height: 100vh;
     background: var(--color-gradient-background);
@@ -10,7 +9,6 @@
     position: absolute;
     border-radius: 50%;
     opacity: 0.15;
-    animation: float 8s ease-in-out infinite;
 }
 
 .bg-decoration-1 {
@@ -40,16 +38,6 @@
     animation-delay: 6s;
 }
 
-@keyframes float {
-    0%,
-    100% {
-        transform: translateY(0px) rotate(0deg) scale(1);
-    }
-    50% {
-        transform: translateY(-30px) rotate(15deg) scale(1.1);
-    }
-}
-
 .login-card {
     background: var(--color-surface);
     backdrop-filter: blur(25px);
@@ -60,18 +48,6 @@
     max-width: 450px;
     width: 100%;
     position: relative;
-    animation: slideUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(50px) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
 }
 
 .login-card-header {
@@ -121,101 +97,18 @@
     margin-bottom: 32px;
 }
 
-.login-btn {
-    width: 100%;
-    padding: 16px 24px;
-    border-radius: 18px;
-    border: none;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: "Quicksand", sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transform-origin: center;
-}
-
-.login-btn:hover {
-    transform: scale(1.05);
-}
-
-.login-btn:active {
-    transform: scale(0.98);
-}
-
-.login-btn-primary {
-    background: var(--color-gradient-main-text);
-    color: white;
-    box-shadow: 0 8px 25px var(--color-gradient-background);
-}
-
-.login-btn-primary:hover {
-    transform: scale(1.05);
-}
-
-.login-btn-secondary {
-    background: rgba(255, 255, 255, 0.8);
-    color: var(--color-text-secondary);
-    border: 2px solid rgba(230, 230, 230, 0.8);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    position: relative;
-}
-
-.login-btn-secondary:hover {
-    transform: scale(1.03);
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-}
-
-.login-btn-secondary:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.login-btn-secondary:disabled:hover {
-    transform: none;
-}
-.login-btn-secondary:hover .coming-soon {
-    transform: scale(1.05);
-}
-
-.btn-icon {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.3s ease;
-}
-
-.login-btn:hover .btn-icon {
-    transform: scale(1.1);
+.login-card-footer {
+    text-align: center;
+    padding-top: 24px;
+    border-top: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .google-icon {
     color: #ea4335;
 }
 
-.coming-soon {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    font-size: 12px;
-    padding: 8px 15px 3px 12px;
-    border-radius: 15px;
-    font-weight: 500;
-    box-shadow: -3px 0 13px 	7px rgba(240, 147, 251, 0.4);
-    transition: transform 0.3s ease;
-}
-
-.login-card-footer {
-    text-align: center;
-    padding-top: 24px;
-    border-top: 1px solid rgba(226, 232, 240, 0.5);
+.github-icon {
+    color: #ffffff;
 }
 
 .footer-text {
@@ -227,6 +120,17 @@
 .footer-text strong {
     color: var(--color-primary);
     font-weight: 600;
+}
+
+.footer-text a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.footer-text a:hover {
+    color: var(--color-secondary);
+    text-decoration: underline;
 }
 
 /* Responsive Design */
@@ -268,10 +172,5 @@
 
     .login-title {
         font-size: 24px;
-    }
-
-    .login-btn {
-        padding: 16px 24px;
-        font-size: 16px;
     }
 }
