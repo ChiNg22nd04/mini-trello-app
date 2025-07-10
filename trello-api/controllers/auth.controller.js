@@ -83,7 +83,7 @@ const githubCallback = async (req, res) => {
 // POST /auth/email/send - Gửi magic link qua email
 const sendMagicLink = async (req, res) => {
     const { email } = req.body;
-
+    console.log("email", email);
     if (!email) {
         return res.status(400).json({ msg: "Email is required." });
     }

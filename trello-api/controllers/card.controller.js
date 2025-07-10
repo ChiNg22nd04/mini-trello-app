@@ -3,11 +3,12 @@ const { getIO } = require("../config/socket");
 
 const getCards = async (req, res) => {
     try {
-        const githubId = req.user.githubId;
-        console.log("githubId", githubId);
+        // const {id} = req.user
+        const userId = req.user.id;
+        console.log("userId", userId);
 
         const cardsCollection = db.collection("cards");
-        const query = cardsCollection.where("ownerId", "==", githubId);
+        const query = cardsCollection.where("ownerId", "==", userId);
 
         const snapshot = await query.get();
         const cards = snapshot.docs.map((doc) => ({
@@ -27,7 +28,7 @@ const createCard = async (req, res) => {
         const { title } = req.body;
         const newCard = {
             title,
-            ownerId: req.user.githubId,
+            ownerId: req.user.userId,
             createdAt: Date.now(),
         };
         const cardsCollection = db.collection("cards");

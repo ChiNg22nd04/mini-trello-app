@@ -3,20 +3,22 @@ const { getIO } = require("../config/socket");
 
 // GET /users/:githubId
 const getUserByGithubId = async (req, res) => {
-    const githubId = req.params.githubId;
+    const uId = req.params.uId;
+    console.log("uId", uId);
 
     try {
-        const userRef = db.collection("users").doc(githubId);
+        const userRef = db.collection("users").doc(uId);
         const userDoc = userRef.get();
-
+        console.log("userDoc", userDoc);
         if (!userDoc.exists) {
             return res.status(404).json({ msg: "User not found" });
         }
 
         const userData = userDoc.data();
-
+        console.log("userData", userData);
         res.json({
-            githubId: userDoc.id,
+            uId,
+            // githubId: userDoc.id,
             username: userData.username,
             email: userData.email || "",
             avatar: userData.avatar || "",
