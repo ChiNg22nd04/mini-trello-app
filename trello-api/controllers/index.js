@@ -3,4 +3,9 @@ const userController = require("./user.controller");
 const cardController = require("./card.controller");
 const taskController = require("./task.controller");
 
-module.exports = { authController, userController, cardController, taskController };
+module.exports = {
+    authController,
+    userController,
+    cardController,
+    taskController,
+};

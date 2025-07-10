@@ -3,7 +3,6 @@ const { getIO } = require("../config/socket");
 
 const getCards = async (req, res) => {
     try {
-        // const {id} = req.user
         const userId = req.user.id;
         console.log("userId", userId);
 

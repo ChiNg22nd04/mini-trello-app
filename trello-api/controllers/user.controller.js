@@ -1,14 +1,14 @@
 const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
 
-// GET /users/:githubId
-const getUserByGithubId = async (req, res) => {
+// GET /users/:uId
+const getUserByUId = async (req, res) => {
     const uId = req.params.uId;
     console.log("uId", uId);
 
     try {
         const userRef = db.collection("users").doc(uId);
-        const userDoc = userRef.get();
+        const userDoc = await userRef.get();
         console.log("userDoc", userDoc);
         if (!userDoc.exists) {
             return res.status(404).json({ msg: "User not found" });
@@ -30,13 +30,13 @@ const getUserByGithubId = async (req, res) => {
     }
 };
 
-// PUT /users/:githubId
-const updateUserByGithubId = async (req, res) => {
-    const githubId = req.params.githubId;
+// PUT /users/:uId
+const updateUserByUId = async (req, res) => {
+    const iId = req.params.iId;
     const { username, email, avatar } = req.body;
 
     try {
-        const userRef = db.collection("users").doc(githubId);
+        const userRef = db.collection("users").doc(iId);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
@@ -51,7 +51,7 @@ const updateUserByGithubId = async (req, res) => {
         await userRef.update(updatedData);
 
         getIO().emit("userUpdated", {
-            githubId,
+            iId,
             updatedFields: updatedData,
         });
         console.log("User updated successfully");
@@ -63,12 +63,12 @@ const updateUserByGithubId = async (req, res) => {
     }
 };
 
-// DELETE /users/:githubId
-const deleteUserByGithubId = async (req, res) => {
-    const githubId = req.params.githubId;
+// DELETE /users/:uId
+const deleteUserByUId = async (req, res) => {
+    const uId = req.params.uId;
 
     try {
-        const userRef = db.collection("users").doc(githubId);
+        const userRef = db.collection("users").doc(uId);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
@@ -76,7 +76,7 @@ const deleteUserByGithubId = async (req, res) => {
         }
 
         await userRef.delete();
-        getIO().emit("userDeleted", { githubId });
+        getIO().emit("userDeleted", { uId });
         console.log("User deleted successfully");
         res.json({ msg: "User deleted successfully" });
     } catch (err) {
@@ -86,7 +86,7 @@ const deleteUserByGithubId = async (req, res) => {
 };
 
 module.exports = {
-    getUserByGithubId,
-    updateUserByGithubId,
-    deleteUserByGithubId,
+    getUserByUId,
+    updateUserByUId,
+    deleteUserByUId,
 };
