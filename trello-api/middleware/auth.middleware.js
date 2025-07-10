@@ -20,7 +20,7 @@ module.exports = (req, res, next) => {
         const decoded = jwt.verify(token, secret);
 
         req.user = {
-            githubId: decoded.id,
+            id: decoded.id,
             username: decoded.username,
         };
 

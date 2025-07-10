@@ -1,6 +1,8 @@
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { db } = require("../firebase");
+const { sendMagicLinkEmail } = require("../services/email.service");
 
 const githubLogin = (req, res) => {
     const authorizeURL = "https://github.com/login/oauth/authorize";
@@ -41,13 +43,15 @@ const githubCallback = async (req, res) => {
         });
 
         const { id, login, avatar_url, email } = userResponse.data;
-
+        const uid = `github_${id}`;
         const usersCollection = db.collection("users");
+
         const userDocRef = usersCollection.doc(id.toString());
         const userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
             await userDocRef.set({
+                uid,
                 githubId: id,
                 username: login,
                 email: email || "",
@@ -56,7 +60,7 @@ const githubCallback = async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ id: id.toString(), username: login }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username: login }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
@@ -76,4 +80,137 @@ const githubCallback = async (req, res) => {
     }
 };
 
-module.exports = { githubLogin, githubCallback };
+// POST /auth/email/send - Gửi magic link qua email
+const sendMagicLink = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ msg: "Email is required." });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ msg: "Email is invalid." });
+    }
+
+    try {
+        const magicToken = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+        const magicLinksCollection = db.collection("magicLinks");
+        await magicLinksCollection.doc(magicToken).set({
+            email: email.toLowerCase(),
+            token: magicToken,
+            expiresAt: expiresAt.toISOString(),
+            used: false,
+            createdAt: new Date().toISOString(),
+        });
+
+        const emailResult = await sendMagicLinkEmail(email, magicToken);
+
+        if (emailResult.success) {
+            console.log("Magic link sent successfully to:", email);
+            res.json({
+                msg: "Magic link has been sent to your email. Please check your email.",
+                email: email,
+            });
+        } else {
+            throw new Error(emailResult.error);
+        }
+    } catch (err) {
+        console.error("Error sending magic link:", err);
+        res.status(500).json({ msg: "Error sending magic link." });
+    }
+};
+
+// GET /auth/email/verify?token=xxx - Verify magic link và đăng nhập
+const verifyMagicLink = async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(400).json({ msg: "Token is required." });
+    }
+
+    try {
+        const magicLinksCollection = db.collection("magicLinks");
+        const magicLinkDoc = await magicLinksCollection.doc(token).get();
+
+        if (!magicLinkDoc.exists) {
+            return res.status(400).json({ msg: "The magic link is invalid or has expired." });
+        }
+
+        const magicLinkData = magicLinkDoc.data();
+
+        // Kiểm tra xem token đã được sử dụng chưa
+        if (magicLinkData.used) {
+            return res.status(400).json({ msg: "Magic link has already been used." });
+        }
+
+        const now = new Date();
+        const expiresAt = new Date(magicLinkData.expiresAt);
+        if (now > expiresAt) {
+            await magicLinksCollection.doc(token).delete();
+            return res.status(400).json({ msg: "Magic link has expired." });
+        }
+
+        const email = magicLinkData.email;
+
+        const usersCollection = db.collection("users");
+        const userQuery = await usersCollection.where("email", "==", email).get();
+
+        let userId, username;
+
+        if (userQuery.empty) {
+            const newUserId = crypto.randomUUID();
+            uid = `email_${newUserId}`;
+            const defaultUsername = email.split("@")[0];
+
+            await usersCollection.doc(newUserId).set({
+                uid,
+                email: email,
+                username: defaultUsername,
+                avatar: "",
+                createdAt: new Date().toISOString(),
+                loginMethod: "email",
+            });
+
+            userId = newUserId;
+            username = defaultUsername;
+        } else {
+            // User đã tồn tại
+            const userDoc = userQuery.docs[0];
+            uid = userDoc.id;
+            username = userDoc.data().username;
+        }
+
+        // Đánh dấu magic link đã được sử dụng
+        await magicLinksCollection.doc(token).update({ used: true });
+
+        const jwtToken = jwt.sign({ id: uid, username, email }, process.env.JWT_SECRET, {
+            expiresIn: "2h",
+        });
+
+        console.log("Magic link verified successfully for:", email);
+
+        res.json({
+            token: jwtToken,
+            user: {
+                id: uid,
+                username: username,
+                email: email,
+                avatar: "",
+            },
+        });
+    } catch (err) {
+        console.error("Error verifying magic link:", err);
+        res.status(500).json({ msg: "Error verifying magic link:" });
+    }
+};
+
+module.exports = {
+    githubLogin,
+    githubCallback,
+    sendMagicLink,
+    verifyMagicLink,
+};
