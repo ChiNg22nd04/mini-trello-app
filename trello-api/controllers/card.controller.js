@@ -2,10 +2,11 @@ const { db } = require("../firebase");
 
 const getCards = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const githubId = req.user.githubId;
+        console.log("githubId", githubId);
 
         const cardsCollection = db.collection("cards");
-        const query = cardsCollection.where("owner", "==", userId);
+        const query = cardsCollection.where("ownerId", "==", githubId);
 
         const snapshot = await query.get();
         const cards = [];
@@ -15,7 +16,7 @@ const getCards = async (req, res) => {
             const card = {
                 id: doc.id,
                 title: cardData.title,
-                owner: cardData.owner,
+                ownerId: cardData.ownerId,
                 createdAt: cardData.createdAt,
             };
             cards.push(card);
@@ -33,7 +34,7 @@ const createCard = async (req, res) => {
         const { title } = req.body;
         const newCard = {
             title,
-            owner: req.user.id,
+            ownerId: req.user.githubId,
             createdAt: Date.now(),
         };
         const cardsCollection = db.collection("cards");
@@ -42,11 +43,11 @@ const createCard = async (req, res) => {
         res.status(201).json({
             id: docRef.id,
             title: newCard.title,
-            owner: newCard.owner,
+            ownerId: newCard.ownerId,
             createdAt: newCard.createdAt,
         });
     } catch (err) {
-        console.error("Failed to create card:", error.message);
+        console.error("Failed to create card:", err.message);
         res.status(500).json({ msg: "Error creating card" });
     }
 };
