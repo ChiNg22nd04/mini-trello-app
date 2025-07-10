@@ -15,10 +15,9 @@ const githubCallback = async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send("No code found");
 
-    const tokenURL = "https://github.com/login/oauth/access_token";
     try {
         const tokenResponse = await axios.post(
-            tokenURL,
+            "https://github.com/login/oauth/access_token",
             {
                 client_id: process.env.GITHUB_CLIENT_ID,
                 client_secret: process.env.GITHUB_CLIENT_SECRET,
@@ -30,34 +29,42 @@ const githubCallback = async (req, res) => {
         );
 
         const accessToken = tokenResponse.data.access_token;
+        if (!accessToken) return res.status(401).send("No access token received from GitHub");
 
-        const userApiURL = "https://api.github.com/user";
-        const userResponse = await axios.get(userApiURL, {
+        const userResponse = await axios.get("https://api.github.com/user", {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         const { id, login, avatar_url, email } = userResponse.data;
 
-        // const userRef = db.collection("users").doc(`${id}`);
-        const userRef = db.collection("users").doc(id.toString());
-        const userDoc = await userRef.get();
+        const usersCollection = db.collection("users");
+        const userDocRef = usersCollection.doc(id.toString());
+        const userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
-            await userRef.set({
+            await userDocRef.set({
                 githubId: id,
                 username: login,
                 email: email || "",
                 avatar: avatar_url,
+                createdAt: new Date().toISOString(),
             });
         }
 
-        const token = jwt.sign({ id, username: login }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: id.toString(), username: login }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
-        res.json({ token, user: { id, username: login, avatar: avatar_url } });
+        res.json({
+            token,
+            user: {
+                id: id.toString(),
+                username: login,
+                avatar: avatar_url,
+            },
+        });
     } catch (err) {
-        console.error(err);
+        console.error("GitHub Login Error:", err.message);
         res.status(500).send("GitHub login failed");
     }
 };

@@ -1,8 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { githubLogin, githubCallback } = require('../controllers/authController');
+const { authController } = require("../controllers");
 
-router.get('/github', githubLogin);
-router.get('/github/callback', githubCallback);
+router.get("/github", authController.githubLogin);
+router.get("/github/callback", authController.githubCallback);
 
 module.exports = router;
