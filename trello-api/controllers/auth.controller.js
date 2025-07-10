@@ -159,28 +159,37 @@ const verifyMagicLink = async (req, res) => {
         const usersCollection = db.collection("users");
         const userQuery = await usersCollection.where("email", "==", email).get();
 
-        let userId, username;
+        let userId, username, uid;
 
         if (userQuery.empty) {
+            // Tạo user mới
+            console.log("Creating new user for email:", email);
             const newUserId = crypto.randomUUID();
             uid = `email_${newUserId}`;
             const defaultUsername = email.split("@")[0];
 
-            await usersCollection.doc(newUserId).set({
+            const newUserData = {
                 uid,
                 email: email,
                 username: defaultUsername,
                 avatar: "",
                 createdAt: new Date().toISOString(),
                 loginMethod: "email",
-            });
+            };
+
+            console.log("New user data:", newUserData);
+
+            await usersCollection.doc(newUserId).set(newUserData);
+            console.log("User created successfully with ID:", newUserId);
 
             userId = newUserId;
             username = defaultUsername;
         } else {
             // User đã tồn tại
+            console.log("User already exists for email:", email);
             const userDoc = userQuery.docs[0];
-            uid = userDoc.id;
+            userId = userDoc.id;
+            uid = userDoc.data().uid || userDoc.id;
             username = userDoc.data().username;
         }
 
@@ -204,7 +213,8 @@ const verifyMagicLink = async (req, res) => {
         });
     } catch (err) {
         console.error("Error verifying magic link:", err);
-        res.status(500).json({ msg: "Error verifying magic link:" });
+        console.error("Error stack:", err.stack);
+        res.status(500).json({ msg: "Error verifying magic link: " + err.message });
     }
 };
 
