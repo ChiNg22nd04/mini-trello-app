@@ -1,4 +1,5 @@
 const { db } = require("../firebase");
+const { getIO } = require("../config/socket");
 
 const getCards = async (req, res) => {
     try {
@@ -9,18 +10,10 @@ const getCards = async (req, res) => {
         const query = cardsCollection.where("ownerId", "==", githubId);
 
         const snapshot = await query.get();
-        const cards = [];
-
-        snapshot.forEach((doc) => {
-            const cardData = doc.data();
-            const card = {
-                id: doc.id,
-                title: cardData.title,
-                ownerId: cardData.ownerId,
-                createdAt: cardData.createdAt,
-            };
-            cards.push(card);
-        });
+        const cards = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
 
         res.json(cards);
     } catch (err) {
@@ -40,12 +33,15 @@ const createCard = async (req, res) => {
         const cardsCollection = db.collection("cards");
         const docRef = await cardsCollection.add(newCard);
 
-        res.status(201).json({
+        const createdCard = {
             id: docRef.id,
-            title: newCard.title,
-            ownerId: newCard.ownerId,
-            createdAt: newCard.createdAt,
-        });
+            ...newCard,
+        };
+
+        getIO().emit("cardCreated", createdCard);
+        console.log("Card created successfully");
+
+        res.status(201).json(createdCard);
     } catch (err) {
         console.error("Failed to create card:", err.message);
         res.status(500).json({ msg: "Error creating card" });

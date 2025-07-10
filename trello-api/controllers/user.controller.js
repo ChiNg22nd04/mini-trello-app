@@ -1,11 +1,13 @@
 const { db } = require("../firebase");
+const { getIO } = require("../config/socket");
 
 // GET /users/:githubId
 const getUserByGithubId = async (req, res) => {
     const githubId = req.params.githubId;
 
     try {
-        const userDoc = await db.collection("users").doc(githubId).get();
+        const userRef = db.collection("users").doc(githubId);
+        const userDoc = userRef.get();
 
         if (!userDoc.exists) {
             return res.status(404).json({ msg: "User not found" });
@@ -46,6 +48,12 @@ const updateUserByGithubId = async (req, res) => {
 
         await userRef.update(updatedData);
 
+        getIO().emit("userUpdated", {
+            githubId,
+            updatedFields: updatedData,
+        });
+        console.log("User updated successfully");
+
         res.json({ msg: "User updated successfully" });
     } catch (err) {
         console.error("Error updating user:", err);
@@ -66,6 +74,8 @@ const deleteUserByGithubId = async (req, res) => {
         }
 
         await userRef.delete();
+        getIO().emit("userDeleted", { githubId });
+        console.log("User deleted successfully");
         res.json({ msg: "User deleted successfully" });
     } catch (err) {
         console.error("Error deleting user:", err);

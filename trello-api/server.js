@@ -29,26 +29,12 @@ app.use(express.json());
 const routers = require("./routes");
 app.use("/", routers);
 
-// Socket.IO logic
-io.on("connection", (socket) => {
-    console.log("A user connected");
-
-    socket.on("joinCard", (cardId) => {
-        socket.join(cardId);
-        console.log(`User joined room: ${cardId}`);
-    });
-
-    socket.on("taskUpdated", ({ cardId, task }) => {
-        socket.to(cardId).emit("taskUpdated", task);
-    });
-
-    socket.on("disconnect", () => {
-        console.log("A user disconnected");
-    });
-});
+// Init socket
+const { initSocket } = require("./config/socket");
+initSocket(server);
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
 });
