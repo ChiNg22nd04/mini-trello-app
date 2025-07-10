@@ -22,7 +22,7 @@ app.use(express.json());
 
 // Routers
 const routers = require("./routes");
-app.use("/api", routers);
+app.use("/", routers);
 
 // Socket.IO logic
 io.on("connection", (socket) => {

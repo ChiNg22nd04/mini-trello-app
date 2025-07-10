@@ -3,8 +3,8 @@ const router = express.Router();
 const { userController } = require("../controllers");
 const authMiddleware = require("../middleware/authMiddleware.js");
 
-router.get("/:id", authMiddleware, userController.getUserById);
-router.put("/:id", authMiddleware, userController.updateUser);
-router.delete("/:id", authMiddleware, userController.deleteUser); // tùy chọn
+router.get("/:githubId", authMiddleware, userController.getUserByGithubId);
+router.put("/:githubId", authMiddleware, userController.updateUserByGithubId);
+router.delete("/:githubId", authMiddleware, userController.deleteUserByGithubId); // tùy chọn
 
 module.exports = router;

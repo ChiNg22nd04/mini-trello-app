@@ -8,12 +8,15 @@ const githubLogin = (req, res) => {
     const redirectURI = process.env.GITHUB_REDIRECT_URI;
 
     const githubOAuthURL = `${authorizeURL}?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}`;
+    console.log("githubOAuthURL", githubOAuthURL);
     res.redirect(githubOAuthURL);
 };
 
 const githubCallback = async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send("No code found");
+
+    console.log("code", code);
 
     try {
         const tokenResponse = await axios.post(
@@ -29,6 +32,8 @@ const githubCallback = async (req, res) => {
         );
 
         const accessToken = tokenResponse.data.access_token;
+        console.log("accessToken", accessToken);
+
         if (!accessToken) return res.status(401).send("No access token received from GitHub");
 
         const userResponse = await axios.get("https://api.github.com/user", {
@@ -54,6 +59,8 @@ const githubCallback = async (req, res) => {
         const token = jwt.sign({ id: id.toString(), username: login }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
+
+        console.log("token", token);
 
         res.json({
             token,

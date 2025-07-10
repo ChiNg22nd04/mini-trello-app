@@ -1,10 +1,11 @@
 const { db } = require("../firebase");
 
-const getUserById = async (req, res) => {
-    const userId = req.params.id;
+// GET /users/:githubId
+const getUserByGithubId = async (req, res) => {
+    const githubId = req.params.githubId;
 
     try {
-        const userDoc = await db.collection("users").doc(userId).get();
+        const userDoc = await db.collection("users").doc(githubId).get();
 
         if (!userDoc.exists) {
             return res.status(404).json({ msg: "User not found" });
@@ -13,11 +14,11 @@ const getUserById = async (req, res) => {
         const userData = userDoc.data();
 
         res.json({
-            id: userDoc.id,
+            githubId: userDoc.id,
             username: userData.username,
             email: userData.email || "",
             avatar: userData.avatar || "",
-            // Các trường khác nếu có
+            createdAt: userData.createdAt || null,
         });
     } catch (err) {
         console.error("Error getting user:", err);
@@ -25,19 +26,19 @@ const getUserById = async (req, res) => {
     }
 };
 
-const updateUser = async (req, res) => {
-    const userId = req.params.id;
+// PUT /users/:githubId
+const updateUserByGithubId = async (req, res) => {
+    const githubId = req.params.githubId;
     const { username, email, avatar } = req.body;
 
     try {
-        const userRef = db.collection("users").doc(userId);
+        const userRef = db.collection("users").doc(githubId);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
             return res.status(404).json({ msg: "User not found" });
         }
 
-        // Cập nhật chỉ các trường được phép
         const updatedData = {};
         if (username) updatedData.username = username;
         if (email) updatedData.email = email;
@@ -52,11 +53,12 @@ const updateUser = async (req, res) => {
     }
 };
 
-const deleteUser = async (req, res) => {
-    const userId = req.params.id;
+// DELETE /users/:githubId
+const deleteUserByGithubId = async (req, res) => {
+    const githubId = req.params.githubId;
 
     try {
-        const userRef = db.collection("users").doc(userId);
+        const userRef = db.collection("users").doc(githubId);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
@@ -71,4 +73,8 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = { getUserById, updateUser, deleteUser };
+module.exports = {
+    getUserByGithubId,
+    updateUserByGithubId,
+    deleteUserByGithubId,
+};
