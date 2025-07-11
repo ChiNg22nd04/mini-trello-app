@@ -19,10 +19,8 @@ const createTransporter = () => {
     });
 };
 
-const sendMagicLinkEmail = async (email, token) => {
+const sendCode = async (email, code) => {
     const transporter = createTransporter();
-    const frontendUrl = process.env.FRONTEND_URL;
-    const magicLink = `${frontendUrl}/auth/verify?token=${token}`;
 
     const sender = process.env.EMAIL_USER;
     const recipient = email;
@@ -30,19 +28,13 @@ const sendMagicLinkEmail = async (email, token) => {
     const mailOptions = {
         from: sender,
         to: recipient,
-        subject: "Login to Mini Trello",
+        subject: "Your Trello App Login Code",
         html: `
             <div style="font-family: sans-serif; max-width: 500px; margin: auto;">
-                <h3>Mini Trello Login</h3>
-                <p>Click the button below to log in:</p>
-                <div style="margin: 20px 0;">
-                    <a href="${magicLink}" style="background:#007bff;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">
-                        Log In
-                    </a>
-                </div>
-                <p>Or paste this link in your browser:</p>
-                <p><a href="${magicLink}">${magicLink}</a></p>
-                <p style="font-size:12px;color:gray;">Link expires in 15 minutes.</p>
+                <h3>Your Login Code</h3>
+                <p>Use the code below to log in:</p>
+                <h1 style="font-size: 36px; letter-spacing: 5px;">${code}</h1>
+                <p style="font-size:12px;color:gray;">This code expires in 15 minutes.</p>
             </div>
         `,
     };
@@ -97,6 +89,6 @@ const sendInviteEmail = async (toEmail, boardName, inviteId, boardId, nameUser) 
 };
 
 module.exports = {
-    sendMagicLinkEmail,
     sendInviteEmail,
+    sendCode,
 };
