@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 
-const Sidebar = ({ active, fullHeight = false }) => {
+const Sidebar = ({ active, fullHeight = false, title }) => {
     return (
         <div
             className="bg-dark text-white p-3"
@@ -8,14 +8,14 @@ const Sidebar = ({ active, fullHeight = false }) => {
                 height: fullHeight ? "100%" : "auto",
             }}
         >
-            <div className="d-flex align-items-center mb-4">
-                <Icon icon="material-symbols:bar-chart-4-bars" width="28" />
-                <h5 className="ms-2">Board Management</h5>
+            <div className="d-flex align-items-center mb-4 p-2 border border-white rounded-1">
+                <Icon className="text-primary" icon="material-symbols:bar-chart-4-bars" width="28" />
+                <h5 className="m-0 ps-2">{title}</h5>
             </div>
-            <ul className="nav flex-column">
+            <ul className="nav flex-column ms-3">
                 <li className="nav-item">
                     <a className={`nav-link ${active === "boards" ? "active text-white" : "text-light"}`} href="#">
-                        <Icon icon="material-symbols:dashboard" /> Boards
+                        <Icon style={{ width: "22px", height: "22px" }} icon="material-symbols:dashboard" /> Boards
                     </a>
                 </li>
                 <li className="nav-item">

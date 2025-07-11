@@ -10,12 +10,12 @@ const BoardPage = () => {
             <div
                 className="d-flex bg-dark text-white"
                 style={{
-                    paddingTop: headerHeight,
+                    paddingTop: `calc(${headerHeight} + 20px)`,
                     minHeight: "100vh",
                 }}
             >
                 <div style={{ width: "25%", position: "fixed" }}>
-                    <Sidebar active="boards" fullHeight />
+                    <Sidebar active="boards" fullHeight title="Board" />
                 </div>
 
                 <div
@@ -31,17 +31,28 @@ const BoardPage = () => {
                         <BoardCard title="My Trello board" />
                         <BoardCard title="+ Create a new board" />
                         <BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
-                        <BoardCard title="+ Create a new board" /><BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
+                        <BoardCard title="+ Create a new board" />
+                        <BoardCard title="My Trello board" />
                         <BoardCard title="+ Create a new board" />
                     </div>
                 </div>
