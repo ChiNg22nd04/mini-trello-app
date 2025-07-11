@@ -7,7 +7,7 @@ const cardRoutes = require("./card.routes");
 const taskRoutes = require("./task.routes");
 const boardRoutes = require("./board.routes");
 
-router.use("/auth", authRoutes);
+router.use("/", authRoutes);
 router.use("/users", userRoutes);
 // router.use("/cards", cardRoutes);
 router.use("/boards/:boardId/cards", cardRoutes);

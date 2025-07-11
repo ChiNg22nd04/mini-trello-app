@@ -1,8 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import { leftImage, rightImage, logo } from "../assets/global/index";
 import API_BASE_URL from "../../config/index";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
+    const navigate = useNavigate();
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+
+    const handleSubmit = async () => {
+        try {
+            const res = await axios.post(`${API_BASE_URL}/signin`, { email });
+            if (res.data && res.data.msg) setMessage(res.data.msg);
+            else {
+                localStorage.setItem("userEmail", email);
+                navigate("/auth/verify");
+            }
+        } catch (err) {
+            console.log(err);
+            setMessage("Please try again.");
+        }
+    };
+
     return (
         <div className="bg-light position-relative d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
             <img src={leftImage} alt="Left" className="position-absolute d-none d-md-block" style={{ bottom: 0, left: 0, width: "25%" }} />
@@ -11,18 +31,34 @@ const LoginPage = () => {
             <div className="col-md-4 col-10">
                 <div className="border rounded p-4 shadow-sm bg-white">
                     <div className="mb-2 d-flex flex-column align-items-center">
-                        <img src={logo} alt="Logo" className="" style={{ width: "56px", height: "56px" }} />
+                        <img src={logo} alt="Logo" style={{ width: "56px", height: "56px" }} />
                     </div>
+
                     <h6 className="mb-3 text-center text-muted">Log in to continue</h6>
-                    <input type="email" className="form-control mb-3 text-center" placeholder="Enter your email" />
-                    <button className="btn btn-primary w-100 mb-3">Continue</button>
+
+                    <div className="mb-2">
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="form-control text-center" placeholder="Enter your email" />
+                    </div>
+
+                    {message && (
+                        <div className="mb-2 text-center">
+                            <small className="text-danger" style={{ fontSize: "10px" }}>
+                                {message}
+                            </small>
+                        </div>
+                    )}
+
+                    <div className="mb-3">
+                        <button onClick={handleSubmit} className="btn btn-primary w-100">
+                            Continue
+                        </button>
+                    </div>
+
                     <small className="text-muted">
-                        <p className="text-center mb-1 ">Privacy Policy</p>
+                        <p className="text-center mb-1">Privacy Policy</p>
                         <p className="text-center m-0">This site is protected by reCAPTCHA and the Google Privacy</p>
                         <p className="d-flex justify-content-center">
-                            <a className="" href="#">
-                                Policy and Terms of Service apply.
-                            </a>
+                            <a href="#">Policy and Terms of Service apply.</a>
                         </p>
                     </small>
                 </div>

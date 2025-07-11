@@ -2,7 +2,10 @@ const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { db } = require("../firebase");
-const { sendMagicLinkEmail } = require("../services/email.service");
+const { sendCode } = require("../services/email.service");
+const { getIO } = require("../config/socket");
+
+const magicCodesCollection = db.collection("magicCodes");
 
 const githubLogin = (req, res) => {
     const authorizeURL = "https://github.com/login/oauth/authorize";
@@ -32,6 +35,7 @@ const githubCallback = async (req, res) => {
         );
 
         const accessToken = tokenResponse.data.access_token;
+        console.log("accessToken", accessToken);
 
         if (!accessToken) return res.status(401).send("No access token received from GitHub");
 
@@ -39,21 +43,20 @@ const githubCallback = async (req, res) => {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        const { id, login, avatar_url, email } = userResponse.data;
+        const { id, login, avatarUrl, email } = userResponse.data;
         const uid = id.toString();
-        const usersCollection = db.collection("users");
-
-        const userDocRef = usersCollection.doc(id.toString());
-        const userDoc = await userDocRef.get();
+        const userRef = db.collection("users").doc(uid);
+        const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
-            await userDocRef.set({
+            await userRef.set({
                 uid,
                 githubId: id,
                 username: login,
                 email: email || "",
-                avatar: avatar_url,
+                avatar: avatarUrl,
                 createdAt: new Date(),
+                loginMethod: "github",
             });
         }
 
@@ -66,7 +69,7 @@ const githubCallback = async (req, res) => {
             user: {
                 id: id.toString(),
                 username: login,
-                avatar: avatar_url,
+                avatar: avatarUrl,
             },
         });
     } catch (err) {
@@ -75,167 +78,109 @@ const githubCallback = async (req, res) => {
     }
 };
 
-// POST /auth/email/send
-const sendMagicLink = async (req, res) => {
+const sendMagicCode = async (req, res) => {
     const { email } = req.body;
-    console.log("email", email);
-    if (!email) {
-        return res.status(400).json({ msg: "Email is required." });
-    }
+    if (!email) return res.status(400).json({ msg: "Email is required" });
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ msg: "Email is invalid." });
-    }
+    const magicCodesCollection = db.collection("magicCodes");
 
-    const magicLinksCollection = db.collection("magicLinks");
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+
     try {
-        const recentQuery = await magicLinksCollection.where("email", "==", email.toLowerCase()).get();
-
-        if (!recentQuery.empty) {
-            const sortedDocs = recentQuery.docs.sort((a, b) => {
-                const aTime = new Date(a.data().createdAt);
-                const bTime = new Date(b.data().createdAt);
-                return bTime - aTime;
-            });
-
-            const last = sortedDocs[0].data();
-            const lastSent = new Date(last.createdAt);
-            const minutes = (now - lastSent) / (1000 * 60);
-
-            if (minutes < 5) {
-                return res.status(429).json({
-                    msg: `Please wait ${Math.ceil(5 - minutes)} minute(s) before trying again.`,
-                });
-            }
-        }
-
-        const token = crypto.randomBytes(32).toString("hex");
-        const expiresAt = new Date(now.getTime() + 30 * 1000);
-
-        await magicLinksCollection.doc(token).set({
+        await magicCodesCollection.doc(email.toLowerCase()).set({
             email: email.toLowerCase(),
-            token,
-            expiresAt: expiresAt.toISOString(),
+            code,
             used: false,
-            createdAt: new Date().toISOString(),
+            expiresAt: expiresAt.toISOString(),
+            createdAt: now.toISOString(),
         });
 
-        const emailResult = await sendMagicLinkEmail(email, token);
-
+        const emailResult = await sendCode(email, code);
         if (emailResult.success) {
-            console.log("Magic link sent successfully to:", email);
+            console.log("Magic code sent successfully to:", email);
             res.json({
-                msg: "Magic link has been sent to your email. Please check your email.",
                 email: email,
             });
         } else {
-            throw new Error(emailResult.error);
+            throw new Error("Failed to send email");
         }
     } catch (err) {
-        console.error("Error sending magic link:", err);
-        res.status(500).json({ msg: "Error sending magic link." });
+        console.error("Error sending magic code:", err);
+        return res.status(500).json({ msg: "Error sending code." });
     }
 };
 
-// GET /auth/email/verify?token=xxx -
-const verifyMagicLink = async (req, res) => {
-    const { token } = req.query;
-
-    if (!token) {
-        return res.status(400).json({ msg: "Token is required." });
-    }
+const verifyMagicCode = async (req, res) => {
+    const { email, code } = req.query;
+    if (!email || !code) return res.status(400).json({ msg: "Email and code are required." });
 
     try {
-        const magicLinksCollection = db.collection("magicLinks");
-        const magicLinkDoc = await magicLinksCollection.doc(token).get();
+        const docRef = magicCodesCollection.doc(email.toLowerCase());
+        const docSnap = await docRef.get();
 
-        if (!magicLinkDoc.exists) {
-            return res.status(400).json({ msg: "The magic link is invalid or has expired." });
-        }
+        if (!docSnap.exists) return res.status(400).json({ msg: "Invalid or expired code." });
 
-        const magicLinkData = magicLinkDoc.data();
-
-        // Kiểm tra xem token đã được sử dụng chưa
-        if (magicLinkData.used) {
-            return res.status(400).json({ msg: "Magic link has already been used." });
-        }
+        const data = docSnap.data();
+        if (data.used) return res.status(400).json({ msg: "Code already used." });
 
         const now = new Date();
-        const expiresAt = new Date(magicLinkData.expiresAt);
-        if (now > expiresAt) {
-            await magicLinksCollection.doc(token).delete();
-            return res.status(400).json({ msg: "Magic link has expired." });
+        if (now > new Date(data.expiresAt)) {
+            await docRef.delete();
+            return res.status(400).json({ msg: "Code expired." });
         }
 
-        const email = magicLinkData.email;
+        if (data.code !== code) {
+            return res.status(400).json({ msg: "Incorrect code." });
+        }
 
         const usersCollection = db.collection("users");
         const userQuery = await usersCollection.where("email", "==", email).get();
 
-        let userId, username, uid;
+        let uid, username;
 
         if (userQuery.empty) {
-            // Tạo user mới
-            console.log("Creating new user for email:", email);
-            const newUserId = crypto.randomUUID();
-            uid = newUserId;
-            const defaultUsername = email.split("@")[0];
-
-            const newUserData = {
+            uid = crypto.randomUUID();
+            username = email.split("@")[0];
+            await usersCollection.doc(uid).set({
                 uid,
-                email: email,
-                username: defaultUsername,
-                avatar: "",
+                email,
+                username,
                 createdAt: new Date().toISOString(),
-                loginMethod: "email",
-            };
+                loginMethod: "email-code",
+            });
 
-            console.log("New user data:", newUserData);
-
-            await usersCollection.doc(newUserId).set(newUserData);
-            console.log("User created successfully with ID:", newUserId);
-
-            userId = newUserId;
-            username = defaultUsername;
+            getIO().emit("new-user", { uid, username });
         } else {
-            // User đã tồn tại
-            console.log("User already exists for email:", email);
             const userDoc = userQuery.docs[0];
-            userId = userDoc.id;
             uid = userDoc.data().uid || userDoc.id;
             username = userDoc.data().username;
         }
 
-        // Đánh dấu magic link đã được sử dụng
-        await magicLinksCollection.doc(token).update({ used: true });
+        await docRef.update({ used: true });
 
-        const jwtToken = jwt.sign({ id: uid, username, email }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username, email }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
-        console.log("Magic link verified successfully for:", email);
-
-        res.json({
-            token: jwtToken,
+        return res.json({
+            token,
             user: {
                 id: uid,
-                username: username,
-                email: email,
-                avatar: "",
+                username,
+                email,
             },
         });
     } catch (err) {
-        console.error("Error verifying magic link:", err);
-        console.error("Error stack:", err.stack);
-        res.status(500).json({ msg: "Error verifying magic link: " + err.message });
+        console.error("Error verifying code:", err);
+        return res.status(500).json({ msg: "Error verifying code." });
     }
 };
 
 module.exports = {
     githubLogin,
     githubCallback,
-    sendMagicLink,
-    verifyMagicLink,
+    sendMagicCode,
+    verifyMagicCode,
 };
