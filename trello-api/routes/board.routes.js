@@ -3,7 +3,13 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth.middleware.js");
 const { boardController } = require("../controllers");
 
-router.get("/", authMiddleware, boardController.getBoards);
-router.post("/", authMiddleware, boardController.createBoard);
+router.use(authMiddleware);
+
+router.post("/", boardController.createBoard);
+router.get("/", boardController.getBoards);
+router.get("/:id", boardController.getBoardById);
+router.put("/:id", boardController.updateBoard);
+router.delete("/:id", boardController.deleteBoard);
+router.post("/:id/invite", boardController.inviteToBoard);
 
 module.exports = router;

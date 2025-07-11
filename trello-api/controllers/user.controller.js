@@ -32,11 +32,11 @@ const getUserByUId = async (req, res) => {
 
 // PUT /users/:uId
 const updateUserByUId = async (req, res) => {
-    const iId = req.params.iId;
+    const uId = req.params.uId;
     const { username, email, avatar } = req.body;
 
     try {
-        const userRef = db.collection("users").doc(iId);
+        const userRef = db.collection("users").doc(uId);
         const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
@@ -51,7 +51,7 @@ const updateUserByUId = async (req, res) => {
         await userRef.update(updatedData);
 
         getIO().emit("userUpdated", {
-            iId,
+            uId,
             updatedFields: updatedData,
         });
         console.log("User updated successfully");
