@@ -3,7 +3,7 @@ import { logo } from "../assets/global/index";
 
 const Header = ({ username = "Board Management", style = {} }) => {
     return (
-        <div className="position-fixed top-0 start-0 end-0 d-flex justify-content-between align-items-center bg-dark text-white px-5 border-bottom" style={{ height: "60px", ...style }}>
+        <div className="position-fixed top-0 start-0 end-0 d-flex justify-content-between align-items-center bg-dark text-white px-5" style={{ ...style, borderBottom: "1px solid #333" }}>
             <h5 className="m-0 d-flex align-items-center gap-2">
                 <Icon icon="material-symbols:dashboard" width="24" />
                 <img src={logo} alt="Logo" style={{ height: "48px", marginLeft: "15px" }} />
