@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-
-export const useUser = () => {
+const useUser = () => {
     const [userData, setUserData] = useState({
         user: null,
         token: null,
@@ -10,14 +9,22 @@ export const useUser = () => {
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
         const token = localStorage.getItem("accessToken");
-        const email = localStorage.getItem("userEmail");
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
         setUserData({
-            user: storedUser ? JSON.parse(storedUser) : null,
+            user: parsedUser,
             token,
-            email,
+            email: parsedUser?.email || null,
         });
     }, []);
 
-    return userData;
+    const logout = () => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        setUserData({ user: null, token: null, email: null });
+    };
+
+    return { ...userData, logout };
 };
+
+export default useUser;

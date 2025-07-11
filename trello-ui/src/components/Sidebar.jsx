@@ -14,13 +14,15 @@ const Sidebar = ({ active, fullHeight = false, title }) => {
             </div>
             <ul className="nav flex-column ms-3">
                 <li className="nav-item">
-                    <a className={`nav-link ${active === "boards" ? "active text-white" : "text-light"}`} href="#">
-                        <Icon style={{ width: "22px", height: "22px" }} icon="material-symbols:dashboard" /> Boards
+                    <a className={`nav-link ${active === "boards" ? "active text-white" : "text-light"}`} style={{ cursor: "pointer", display: "flex", alignItems: "center" }} href="#">
+                        <Icon style={{ width: "22px", height: "22px", marginRight: "7px" }} icon="material-symbols:dashboard" />
+                        Boards
                     </a>
                 </li>
                 <li className="nav-item">
                     <a className={`nav-link ${active === "members" ? "active text-white" : "text-light"}`} href="#">
-                        <Icon icon="material-symbols:group" /> All Members
+                        <Icon style={{ width: "22px", height: "22px", marginRight: "7px" }} icon="material-symbols:group" />
+                        All Members
                     </a>
                 </li>
             </ul>
