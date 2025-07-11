@@ -13,31 +13,11 @@ const getBoards = async (req, res) => {
             const board = doc.data();
             return {
                 id: doc.id,
-                ...board,
+                name: board.name,
+                description: board.description,
             };
         });
 
-        console.log("boards", boards);
-        res.status(200).json(boards);
-    } catch (err) {
-        console.error("err", err);
-        res.status(500).json({ error: "Failed to get boards" });
-    }
-};
-
-// GET /boards/all
-const getAllBoards = async (req, res) => {
-    try {
-        const { id } = req.user;
-        console.log("id", id);
-        console.log("boardsCollection", boardsCollection);
-        const data = await boardsCollection.where("ownerId", "==", id).get();
-        console.log("data", data.docs);
-
-        const boards = data.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
         console.log("boards", boards);
         res.status(200).json(boards);
     } catch (err) {
@@ -57,9 +37,11 @@ const getBoardById = async (req, res) => {
         }
 
         const data = boardDoc.data();
+
         const board = {
             id: boardDoc.id,
-            ...data,
+            name: data.name,
+            description: data.description,
         };
 
         res.status(200).json(board);
@@ -84,7 +66,7 @@ const createBoard = async (req, res) => {
         };
         const docRef = await boardsCollection.add(newBoard);
 
-        const board = { id: docRef.id, ...newBoard };
+        const board = { id: docRef.id, name, description };
         getIO().emit("boardCreated", board);
 
         res.status(200).json(board);
@@ -136,7 +118,6 @@ const deleteBoard = async (req, res) => {
 module.exports = {
     getBoards,
     createBoard,
-    getAllBoards,
     getBoardById,
     updateBoard,
     deleteBoard,
