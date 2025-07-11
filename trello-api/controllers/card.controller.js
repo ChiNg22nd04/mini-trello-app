@@ -154,4 +154,14 @@ const deleteCard = async (req, res) => {
         res.status(500).json({ msg: "Error deleting card" });
     }
 };
-module.exports = { getCards, createCard, getCardById, getCardByUser, updateCard, deleteCard };
+
+
+
+module.exports = {
+    getCards,
+    createCard,
+    getCardById,
+    getCardByUser,
+    updateCard,
+    deleteCard,
+};

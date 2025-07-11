@@ -2,6 +2,7 @@ const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
 
 const boardsCollection = db.collection("boards");
+const invitesCollection = db.collection("invites");
 
 // POST /boards
 const getBoards = async (req, res) => {
@@ -124,10 +125,39 @@ const deleteBoard = async (req, res) => {
     }
 };
 
+const inviteToBoard = async (req, res) => {
+    try {
+        const boardId = req.params.id;
+        console.log("boardId", boardId);
+        const { boardOwnerId, memberId, emailMember, status = "pending" } = req.body;
+
+        const inviteRef = invitesCollection.doc();
+        const inviteId = inviteRef.id;
+
+        const newInvite = {
+            inviteId,
+            boardId,
+            boardOwnerId,
+            memberId,
+            emailMember,
+            status,
+            type: "board",
+            createdAt: new Date(),
+        };
+        await inviteRef.set(newInvite);
+        getIO().emit("boardInviteSent", newInvite);
+
+        res.status(201).json(newInvite);
+    } catch (err) {
+        console.error("Failed to invite to board:", err);
+        res.status(500).json({ msg: "Error inviting to board" });
+    }
+};
 module.exports = {
     getBoards,
     createBoard,
     getBoardById,
     updateBoard,
     deleteBoard,
+    inviteToBoard,
 };
