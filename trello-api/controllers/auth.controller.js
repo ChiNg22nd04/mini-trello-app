@@ -18,8 +18,6 @@ const githubCallback = async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send("No code found");
 
-    console.log("code", code);
-
     try {
         const tokenResponse = await axios.post(
             "https://github.com/login/oauth/access_token",
@@ -34,7 +32,6 @@ const githubCallback = async (req, res) => {
         );
 
         const accessToken = tokenResponse.data.access_token;
-        console.log("accessToken", accessToken);
 
         if (!accessToken) return res.status(401).send("No access token received from GitHub");
 
@@ -43,7 +40,7 @@ const githubCallback = async (req, res) => {
         });
 
         const { id, login, avatar_url, email } = userResponse.data;
-        const uid = `github_${id}`;
+        const uid = id.toString();
         const usersCollection = db.collection("users");
 
         const userDocRef = usersCollection.doc(id.toString());
@@ -63,8 +60,6 @@ const githubCallback = async (req, res) => {
         const token = jwt.sign({ id: uid, username: login }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
-
-        console.log("token", token);
 
         res.json({
             token,
@@ -165,7 +160,7 @@ const verifyMagicLink = async (req, res) => {
             // Tạo user mới
             console.log("Creating new user for email:", email);
             const newUserId = crypto.randomUUID();
-            uid = `email_${newUserId}`;
+            uid = newUserId;
             const defaultUsername = email.split("@")[0];
 
             const newUserData = {
