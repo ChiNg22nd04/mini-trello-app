@@ -57,7 +57,7 @@ const githubCallback = async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ id: uid, username: login }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username: login, email }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 

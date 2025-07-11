@@ -57,25 +57,32 @@ const sendMagicLinkEmail = async (email, token) => {
     }
 };
 
-const sendInviteEmail = async (email, boardName, inviteId, boardId) => {
+const sendInviteEmail = async (toEmail, boardName, inviteId, boardId, nameUser) => {
     const transporter = createTransporter();
     const frontendUrl = process.env.FRONTEND_URL;
     const inviteLink = `${frontendUrl}/boards/${boardId}/invite/${inviteId}`;
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
-        to: email,
-        subject: `You're invited to join the board "${boardName}"`,
+        to: toEmail,
+        subject: `You're invited to join the board "${boardName} from ${nameUser}"`,
         html: `
-           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4;">
-                <h2>Board Invitation</h2>
-                <p>You have been invited to join the board: <strong>${boardName}</strong>.</p>
-                <p>Click the button below to accept the invitation:</p>
-                <a href="${inviteLink}" style="padding:10px 20px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
+           <div class="email-container" style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 30px;">
+                <span style="font-size: 16px; color: #444;">Hello</span>
+                <strong style="color: #007bff; font-size: 16px;">${nameUser}</strong> 
+                <span style="font-size: 16px; color: #444;">has invited you to collaborate on the board </span>
+                <strong style="color: #28a745; font-size: 16px;">"${boardName}"</strong>.
+            
+            <div style=" margin: 30px 0;">
+                <a href="${inviteLink}" 
+                    style="padding: 12px 25px; background-color: #28a745; color: #ffffff; font-size: 16px; text-decoration: none; border-radius: 5px;">
                     Accept Invitation
                 </a>
-                <p>If the button doesn't work, copy and paste this link into your browser:</p>
-                <p>${inviteLink}</p>
+            </div>
+
+            <p style="font-size: 14px; color: #777;">If the button above doesn’t work, copy and paste this link into your browser:</p>
+            <p style="font-size: 14px; color: #007bff; word-break: break-all;">${inviteLink}</p>
+
             </div>
         `,
     };

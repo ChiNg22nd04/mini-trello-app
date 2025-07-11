@@ -128,6 +128,8 @@ const deleteBoard = async (req, res) => {
 
 const inviteToBoard = async (req, res) => {
     try {
+        const nameUser = req.user.username;
+        console.log("nameUser", nameUser);
         const boardId = req.params.id;
         console.log("boardId", boardId);
         const { boardOwnerId, memberId, emailMember, status = "pending" } = req.body;
@@ -156,7 +158,7 @@ const inviteToBoard = async (req, res) => {
         console.log("newInvite", newInvite);
         await inviteRef.set(newInvite);
 
-        const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId);
+        const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
         if (!emailResult.success) {
             console.error("Failed to send invite email:", emailResult.error);
         }
@@ -169,6 +171,7 @@ const inviteToBoard = async (req, res) => {
         res.status(500).json({ msg: "Error inviting to board" });
     }
 };
+
 module.exports = {
     getBoards,
     createBoard,
