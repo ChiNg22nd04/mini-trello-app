@@ -5,6 +5,12 @@ import API_BASE_URL from "../../config/index";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
+    console.log("LoginPage rendering...");
+    console.log("leftImage:", leftImage);
+    console.log("rightImage:", rightImage);
+    console.log("logo:", logo);
+    console.log("API_BASE_URL:", API_BASE_URL);
+
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
