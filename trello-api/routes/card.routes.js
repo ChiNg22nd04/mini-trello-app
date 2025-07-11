@@ -8,5 +8,6 @@ router.get("/", authMiddleware, cardController.getCards);
 router.post("/", authMiddleware, cardController.createCard);
 router.get("/:id", authMiddleware, cardController.getCardById);
 router.get("/user/:userId", authMiddleware, cardController.getCardByUser);
-
+router.put("/:id", authMiddleware, cardController.updateCard);
+router.delete("/:id", authMiddleware, cardController.deleteCard);
 module.exports = router;

@@ -88,8 +88,17 @@ const updateBoard = async (req, res) => {
             return res.status(404).json({ error: "Board not found" });
         }
 
-        await boardRef.update({ name, description });
-        res.status(200).json({ id: boardId, name, description });
+        const existingData = boardDoc.data();
+        const updatedData = {
+            name: name ?? existingData.name,
+            description: description ?? existingData.description,
+        };
+
+        await boardRef.update(updatedData);
+
+        getIO().emit("boardUpdated", updatedData);
+
+        res.status(200).json(updatedData);
     } catch (err) {
         console.error("Error updating board", err);
         res.status(500).json({ error: "Failed to update board" });

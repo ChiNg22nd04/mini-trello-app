@@ -108,4 +108,50 @@ const getCardByUser = async (req, res) => {
     }
 };
 
-module.exports = { getCards, createCard, getCardById, getCardByUser };
+const updateCard = async (req, res) => {
+    try {
+        const cardId = req.params.id;
+        const ownerId = req.user.id;
+        const boardId = req.params.boardId;
+        console.log("ownerId", ownerId);
+        console.log("boardId", boardId);
+        console.log("cardId", cardId);
+
+        const { name, description, ...rest } = req.body;
+
+        const cardRef = cardsCollection.doc(cardId);
+        const cardDoc = await cardRef.get();
+
+        if (!cardDoc.exists) {
+            return res.status(404).json({ error: "Card not found" });
+        }
+        const existingData = cardDoc.data();
+
+        const updatedData = {
+            name: name ?? existingData.name,
+            description: description ?? existingData.description,
+            ...rest,
+        };
+
+        await cardRef.update(updatedData);
+
+        getIO().emit("cardUpdated", updatedData);
+        res.status(200).json(updatedData);
+    } catch (err) {
+        console.error("Failed to update card:", err);
+        res.status(500).json({ msg: "Error updating card" });
+    }
+};
+
+const deleteCard = async (req, res) => {
+    try {
+        const cardId = req.params.id;
+        await cardsCollection.doc(cardId).delete();
+        getIO().emit("cardDeleted", cardId);
+        res.status(204).send();
+    } catch (err) {
+        console.error("Failed to delete card:", err);
+        res.status(500).json({ msg: "Error deleting card" });
+    }
+};
+module.exports = { getCards, createCard, getCardById, getCardByUser, updateCard, deleteCard };
