@@ -53,7 +53,7 @@ const githubCallback = async (req, res) => {
                 username: login,
                 email: email || "",
                 avatar: avatar_url,
-                createdAt: new Date().toISOString(),
+                createdAt: new Date(),
             });
         }
 
@@ -75,7 +75,7 @@ const githubCallback = async (req, res) => {
     }
 };
 
-// POST /auth/email/send - Gửi magic link qua email
+// POST /auth/email/send
 const sendMagicLink = async (req, res) => {
     const { email } = req.body;
     console.log("email", email);
@@ -83,26 +83,46 @@ const sendMagicLink = async (req, res) => {
         return res.status(400).json({ msg: "Email is required." });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return res.status(400).json({ msg: "Email is invalid." });
     }
 
+    const magicLinksCollection = db.collection("magicLinks");
+    const now = new Date();
     try {
-        const magicToken = crypto.randomBytes(32).toString("hex");
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        const recentQuery = await magicLinksCollection.where("email", "==", email.toLowerCase()).get();
 
-        const magicLinksCollection = db.collection("magicLinks");
-        await magicLinksCollection.doc(magicToken).set({
+        if (!recentQuery.empty) {
+            const sortedDocs = recentQuery.docs.sort((a, b) => {
+                const aTime = new Date(a.data().createdAt);
+                const bTime = new Date(b.data().createdAt);
+                return bTime - aTime;
+            });
+
+            const last = sortedDocs[0].data();
+            const lastSent = new Date(last.createdAt);
+            const minutes = (now - lastSent) / (1000 * 60);
+
+            if (minutes < 5) {
+                return res.status(429).json({
+                    msg: `Please wait ${Math.ceil(5 - minutes)} minute(s) before trying again.`,
+                });
+            }
+        }
+
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(now.getTime() + 30 * 1000);
+
+        await magicLinksCollection.doc(token).set({
             email: email.toLowerCase(),
-            token: magicToken,
+            token,
             expiresAt: expiresAt.toISOString(),
             used: false,
             createdAt: new Date().toISOString(),
         });
 
-        const emailResult = await sendMagicLinkEmail(email, magicToken);
+        const emailResult = await sendMagicLinkEmail(email, token);
 
         if (emailResult.success) {
             console.log("Magic link sent successfully to:", email);
@@ -119,7 +139,7 @@ const sendMagicLink = async (req, res) => {
     }
 };
 
-// GET /auth/email/verify?token=xxx - Verify magic link và đăng nhập
+// GET /auth/email/verify?token=xxx -
 const verifyMagicLink = async (req, res) => {
     const { token } = req.query;
 

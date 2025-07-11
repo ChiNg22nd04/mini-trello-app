@@ -1,5 +1,6 @@
 const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
+// const { sendInviteEmail } = require("../services/email.service");
 
 const boardsCollection = db.collection("boards");
 const invitesCollection = db.collection("invites");
@@ -131,6 +132,13 @@ const inviteToBoard = async (req, res) => {
         console.log("boardId", boardId);
         const { boardOwnerId, memberId, emailMember, status = "pending" } = req.body;
 
+        const boardDoc = await boardsCollection.doc(boardId).get();
+        if (!boardDoc.exists) {
+            return res.status(404).json({ error: "Board not found" });
+        }
+        const boardData = boardDoc.data();
+        const boardName = boardData.name;
+
         const inviteRef = invitesCollection.doc();
         const inviteId = inviteRef.id;
 
@@ -144,7 +152,15 @@ const inviteToBoard = async (req, res) => {
             type: "board",
             createdAt: new Date(),
         };
+
+        console.log("newInvite", newInvite);
         await inviteRef.set(newInvite);
+
+        // const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId);
+        // if (!emailResult.success) {
+        //     console.error("Failed to send invite email:", emailResult.error);
+        // }
+
         getIO().emit("boardInviteSent", newInvite);
 
         res.status(201).json(newInvite);
