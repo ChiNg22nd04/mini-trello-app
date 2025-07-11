@@ -3,6 +3,9 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { db } = require("../firebase");
 const { sendCode } = require("../services/email.service");
+const { getIO } = require("../config/socket");
+
+const magicCodesCollection = db.collection("magicCodes");
 
 const githubLogin = (req, res) => {
     const authorizeURL = "https://github.com/login/oauth/authorize";
@@ -32,6 +35,7 @@ const githubCallback = async (req, res) => {
         );
 
         const accessToken = tokenResponse.data.access_token;
+        console.log("accessToken", accessToken);
 
         if (!accessToken) return res.status(401).send("No access token received from GitHub");
 
@@ -39,21 +43,20 @@ const githubCallback = async (req, res) => {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        const { id, login, avatar_url, email } = userResponse.data;
+        const { id, login, avatarUrl, email } = userResponse.data;
         const uid = id.toString();
-        const usersCollection = db.collection("users");
-
-        const userDocRef = usersCollection.doc(id.toString());
-        const userDoc = await userDocRef.get();
+        const userRef = db.collection("users").doc(uid);
+        const userDoc = await userRef.get();
 
         if (!userDoc.exists) {
-            await userDocRef.set({
+            await userRef.set({
                 uid,
                 githubId: id,
                 username: login,
                 email: email || "",
-                avatar: avatar_url,
+                avatar: avatarUrl,
                 createdAt: new Date(),
+                loginMethod: "github",
             });
         }
 
@@ -66,7 +69,7 @@ const githubCallback = async (req, res) => {
             user: {
                 id: id.toString(),
                 username: login,
-                avatar: avatar_url,
+                avatar: avatarUrl,
             },
         });
     } catch (err) {
@@ -80,12 +83,12 @@ const sendMagicCode = async (req, res) => {
     if (!email) return res.status(400).json({ msg: "Email is required" });
 
     const magicCodesCollection = db.collection("magicCodes");
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
     try {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 phút
-
         await magicCodesCollection.doc(email.toLowerCase()).set({
             email: email.toLowerCase(),
             code,
@@ -98,9 +101,10 @@ const sendMagicCode = async (req, res) => {
         if (emailResult.success) {
             console.log("Magic code sent successfully to:", email);
             res.json({
-                msg: "Magic code has been sent to your email. Please check your email.",
                 email: email,
             });
+        } else {
+            throw new Error("Failed to send email");
         }
     } catch (err) {
         console.error("Error sending magic code:", err);
@@ -109,11 +113,10 @@ const sendMagicCode = async (req, res) => {
 };
 
 const verifyMagicCode = async (req, res) => {
-    const { email, code } = req.body;
+    const { email, code } = req.query;
     if (!email || !code) return res.status(400).json({ msg: "Email and code are required." });
 
     try {
-        const magicCodesCollection = db.collection("magicCodes");
         const docRef = magicCodesCollection.doc(email.toLowerCase());
         const docSnap = await docRef.get();
 
@@ -147,6 +150,8 @@ const verifyMagicCode = async (req, res) => {
                 createdAt: new Date().toISOString(),
                 loginMethod: "email-code",
             });
+
+            getIO().emit("new-user", { uid, username });
         } else {
             const userDoc = userQuery.docs[0];
             uid = userDoc.data().uid || userDoc.id;

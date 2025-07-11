@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/Login";
 import AuthPage from "./pages/Auth";
+import BoardPage from "./pages/Board";
 import "./App.css";
 
 function App() {
@@ -8,7 +9,9 @@ function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<LoginPage />} />
-                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/signin" element={<LoginPage />} />
+                <Route path="/auth/verify" element={<AuthPage />} />
+                <Route path="/boards" element={<BoardPage />} />
             </Routes>
         </BrowserRouter>
     );

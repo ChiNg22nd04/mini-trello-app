@@ -7,7 +7,7 @@ router.get("/github", authController.githubLogin);
 router.get("/github/callback", authController.githubCallback);
 
 // Email Magic Link routes
-router.post("/email/send", authController.sendMagicCode);
-router.get("/email/verify", authController.verifyMagicCode);
+router.post("/signin", authController.sendMagicCode);
+router.get("/auth/verify", authController.verifyMagicCode);
 
 module.exports = router;
