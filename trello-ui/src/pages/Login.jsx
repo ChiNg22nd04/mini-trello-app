@@ -14,7 +14,7 @@ const LoginPage = () => {
             const res = await axios.post(`${API_BASE_URL}/signin`, { email });
             if (res.data && res.data.msg) setMessage(res.data.msg);
             else {
-                localStorage.setItem("userEmail", email);
+                localStorage.setItem("email", email);
                 navigate("/auth/verify");
             }
         } catch (err) {

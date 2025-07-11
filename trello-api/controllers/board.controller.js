@@ -5,7 +5,6 @@ const { sendInviteEmail } = require("../services/email.service");
 const boardsCollection = db.collection("boards");
 const invitesCollection = db.collection("invites");
 
-// POST /boards
 const getBoards = async (req, res) => {
     try {
         const userId = req.user.id;

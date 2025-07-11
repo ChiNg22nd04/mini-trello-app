@@ -8,7 +8,7 @@ import { BoardCard, Sidebar, Header } from "../components";
 import { useUser } from "../hooks";
 
 const BoardPage = () => {
-    const user = useUser();
+    const { user, token } = useUser();
     const headerHeight = "60px";
     const [boards, setBoards] = useState([]);
 
@@ -16,14 +16,20 @@ const BoardPage = () => {
         if (!user?.id) return;
 
         const fetchBoards = async () => {
-            const response = await axios.get(`${API_BASE_URL}/boards`, {
-                params: user.id,
-            });
+            const response = await axios
+                .get(`${API_BASE_URL}/boards`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
             setBoards(response.data);
         };
 
         fetchBoards();
-    }, [user]);
+    }, [user, token]);
 
     return (
         <>

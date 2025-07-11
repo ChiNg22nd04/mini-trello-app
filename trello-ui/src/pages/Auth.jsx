@@ -11,7 +11,7 @@ const AuthPage = () => {
     const [message, setMessage] = useState("");
 
     const handleSubmit = async () => {
-        const email = localStorage.getItem("userEmail");
+        const email = localStorage.getItem("email");
         console.log(email);
         try {
             const res = await axios.get(`${API_BASE_URL}/auth/verify`, {
