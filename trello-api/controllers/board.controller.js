@@ -1,6 +1,6 @@
 const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
-// const { sendInviteEmail } = require("../services/email.service");
+const { sendInviteEmail } = require("../services/email.service");
 
 const boardsCollection = db.collection("boards");
 const invitesCollection = db.collection("invites");
@@ -156,10 +156,10 @@ const inviteToBoard = async (req, res) => {
         console.log("newInvite", newInvite);
         await inviteRef.set(newInvite);
 
-        // const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId);
-        // if (!emailResult.success) {
-        //     console.error("Failed to send invite email:", emailResult.error);
-        // }
+        const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId);
+        if (!emailResult.success) {
+            console.error("Failed to send invite email:", emailResult.error);
+        }
 
         getIO().emit("boardInviteSent", newInvite);
 

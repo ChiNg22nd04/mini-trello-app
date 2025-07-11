@@ -48,9 +48,6 @@ const sendMagicLinkEmail = async (email, token) => {
     };
 
     try {
-        console.log("sender", sender);
-        console.log("recipient", recipient);
-
         const info = await transporter.sendMail(mailOptions);
         console.log("Test magic link sent:", info.messageId);
         return { success: true, messageId: info.messageId };
@@ -60,39 +57,39 @@ const sendMagicLinkEmail = async (email, token) => {
     }
 };
 
-// const sendInviteEmail = async (email, boardName, inviteId, boardId) => {
-//     const transporter = createTransporter();
-//     const frontendUrl = process.env.FRONTEND_URL;
-//     const inviteLink = `${frontendUrl}/boards/${boardId}/invite/${inviteId}`;
+const sendInviteEmail = async (email, boardName, inviteId, boardId) => {
+    const transporter = createTransporter();
+    const frontendUrl = process.env.FRONTEND_URL;
+    const inviteLink = `${frontendUrl}/boards/${boardId}/invite/${inviteId}`;
 
-//     const mailOptions = {
-//         from: process.env.EMAIL_USER,
-//         to: email,
-//         subject: `You're invited to join the board "${boardName}"`,
-//         html: `
-//            <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4;">
-//                 <h2>Board Invitation</h2>
-//                 <p>You have been invited to join the board: <strong>${boardName}</strong>.</p>
-//                 <p>Click the button below to accept the invitation:</p>
-//                 <a href="${inviteLink}" style="padding:10px 20px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
-//                     Accept Invitation
-//                 </a>
-//                 <p>If the button doesn't work, copy and paste this link into your browser:</p>
-//                 <p>${inviteLink}</p>
-//             </div>
-//         `,
-//     };
-//     try {
-//         const info = await transporter.sendMail(mailOptions);
-//         console.log("Invite email sent:", info.messageId);
-//         return { success: true };
-//     } catch (err) {
-//         console.error("Error sending invite email:", err.message);
-//         return { success: false, error: err.message };
-//     }
-// };
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: `You're invited to join the board "${boardName}"`,
+        html: `
+           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4;">
+                <h2>Board Invitation</h2>
+                <p>You have been invited to join the board: <strong>${boardName}</strong>.</p>
+                <p>Click the button below to accept the invitation:</p>
+                <a href="${inviteLink}" style="padding:10px 20px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
+                    Accept Invitation
+                </a>
+                <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                <p>${inviteLink}</p>
+            </div>
+        `,
+    };
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Invite email sent:", info.messageId);
+        return { success: true };
+    } catch (err) {
+        console.error("Error sending invite email:", err.message);
+        return { success: false, error: err.message };
+    }
+};
 
 module.exports = {
     sendMagicLinkEmail,
-    // sendInviteEmail,
+    sendInviteEmail,
 };
