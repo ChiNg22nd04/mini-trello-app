@@ -1,8 +1,8 @@
 // socket.js
+const { Server } = require("socket.io");
 let io = null;
 
 function initSocket(server) {
-    const { Server } = require("socket.io");
     io = new Server(server, {
         cors: {
             origin: "http://localhost:5173",
@@ -11,19 +11,10 @@ function initSocket(server) {
     });
 
     io.on("connection", (socket) => {
-        console.log("A user connected");
-
-        socket.on("joinCard", (cardId) => {
-            socket.join(cardId);
-            console.log(`User joined room: ${cardId}`);
-        });
-
-        socket.on("taskUpdated", ({ cardId, task }) => {
-            socket.to(cardId).emit("taskUpdated", task);
-        });
+        console.log("Socket connected", socket.id);
 
         socket.on("disconnect", () => {
-            console.log("A user disconnected");
+            console.log("Socket disconnected", socket.id);
         });
     });
 

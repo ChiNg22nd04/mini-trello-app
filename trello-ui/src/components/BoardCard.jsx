@@ -1,6 +1,6 @@
-const BoardCard = ({ title, onClick }) => {
+const BoardCard = ({ title, onClick, style }) => {
     return (
-        <div className="border rounded bg-white p-3 me-3 mb-3" style={{ width: "200px", cursor: "pointer" }} onClick={onClick}>
+        <div className="border rounded bg-white p-3" style={{ width: "100%", minHeight: "100px", cursor: "pointer", ...style }} onClick={onClick}>
             <h6 className="text-dark m-0">{title}</h6>
         </div>
     );

@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import { leftImage, rightImage } from "../assets/global/index";
-import API_BASE_URL from "../../config/index";
+import { socket, API_BASE_URL } from "../../config";
 
 const AuthPage = () => {
     console.log("AuthPage rendering...");
@@ -14,6 +15,18 @@ const AuthPage = () => {
     const navigate = useNavigate();
     const [code, setCode] = useState("");
     const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        const handleNewUser = (data) => {
+            console.log("New user:", data);
+            toast.success(`Welcome ${data.username}! Account created successfully.`);
+        };
+
+        socket.on("new-user", handleNewUser);
+        return () => {
+            socket.off("new-user", handleNewUser);
+        };
+    }, []);
 
     const handleSubmit = async () => {
         const email = localStorage.getItem("email");
