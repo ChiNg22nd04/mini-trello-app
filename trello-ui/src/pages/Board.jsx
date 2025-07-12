@@ -4,7 +4,8 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import API_BASE_URL from "../../config/config";
 
-import { BoardCard, Sidebar, Header } from "../components";
+import { BoardCard, Sidebar, Header, CreateBoardForm } from "../components";
+
 import { useUser } from "../hooks";
 import { Icon } from "@iconify/react";
 
@@ -12,6 +13,8 @@ const BoardPage = () => {
     const headerHeight = "60px";
     const { user, token } = useUser();
     const [boards, setBoards] = useState([]);
+    const [showForm, setShowForm] = useState(false);
+    console.log("showForm value:", showForm);
 
     useEffect(() => {
         if (!user || !token) return;
@@ -51,21 +54,14 @@ const BoardPage = () => {
         });
     };
 
-    const handleCreateBoard = async () => {
-        console.log("Creating board");
-        const name = prompt("Enter the name of the board");
-        if (!name) return;
-        const description = prompt("Enter the description of the board") || "";
-
+    const onSubmit = async (data) => {
         try {
-            const res = await axios.post(
-                `${API_BASE_URL}/boards`,
-                { name, description },
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
+            const res = await axios.post(`${API_BASE_URL}/boards`, data, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setBoards((prev) => [...prev, res.data]);
+            setShowForm(false);
+            console.log("showForm value:", showForm);
         } catch (error) {
             console.error("Failed to create board", error);
         }
@@ -136,7 +132,7 @@ const BoardPage = () => {
                                         <div className="col-12 col-sm-6 col-md-4 col-lg-3">
                                             <div
                                                 className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
-                                                onClick={handleCreateBoard}
+                                                onClick={() => setShowForm(true)}
                                                 style={{ cursor: "pointer", minHeight: "100px", ...createCardStyle }}
                                             >
                                                 <Icon className="text-white" icon="material-symbols:add" />
@@ -165,7 +161,12 @@ const BoardPage = () => {
         );
     }, [user, token, boards]);
 
-    return content;
+    return (
+        <>
+            {content}
+            {showForm && <CreateBoardForm onSubmit={onSubmit} onClose={() => setShowForm(false)} />}
+        </>
+    );
 };
 
 const createCardStyle = {
