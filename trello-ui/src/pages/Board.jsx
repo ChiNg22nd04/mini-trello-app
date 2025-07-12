@@ -24,18 +24,27 @@ const BoardPage = () => {
             .catch(console.error);
     }, [user, token]);
 
-    const onDrag = (result) => {
-        const { origin, destination } = result;
-        if (!destination) return;
+    const onDragEnd = (result) => {
+        const { source: from, destination: to } = result;
+
+        if (!to) return;
 
         const reordered = Array.from(boards);
-        const [moved] = reordered.splice(origin.index, 1);
-        reordered.splice(destination.index, 0, moved);
+        const [moved] = reordered.splice(from.index, 1);
+        reordered.splice(to.index, 0, moved);
 
         setBoards(reordered);
 
         reordered.forEach((board, index) => {
-            axios.put(`${API_BASE_URL}/boards/${board.id}`, { order: index }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
+            axios
+                .put(
+                    `${API_BASE_URL}/boards/${board.id}`,
+                    { order: index },
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                )
+                .catch(console.error);
         });
     };
 
@@ -73,14 +82,14 @@ const BoardPage = () => {
                             <BoardCard title="+ Create a new board" />
                         </div> */}
 
-                        <DragDropContext onDragEnd={onDrag}>
-                            <Droppable droppableId="board-list" direction="horizontal">
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <Droppable droppableId="board-list" direction="horizontal" isDropDisabled={false}>
                                 {(provided) => (
                                     <div className="d-flex flex-wrap" {...provided.droppableProps} ref={provided.innerRef}>
                                         {boards.map((board, index) => (
                                             <Draggable key={board.id} draggableId={board.id} index={index}>
                                                 {(provided) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="m-2">
                                                         <BoardCard title={board.name} description={board.description} />
                                                     </div>
                                                 )}
@@ -88,11 +97,16 @@ const BoardPage = () => {
                                         ))}
 
                                         {provided.placeholder}
-
-                                        <BoardCard title="+ Create a new board" />
                                     </div>
                                 )}
                             </Droppable>
+
+                            {/* Đặt Create Board button bên ngoài Droppable */}
+                            <div className="d-flex flex-wrap mt-2">
+                                <div className="m-2">
+                                    <BoardCard title="+ Create a new board" />
+                                </div>
+                            </div>
                         </DragDropContext>
                     </div>
                 </div>
