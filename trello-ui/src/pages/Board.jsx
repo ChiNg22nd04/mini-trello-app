@@ -87,12 +87,25 @@ const BoardPage = () => {
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
                                                     <div
-                                                        className="col-12 col-sm-6 col-md-4 col-lg-3" // responsive 1-4 columns
+                                                        className="col-12 col-sm-6 col-md-4 col-lg-3 p-0 mx-2"
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
+                                                        style={{ position: "relative" }}
                                                     >
                                                         <BoardCard title={board.name} description={board.description} />
+                                                        <span
+                                                            className="position-absolute"
+                                                            style={{
+                                                                bottom: 0,
+                                                                right: 0,
+                                                                width: 0,
+                                                                height: 0,
+                                                                borderLeft: "20px solid transparent",
+                                                                borderBottom: "20px solid #888888",
+                                                                borderBottomRightRadius: "0.375rem",
+                                                            }}
+                                                        />
                                                     </div>
                                                 )}
                                             </Draggable>
@@ -101,9 +114,24 @@ const BoardPage = () => {
                                         {provided.placeholder}
 
                                         <div className="col-12 col-sm-6 col-md-4 col-lg-3">
-                                            <div className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2" style={{ cursor: "pointer", minHeight: "100px" }}>
+                                            <div
+                                                className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
+                                                style={{ cursor: "pointer", minHeight: "100px", ...createCardStyle }}
+                                            >
                                                 <Icon className="text-white" icon="material-symbols:add" />
                                                 <span className="text-white">Create a new board</span>
+                                                <span
+                                                    className="position-absolute"
+                                                    style={{
+                                                        bottom: 0,
+                                                        right: 0,
+                                                        width: 0,
+                                                        height: 0,
+                                                        borderLeft: "20px solid transparent",
+                                                        borderBottom: "20px solid #888888",
+                                                        borderBottomRightRadius: "0.375rem",
+                                                    }}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -117,6 +145,20 @@ const BoardPage = () => {
     }, [user, token, boards]);
 
     return content;
+};
+
+const createCardStyle = {
+    cursor: "pointer",
+    minHeight: "100px",
+    position: "relative",
+    padding: "1rem",
+    border: "1px solid white",
+    borderRadius: "0.375rem",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    backgroundColor: "transparent",
 };
 
 export default BoardPage;
