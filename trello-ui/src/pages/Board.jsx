@@ -77,13 +77,7 @@ const BoardPage = () => {
                         }}
                     >
                         <h6 className="text-secondary fw-bold mb-4">YOUR WORKSPACES</h6>
-                        {/* <div className="d-flex flex-wrap">
-                            {boards.map((board) => (
-                                <BoardCard key={board.id} title={board.name} description={board.description} />
-                            ))}
-                            <BoardCard title="+ Create a new board" />
-                        </div> */}
-
+                       
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="board-list" direction="horizontal" isDropDisabled={false}>
                                 {(provided) => (
