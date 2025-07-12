@@ -26,6 +26,8 @@ const BoardPage = () => {
 
     const onDragEnd = (result) => {
         const { source: from, destination: to } = result;
+        console.log(from, to);
+        console.log(from.index, to.index);
 
         if (!to) return;
 
@@ -87,7 +89,7 @@ const BoardPage = () => {
                                 {(provided) => (
                                     <div className="d-flex flex-wrap" {...provided.droppableProps} ref={provided.innerRef}>
                                         {boards.map((board, index) => (
-                                            <Draggable key={board.id} draggableId={board.id} index={index}>
+                                            <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
                                                     <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="m-2">
                                                         <BoardCard title={board.name} description={board.description} />
