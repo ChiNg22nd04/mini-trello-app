@@ -8,7 +8,7 @@ const invitesCollection = db.collection("invites");
 const getBoards = async (req, res) => {
     try {
         const userId = req.user.id;
-        const snapshot = await boardsCollection.where("members", "array-contains", userId).get();
+        const snapshot = await boardsCollection.where("members", "array-contains", userId).orderBy("order", "asc").get();
 
         const boards = snapshot.docs.map((doc) => {
             const board = doc.data();
@@ -57,6 +57,10 @@ const createBoard = async (req, res) => {
         const { name, description, members = [] } = req.body;
         const userId = req.user.id;
 
+        const snapshot = await boardsCollection.where("ownerId", "==", userId).orderBy("order", "desc").limit(1).get();
+
+        const maxOrder = snapshot.empty ? 0 : (snapshot.docs[0].data().order ?? 0) + 1;
+
         const uniqueMembers = Array.from(new Set([...members, userId]));
         const newBoard = {
             name,
@@ -64,10 +68,11 @@ const createBoard = async (req, res) => {
             ownerId: userId,
             members: uniqueMembers,
             createdAt: new Date(),
+            order: maxOrder,
         };
         const docRef = await boardsCollection.add(newBoard);
 
-        const board = { id: docRef.id, name, description };
+        const board = { id: docRef.id, name, description, order: maxOrder };
         getIO().emit("boardCreated", board);
 
         res.status(200).json(board);
@@ -80,7 +85,7 @@ const createBoard = async (req, res) => {
 const updateBoard = async (req, res) => {
     try {
         const boardId = req.params.id;
-        const { name, description } = req.body;
+        const { name, description, order } = req.body;
 
         const boardRef = boardsCollection.doc(boardId);
         const boardDoc = await boardRef.get();
@@ -93,6 +98,7 @@ const updateBoard = async (req, res) => {
         const updatedData = {
             name: name ?? existingData.name,
             description: description ?? existingData.description,
+            order: order ?? existingData.order,
         };
 
         await boardRef.update(updatedData);

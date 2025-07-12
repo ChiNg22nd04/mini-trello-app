@@ -7,7 +7,7 @@ const socket = io(API_BASE_URL, {
 });
 
 socket.on("connect", () => {
-    console.log("✅ Socket connected with id:", socket.id);
+    console.log("Socket connected with id:", socket.id);
 });
 
 export default socket;
