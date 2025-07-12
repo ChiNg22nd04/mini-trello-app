@@ -152,6 +152,7 @@ const verifyMagicCode = async (req, res) => {
             });
 
             getIO().emit("new-user", { uid, username });
+            console.log("Emitting new-user:", { uid, username });
         } else {
             const userDoc = userQuery.docs[0];
             uid = userDoc.data().uid || userDoc.id;

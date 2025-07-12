@@ -1,16 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { leftImage, rightImage, logo } from "../assets/global/index";
-import API_BASE_URL from "../../config/index";
+import { API_BASE_URL } from "../../config";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
-    console.log("LoginPage rendering...");
-    console.log("leftImage:", leftImage);
-    console.log("rightImage:", rightImage);
-    console.log("logo:", logo);
-    console.log("API_BASE_URL:", API_BASE_URL);
-
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");

@@ -1,2 +1,4 @@
-const API_BASE_URL = "http://localhost:3000";
-export default API_BASE_URL;
+import API_BASE_URL from "./config";
+import socket from "./socket";
+	
+export { API_BASE_URL, socket };

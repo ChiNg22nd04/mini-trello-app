@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 
-import API_BASE_URL from "../../config/index";
+import API_BASE_URL from "../../config/config";
 
 import { BoardCard, Sidebar, Header } from "../components";
 import { useUser } from "../hooks";
@@ -52,7 +52,7 @@ const BoardPage = () => {
                         <h6 className="text-secondary fw-bold mb-4">YOUR WORKSPACES</h6>
                         <div className="d-flex flex-wrap">
                             {boards.map((board) => (
-                                <BoardfCard key={board.id} title={board.name} description={board.description} />
+                                <BoardCard key={board.id} title={board.name} description={board.description} />
                             ))}
                             <BoardCard title="+ Create a new board" />
                         </div>
