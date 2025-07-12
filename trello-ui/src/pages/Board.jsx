@@ -51,6 +51,26 @@ const BoardPage = () => {
         });
     };
 
+    const handleCreateBoard = async () => {
+        console.log("Creating board");
+        const name = prompt("Enter the name of the board");
+        if (!name) return;
+        const description = prompt("Enter the description of the board") || "";
+
+        try {
+            const res = await axios.post(
+                `${API_BASE_URL}/boards`,
+                { name, description },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            setBoards((prev) => [...prev, res.data]);
+        } catch (error) {
+            console.error("Failed to create board", error);
+        }
+    };
+
     const content = useMemo(() => {
         if (!user || !token) return null;
 
@@ -116,6 +136,7 @@ const BoardPage = () => {
                                         <div className="col-12 col-sm-6 col-md-4 col-lg-3">
                                             <div
                                                 className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
+                                                onClick={handleCreateBoard}
                                                 style={{ cursor: "pointer", minHeight: "100px", ...createCardStyle }}
                                             >
                                                 <Icon className="text-white" icon="material-symbols:add" />
