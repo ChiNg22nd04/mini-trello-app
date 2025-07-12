@@ -6,6 +6,7 @@ import API_BASE_URL from "../../config/config";
 
 import { BoardCard, Sidebar, Header } from "../components";
 import { useUser } from "../hooks";
+import { Icon } from "@iconify/react";
 
 const BoardPage = () => {
     const headerHeight = "60px";
@@ -77,15 +78,20 @@ const BoardPage = () => {
                         }}
                     >
                         <h6 className="text-secondary fw-bold mb-4">YOUR WORKSPACES</h6>
-                       
+
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="board-list" direction="horizontal" isDropDisabled={false}>
                                 {(provided) => (
-                                    <div className="d-flex flex-wrap" {...provided.droppableProps} ref={provided.innerRef}>
+                                    <div className="row g-3" {...provided.droppableProps} ref={provided.innerRef}>
                                         {boards.map((board, index) => (
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="m-2">
+                                                    <div
+                                                        className="col-12 col-sm-6 col-md-4 col-lg-3" // responsive 1-4 columns
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        {...provided.dragHandleProps}
+                                                    >
                                                         <BoardCard title={board.name} description={board.description} />
                                                     </div>
                                                 )}
@@ -93,16 +99,16 @@ const BoardPage = () => {
                                         ))}
 
                                         {provided.placeholder}
+
+                                        <div className="col-12 col-sm-6 col-md-4 col-lg-3">
+                                            <div className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2" style={{ cursor: "pointer", minHeight: "100px" }}>
+                                                <Icon className="text-white" icon="material-symbols:add" />
+                                                <span className="text-white">Create a new board</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </Droppable>
-
-                            {/* Đặt Create Board button bên ngoài Droppable */}
-                            <div className="d-flex flex-wrap mt-2">
-                                <div className="m-2">
-                                    <BoardCard title="+ Create a new board" />
-                                </div>
-                            </div>
                         </DragDropContext>
                     </div>
                 </div>
