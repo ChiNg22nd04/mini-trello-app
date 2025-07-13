@@ -6,18 +6,14 @@ const cardsCollection = db.collection("cards");
 const getCards = async (req, res) => {
     try {
         const boardId = req.params.boardId;
-        console.log("boardId", boardId);
 
         const snapshot = await cardsCollection.where("boardId", "==", boardId).get();
-        console.log("snapshot", snapshot.docs);
         const cards = snapshot.docs.map((doc) => {
             return {
                 id: doc.id,
                 ...doc.data(),
             };
         });
-
-        console.log("cards", cards);
 
         res.status(200).json(cards);
     } catch (err) {
@@ -154,8 +150,6 @@ const deleteCard = async (req, res) => {
         res.status(500).json({ msg: "Error deleting card" });
     }
 };
-
-
 
 module.exports = {
     getCards,
