@@ -103,7 +103,7 @@ const BoardPage = () => {
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
                                                     <div
-                                                        className="col-12 col-sm-6 col-md-4 col-lg-3 p-0 mx-2"
+                                                        className="col-12 col-md-4"
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
