@@ -33,57 +33,16 @@ const CardPage = () => {
 
     console.log(boardId);
 
-    // useEffect(() => {
-    //     if (!user || !token || !boardId) return;
-    //     const fetchData = async () => {
-    //         try {
-    //             const dataBoard = await axios.get(`${API_BASE_URL}/boards/${boardId}`, {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`,
-    //                 },
-    //             });
-    //             setBoard(dataBoard.data);
-    //             console.log("dataBoard", dataBoard.data);
-
-    //             const cardsRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards`, {
-    //                 headers: { Authorization: `Bearer ${token}` },
-    //             });
-    //             console.log("cardsRes", cardsRes.data);
-
-    //             const fetchCards = [];
-    //             for (const card of cardsRes.data) {
-    //                 console.log("card", card);
-    //                 const taskRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`, {
-    //                     headers: { Authorization: `Bearer ${token}` },
-    //                 });
-    //                 const tasks = taskRes.data;
-    //                 const firstStatus = tasks[0]?.status || "todo";
-
-    //                 fetchCards.push({
-    //                     ...card,
-    //                     taskStatus: firstStatus,
-    //                 });
-    //             }
-    //             setCards(fetchCards);
-    //         } catch (error) {
-    //             console.error("Failed to get data", error);
-    //         }
-    //     };
-    //     fetchData();
-    // }, [user, token, boardId]);
-
     useEffect(() => {
         if (!user || !token || !boardId) return;
 
         const fetchData = async () => {
             try {
-                // Lấy thông tin board
                 const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setBoard(boardRes.data);
 
-                // Lấy tất cả cards
                 const cardsRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -157,37 +116,6 @@ const CardPage = () => {
         }
     };
 
-    // const onDragEnd = async (result) => {
-    //     const { source, destination, draggableId } = result;
-
-    //     if (!destination) return;
-
-    //     const movedCardId = draggableId;
-    //     const newStatus = destination.droppableId;
-
-    //     if (source.droppableId !== destination.droppableId) {
-    //         try {
-    //             await axios.put(
-    //                 `${API_BASE_URL}/cards/${movedCardId}/status`,
-    //                 {
-    //                     status: newStatus,
-    //                 },
-    //                 {
-    //                     headers: {
-    //                         Authorization: `Bearer ${token}`,
-    //                     },
-    //                 }
-    //             );
-
-    //             setCards((prev) => prev.map((card) => (card.id === movedCardId ? { ...card, status: newStatus } : card)));
-    //         } catch (error) {
-    //             console.error("Failed to update card status", error);
-    //         }
-    //     }
-    // };
-
-    // const getCardsByStatus = (status) => cards.filter((card) => card.status === status);
-    // console.log("cards", cards);
     return (
         <>
             <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
