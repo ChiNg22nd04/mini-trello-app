@@ -40,7 +40,7 @@ const CardPage = () => {
 
     return (
         <>
-            <Header username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
+            <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
             <div
                 className="d-flex bg-dark text-white"
                 style={{
@@ -49,7 +49,7 @@ const CardPage = () => {
                 }}
             >
                 <div style={{ width: "25%", position: "fixed" }}>
-                    <Sidebar active="boards" fullHeight title={board?.name} />
+                    <Sidebar active="boards" fullHeight title={board?.name} members={board?.members} />
                 </div>
 
                 <div
@@ -59,7 +59,11 @@ const CardPage = () => {
                         overflowY: "auto",
                     }}
                 >
-                    <TopSideBar boardName={board?.name} className="text-white fw-normal p-3 mb-4 fs-5 ps-4" style={{ backgroundColor: "#743153" }} />
+                    <TopSideBar
+                        boardName={board?.name}
+                        className="text-white fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
+                        style={{ backgroundColor: "#743153" }}
+                    />
 
                     {console.log(board)}
                     {/* <DragDropContext>
