@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import API_BASE_URL from "../../../config/config";
 
-import { Header } from "../../components";
+import { Header, TopSideBar } from "../../components";
 import Sidebar from "./Sidebar";
 
 import { useUser } from "../../hooks";
@@ -49,7 +49,7 @@ const CardPage = () => {
                 }}
             >
                 <div style={{ width: "25%", position: "fixed" }}>
-                    <Sidebar active="boards" fullHeight title={board?.name} members={board?.members} />
+                    <Sidebar active="boards" fullHeight title={board?.name} />
                 </div>
 
                 <div
@@ -59,9 +59,7 @@ const CardPage = () => {
                         overflowY: "auto",
                     }}
                 >
-                    <p style={{ backgroundColor: "#743153" }} className="text-white fw-normal p-3 mb-4 fs-5 ps-4">
-                        {board?.name}
-                    </p>
+                    <TopSideBar boardName={board?.name} className="text-white fw-normal p-3 mb-4 fs-5 ps-4" style={{ backgroundColor: "#743153" }} />
 
                     {console.log(board)}
                     {/* <DragDropContext>
