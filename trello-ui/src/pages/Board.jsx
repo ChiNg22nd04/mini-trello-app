@@ -98,17 +98,20 @@ const BoardPage = () => {
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="board-list" direction="horizontal" isDropDisabled={false}>
                                 {(provided) => (
-                                    <div className="row g-3" {...provided.droppableProps} ref={provided.innerRef}>
+                                    <div
+                                        className="d-grid"
+                                        {...provided.droppableProps}
+                                        ref={provided.innerRef}
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(4, 1fr)",
+                                            gap: "1rem",
+                                        }}
+                                    >
                                         {boards.map((board, index) => (
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
-                                                    <div
-                                                        className="col-12 col-md-4"
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        style={{ position: "relative" }}
-                                                    >
+                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{ position: "relative" }}>
                                                         <BoardCard title={board.name} description={board.description} />
                                                         <span
                                                             className="position-absolute"
@@ -129,7 +132,7 @@ const BoardPage = () => {
 
                                         {provided.placeholder}
 
-                                        <div className="col-12 col-sm-6 col-md-4 col-lg-3">
+                                        <div className="col-12">
                                             <div
                                                 className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
                                                 onClick={() => setShowForm(true)}
