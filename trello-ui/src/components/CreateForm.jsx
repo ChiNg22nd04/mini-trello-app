@@ -18,7 +18,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
 
     return (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}>
-            <form onSubmit={handleSubmit(handleFormSubmit)} className="bg-white text-dark p-4 rounded shadow" style={{ minWidth: "300px" }}>
+            <form onSubmit={handleSubmit(handleFormSubmit)} className="bg-white text-dark p-4 rounded shadow" style={{ minWidth: "500px" }}>
                 <h5 className="mb-3">Create New Board</h5>
 
                 <div className="mb-3">

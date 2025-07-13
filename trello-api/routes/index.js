@@ -11,7 +11,7 @@ router.use("/", authRoutes);
 router.use("/users", userRoutes);
 // router.use("/cards", cardRoutes);
 router.use("/boards/:boardId/cards", cardRoutes);
-router.use("/cards/:cardId/tasks", taskRoutes);
+router.use("/boards/:boardId/cards/:cardId/tasks", taskRoutes);
 router.use("/boards", boardRoutes);
 
 module.exports = router;

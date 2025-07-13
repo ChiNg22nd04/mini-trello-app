@@ -2,14 +2,16 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-import API_BASE_URL from "../../config/config";
+import API_BASE_URL from "../../../config/config";
 
-import { BoardCard, Sidebar, Header, CreateBoardForm } from "../components";
+import { BoardCard, Sidebar, Header, CreateBoardForm } from "../../components";
 
-import { useUser } from "../hooks";
+import { useUser } from "../../hooks";
 import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router-dom";
 
 const BoardPage = () => {
+    const navigate = useNavigate();
     const headerHeight = "60px";
     const { user, token } = useUser();
     const [boards, setBoards] = useState([]);
@@ -67,6 +69,11 @@ const BoardPage = () => {
         }
     };
 
+    const handleClickBoard = (boardId) => {
+        console.log("boardId", boardId);
+        navigate(`/boards/${boardId}`);
+    };
+
     const content = useMemo(() => {
         if (!user || !token) return null;
 
@@ -111,7 +118,13 @@ const BoardPage = () => {
                                         {boards.map((board, index) => (
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{ position: "relative" }}>
+                                                    <div
+                                                        onClick={() => handleClickBoard(board.id)}
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        {...provided.dragHandleProps}
+                                                        style={{ position: "relative" }}
+                                                    >
                                                         <BoardCard title={board.name} description={board.description} />
                                                         <span
                                                             className="position-absolute"
