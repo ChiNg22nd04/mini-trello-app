@@ -43,6 +43,10 @@ const getBoardById = async (req, res) => {
             id: boardDoc.id,
             name: data.name,
             description: data.description,
+            members: data.members,
+            ownerId: data.ownerId,
+            createdAt: data.createdAt,
+            order: data.order,
         };
 
         res.status(200).json(board);

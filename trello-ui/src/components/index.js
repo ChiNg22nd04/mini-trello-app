@@ -1,5 +1,5 @@
 import BoardCard from "./BoardCard";
-import Sidebar from "./Sidebar";
+import Sidebar from "../pages/Board/Sidebar";
 import Header from "./Header";
 import CreateBoardForm from "./CreateForm";
 

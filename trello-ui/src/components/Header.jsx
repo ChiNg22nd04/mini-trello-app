@@ -10,6 +10,7 @@ const Header = ({ username = "Board Management", style = {} }) => {
             </h5>
             <div className="d-flex align-items-center gap-3">
                 <Icon icon="material-symbols:notifications" width="24" />
+
                 <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
                     {username.charAt(0).toUpperCase()}
                 </div>
