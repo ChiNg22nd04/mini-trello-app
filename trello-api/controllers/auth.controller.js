@@ -43,7 +43,7 @@ const githubCallback = async (req, res) => {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        const { id, login, avatarUrl, email } = userResponse.data;
+        const { id, login, avatar_url, email } = userResponse.data;
         const uid = id.toString();
         const userRef = db.collection("users").doc(uid);
         const userDoc = await userRef.get();
@@ -54,7 +54,7 @@ const githubCallback = async (req, res) => {
                 githubId: id,
                 username: login,
                 email: email || "",
-                avatar: avatarUrl,
+                avatar: avatar_url,
                 createdAt: new Date(),
                 loginMethod: "github",
             });
@@ -69,7 +69,7 @@ const githubCallback = async (req, res) => {
             user: {
                 id: id.toString(),
                 username: login,
-                avatar: avatarUrl,
+                avatar: avatar_url,
             },
         });
     } catch (err) {

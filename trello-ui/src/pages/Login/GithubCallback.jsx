@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { API_BASE_URL } from "../../config";
+import { API_BASE_URL } from "../../../config";
 
 const GithubCallback = () => {
     const navigate = useNavigate();
@@ -18,13 +18,15 @@ const GithubCallback = () => {
             }
 
             try {
-                const res = await axios.get(`${API_BASE_URL}/github/callback?code=${code}`);
+                const res = await axios.get(
+                    `${API_BASE_URL}/github/callback?code=${code}`
+                );
                 const { token, user } = res.data;
 
                 localStorage.setItem("token", token);
                 localStorage.setItem("user", JSON.stringify(user));
 
-                navigate("/");
+                navigate("/boards");
             } catch (err) {
                 console.error("GitHub login failed", err);
                 alert("GitHub login failed");

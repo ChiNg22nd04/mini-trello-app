@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { leftImage, rightImage, logo } from "../assets/global/index";
-import { API_BASE_URL } from "../../config";
+import { leftImage, rightImage, logo } from "../../assets/global/index";
+import { API_BASE_URL } from "../../../config";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 

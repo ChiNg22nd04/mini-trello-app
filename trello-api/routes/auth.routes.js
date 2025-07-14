@@ -4,7 +4,7 @@ const { authController } = require("../controllers");
 
 // GitHub OAuth routes
 router.get("/github", authController.githubLogin);
-router.get("/github/callback", authController.githubCallback);
+router.get("/auth/github/callback", authController.githubCallback);
 
 // Email Magic Link routes
 router.post("/signin", authController.sendMagicCode);
