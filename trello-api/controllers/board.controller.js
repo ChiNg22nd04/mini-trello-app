@@ -4,6 +4,7 @@ const { sendInviteEmail } = require("../services/email.service");
 
 const boardsCollection = db.collection("boards");
 const invitesCollection = db.collection("invites");
+const usersCollection = db.collection("users");
 
 const getBoards = async (req, res) => {
     try {
@@ -225,6 +226,53 @@ const acceptBoardInvite = async (req, res) => {
     }
 };
 
+const getMembersOfBoard = async (req, res) => {
+    try {
+        const boardId = req.params.id;
+        const userId = req.user.id;
+
+        console.log("userId", userId);
+        console.log("boardId", boardId);
+
+        const boardDoc = await boardsCollection.doc(boardId).get();
+
+        if (!boardDoc.exists) {
+            return res.status(404).json({ error: "Board not found" });
+        }
+
+        const boardData = boardDoc.data();
+        if (!boardData.members.includes(userId)) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        const memberIds = boardData.members || [];
+        const allMembers = [];
+
+        for (const memberId of memberIds) {
+            const userDoc = await usersCollection.doc(memberId).get();
+
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                allMembers.push({
+                    id: memberId,
+                    username: userData.username || "Unknown",
+                });
+            } else {
+                allMembers.push({
+                    id: memberId,
+                    username: "Unknown",
+                });
+            }
+        }
+        console.log("allMembers", allMembers);
+
+        res.status(200).json({ members: allMembers });
+    } catch (err) {
+        console.error("getMembersOfBoard error:", err);
+        res.status(500).json({ error: "Failed to get board members" });
+    }
+};
+
 module.exports = {
     getBoards,
     createBoard,
@@ -233,4 +281,5 @@ module.exports = {
     deleteBoard,
     inviteToBoard,
     acceptBoardInvite,
+    getMembersOfBoard
 };

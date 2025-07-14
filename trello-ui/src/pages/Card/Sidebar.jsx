@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 
-const Sidebar = ({ active, fullHeight = false, title, members = [] }) => {
+const Sidebar = ({ members, fullHeight = false, title }) => {
     return (
         <div
             className="bg-dark text-white p-3"
@@ -29,15 +29,29 @@ const Sidebar = ({ active, fullHeight = false, title, members = [] }) => {
                 </p>
             </div>
 
-            <ul className="nav flex-column" style={{ marginLeft: "20px", paddingRight: "10px" }}>
+            <ul
+                className="nav flex-column"
+                style={{ marginLeft: "20px", paddingRight: "10px" }}
+            >
                 <li className="mb-2 d-flex align-items-center">
-                    <Icon style={{ width: "22px", height: "22px", marginRight: "7px" }} icon="material-symbols:person" />
+                    <Icon
+                        style={{
+                            width: "22px",
+                            height: "22px",
+                            marginRight: "7px",
+                        }}
+                        icon="material-symbols:person"
+                    />
                     Members
                 </li>
 
                 <li style={{ paddingLeft: "10px" }}>
                     {members.map((member) => (
-                        <div key={member} className="d-flex align-items-center py-1" style={{ overflow: "hidden" }}>
+                        <div
+                            key={member.id}
+                            className="d-flex align-items-center py-1"
+                            style={{ overflow: "hidden" }}
+                        >
                             <div
                                 className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
                                 style={{
@@ -46,7 +60,7 @@ const Sidebar = ({ active, fullHeight = false, title, members = [] }) => {
                                     fontSize: "14px",
                                 }}
                             >
-                                {member.charAt(0).toUpperCase()}
+                                {member.username.charAt(0).toUpperCase()}
                             </div>
                             <p
                                 className="m-0 ps-2 fw-normal fs-6"
@@ -57,7 +71,8 @@ const Sidebar = ({ active, fullHeight = false, title, members = [] }) => {
                                     textOverflow: "ellipsis",
                                 }}
                             >
-                                {member}
+                                {member.username.charAt(0).toUpperCase() +
+                                    member.username.slice(1)}
                             </p>
                         </div>
                     ))}

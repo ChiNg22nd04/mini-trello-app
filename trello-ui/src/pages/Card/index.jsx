@@ -32,6 +32,7 @@ const CardPage = () => {
     });
 
     const [selectedTask, setSelectedTask] = useState(null);
+    const [arrayMembers, setArrayMembers] = useState([]);
 
     const headerHeight = "60px";
 
@@ -42,21 +43,30 @@ const CardPage = () => {
 
         const fetchData = async () => {
             try {
-                const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const boardRes = await axios.get(
+                    `${API_BASE_URL}/boards/${boardId}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
                 setBoard(boardRes.data);
 
-                const cardsRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const cardsRes = await axios.get(
+                    `${API_BASE_URL}/boards/${boardId}/cards`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
 
                 const allTasks = [];
 
                 for (const card of cardsRes.data) {
-                    const taskRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
+                    const taskRes = await axios.get(
+                        `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
+                        {
+                            headers: { Authorization: `Bearer ${token}` },
+                        }
+                    );
 
                     const tasks = taskRes.data.map((task) => ({
                         ...task,
@@ -77,8 +87,15 @@ const CardPage = () => {
                     const status = task.status || "todo";
                     grouped[status].push(task);
                 });
-
                 setTasksByStatus(grouped);
+
+                const members = await axios.get(
+                    `${API_BASE_URL}/boards/${boardId}/members`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                setArrayMembers(members.data.members || []);
             } catch (err) {
                 console.error("Failed to fetch board or tasks:", err);
             }
@@ -89,12 +106,15 @@ const CardPage = () => {
 
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result;
-        if (!destination || source.droppableId === destination.droppableId) return;
+        if (!destination || source.droppableId === destination.droppableId)
+            return;
 
         const sourceStatus = source.droppableId;
         const destStatus = destination.droppableId;
 
-        const movedTask = tasksByStatus[sourceStatus].find((t) => t.id === draggableId);
+        const movedTask = tasksByStatus[sourceStatus].find(
+            (t) => t.id === draggableId
+        );
         if (!movedTask) return;
 
         try {
@@ -111,8 +131,13 @@ const CardPage = () => {
             setTasksByStatus((prev) => {
                 return {
                     ...prev,
-                    [sourceStatus]: prev[sourceStatus].filter((t) => t.id !== draggableId),
-                    [destStatus]: [...prev[destStatus], { ...movedTask, status: destStatus }],
+                    [sourceStatus]: prev[sourceStatus].filter(
+                        (t) => t.id !== draggableId
+                    ),
+                    [destStatus]: [
+                        ...prev[destStatus],
+                        { ...movedTask, status: destStatus },
+                    ],
                 };
             });
         } catch (err) {
@@ -126,7 +151,11 @@ const CardPage = () => {
 
     return (
         <>
-            <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
+            <Header
+                isShow={false}
+                username={user?.username}
+                style={{ height: headerHeight, zIndex: 1030 }}
+            />
             <div
                 className="d-flex bg-dark text-white"
                 style={{
@@ -135,7 +164,11 @@ const CardPage = () => {
                 }}
             >
                 <div style={{ width: "20%", position: "fixed" }}>
-                    <Sidebar active="boards" fullHeight title={board?.name} members={board?.members} />
+                    <Sidebar
+                        members={arrayMembers}
+                        fullHeight
+                        title={board?.name}
+                    />
                 </div>
 
                 <div
@@ -161,7 +194,10 @@ const CardPage = () => {
                     {console.log("boardId", boardId)}
 
                     <DragDropContext onDragEnd={onDragEnd}>
-                        <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>
+                        <div
+                            className="d-flex gap-3 p-3"
+                            style={{ overflowX: "auto" }}
+                        >
                             {STATUSES.map((status) => (
                                 <Droppable droppableId={status} key={status}>
                                     {(provided) => (
@@ -176,33 +212,69 @@ const CardPage = () => {
                                                 height: "100%",
                                             }}
                                         >
-                                            <p className="text-white mb-3">{STATUS_LABELS[status]}</p>
+                                            <p className="text-white mb-3">
+                                                {STATUS_LABELS[status]}
+                                            </p>
 
-                                            {tasksByStatus[status].map((task, index) => (
-                                                <Draggable key={task.id} draggableId={task.id} index={index}>
-                                                    {(provided) => (
-                                                        <div
-                                                            onClick={() => setSelectedTask(task)}
-                                                            ref={provided.innerRef}
-                                                            {...provided.draggableProps}
-                                                            {...provided.dragHandleProps}
-                                                            className="bg-dark text-white border rounded mb-3 p-2"
-                                                        >
-                                                            <strong>{task.title}</strong>
-                                                            <p className="mb-1">{task.description}</p>
-                                                            <small className="text-muted">Card: {task.cardName}</small>
-                                                        </div>
-                                                    )}
-                                                </Draggable>
-                                            ))}
+                                            {tasksByStatus[status].map(
+                                                (task, index) => (
+                                                    <Draggable
+                                                        key={task.id}
+                                                        draggableId={task.id}
+                                                        index={index}
+                                                    >
+                                                        {(provided) => (
+                                                            <div
+                                                                onClick={() =>
+                                                                    setSelectedTask(
+                                                                        task
+                                                                    )
+                                                                }
+                                                                ref={
+                                                                    provided.innerRef
+                                                                }
+                                                                {...provided.draggableProps}
+                                                                {...provided.dragHandleProps}
+                                                                className="bg-dark text-white border rounded mb-3 p-2"
+                                                            >
+                                                                <strong>
+                                                                    {task.title}
+                                                                </strong>
+                                                                <p className="mb-1">
+                                                                    {
+                                                                        task.description
+                                                                    }
+                                                                </p>
+                                                                <small className="text-muted">
+                                                                    Card:{" "}
+                                                                    {
+                                                                        task.cardName
+                                                                    }
+                                                                </small>
+                                                            </div>
+                                                        )}
+                                                    </Draggable>
+                                                )
+                                            )}
 
                                             {provided.placeholder}
-                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100" onClick={() => handleAddTask(status)}>
+                                            <button
+                                                className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100"
+                                                onClick={() =>
+                                                    handleAddTask(status)
+                                                }
+                                            >
                                                 <div className="d-flex justify-content-between">
-                                                    <Icon width={20} icon="material-symbols:add" />
+                                                    <Icon
+                                                        width={20}
+                                                        icon="material-symbols:add"
+                                                    />
                                                     <span> Add Task</span>
                                                 </div>
-                                                <Icon width={20} icon="material-symbols:ink-selection-rounded" />
+                                                <Icon
+                                                    width={20}
+                                                    icon="material-symbols:ink-selection-rounded"
+                                                />
                                             </button>
                                         </div>
                                     )}
@@ -212,7 +284,10 @@ const CardPage = () => {
                     </DragDropContext>
                 </div>
             </div>
-            <TaskDetail task={selectedTask} onClose={() => setSelectedTask(null)} />
+            <TaskDetail
+                task={selectedTask}
+                onClose={() => setSelectedTask(null)}
+            />
         </>
     );
 };

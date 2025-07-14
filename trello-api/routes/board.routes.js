@@ -12,5 +12,6 @@ router.put("/:id", boardController.updateBoard);
 router.delete("/:id", boardController.deleteBoard);
 router.post("/:id/invite", boardController.inviteToBoard);
 router.post("/:id/invite/:inviteId/accept", boardController.acceptBoardInvite);
+router.get("/:id/members", boardController.getMembersOfBoard);
 
 module.exports = router;
