@@ -1,13 +1,12 @@
 import React, { useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useUser } from "../../hooks";
-import { API_BASE_URL } from "../../../config";
+import { API_BASE_URL, socket } from "../../../config";
 
 const InviteAcceptPage = () => {
-    const { inviteId } = useParams();
-    const [searchParams] = useSearchParams();
-    const boardId = searchParams.get("boardId");
+    console.log(1);
+    const { id: boardId, inviteId } = useParams();
     const navigate = useNavigate();
     const { token } = useUser();
 
@@ -16,9 +15,7 @@ const InviteAcceptPage = () => {
             try {
                 const res = await axios.post(
                     `${API_BASE_URL}/boards/${boardId}/invite/${inviteId}/accept`,
-                    {
-                        invite_id: inviteId,
-                    },
+                    {},
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -30,8 +27,7 @@ const InviteAcceptPage = () => {
                     navigate(`/boards/${boardId}`);
                 }
             } catch (err) {
-                console.error("Error accepting invite:", err.response?.data || err.message);
-
+                console.error(" Error accepting invite:", err.response?.data || err.message);
                 navigate(`/boards/${boardId}`);
             }
         };
@@ -39,6 +35,12 @@ const InviteAcceptPage = () => {
         if (inviteId && boardId && token) {
             acceptInvite();
         }
+
+        socket.on("boardInviteAccepted");
+
+        return () => {
+            socket.off("boardInviteAccepted");
+        };
     }, [inviteId, boardId, token, navigate]);
 
     return <div>Processing invitation...</div>;

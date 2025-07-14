@@ -6,8 +6,7 @@ import { socket, API_BASE_URL } from "../../config";
 const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = {} }) => {
     useEffect(() => {
         socket.on("boardInviteSent", (data) => {
-            console.log("📥 boardInviteSent:", data);
-            alert(`📨 ${data.emailMember} has been invited to board "${data.boardId}"!`);
+            console.log("boardInviteSent:", data);
         });
 
         return () => {
