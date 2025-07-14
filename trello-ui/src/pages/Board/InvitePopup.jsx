@@ -12,7 +12,11 @@ const InvitePopup = ({ boardId, token, onClose }) => {
     const handleInvite = async () => {
         if (!email.trim()) return;
         try {
-            const res = await axios.post(`${API_BASE_URL}/boards/${boardId}/invite`, { emailMember: email.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.post(
+                `${API_BASE_URL}/boards/${boardId}/invite`,
+                { emailMember: email.trim() },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             console.log("Invite sent:", res.data);
             toast.success(`Invitation sent to ${email.trim()} successfully!`);
             onClose();
@@ -32,18 +36,34 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                 <h5 className="mb-3">Invite to Board</h5>
 
                 <div className="d-flex mb-3">
-                    <input type="email" className="form-control" placeholder="Email address or name" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <input
+                        type="email"
+                        className="form-control"
+                        placeholder="Email address or name"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center">
                     <div>
-                        <span>Invite someone to this Workspace with a link: </span>
-                        <a href="#" className="text-primary" onClick={() => alert("Disable link clicked")}>
+                        <span>
+                            Invite someone to this Workspace with a link:{" "}
+                        </span>
+                        <a
+                            href="#"
+                            className="text-primary"
+                            onClick={() => alert("Disable link clicked")}
+                        >
                             Disable link
                         </a>
                     </div>
-                    <button style={{ borderRadius: "3px" }} className="btn btn-outline-light" onClick={handleInvite}>
-                        <span style={{ marginRight: 4 }}>$</span> Copy link
+                    <button
+                        style={{ borderRadius: "3px" }}
+                        className="btn btn-outline-light"
+                        onClick={handleInvite}
+                    >
+                        <span style={{ marginRight: 4 }}>$</span> Send
                     </button>
                 </div>
             </div>
