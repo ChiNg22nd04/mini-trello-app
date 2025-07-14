@@ -147,10 +147,15 @@ const CardPage = () => {
                     }}
                 >
                     <TopSideBar
+                        token={token}
+                        boardId={boardId}
                         boardName={board?.name}
                         className="text-white fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
                         style={{ backgroundColor: "#743153" }}
                     />
+                    {console.log("token", token)}
+                    {console.log("board", board)}
+                    {console.log("boardId", boardId)}
 
                     <DragDropContext onDragEnd={onDragEnd}>
                         <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>

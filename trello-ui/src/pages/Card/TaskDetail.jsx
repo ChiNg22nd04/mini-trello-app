@@ -26,7 +26,7 @@ const TaskDetail = ({ task, onClose }) => {
                             <small className="text-secondary">in list To do</small>
                         </div>
                     </div>
-                    <button className="btn" onClick={onClose}>
+                    <button className="btn" style={{ marginRight: "-18px" }} onClick={onClose}>
                         <Icon icon="material-symbols:close" width={24} color="white" />
                     </button>
                 </div>
