@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import { Icon } from "@iconify/react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import API_BASE_URL from "../../../config/config";
 
 import { Header, TopSideBar } from "../../components";
 import Sidebar from "./Sidebar";
+import TaskDetail from "./TaskDetail";
 
 import { useUser } from "../../hooks";
 const STATUSES = ["todo", "doing", "done"];
@@ -28,6 +30,8 @@ const CardPage = () => {
         doing: [],
         done: [],
     });
+
+    const [selectedTask, setSelectedTask] = useState(null);
 
     const headerHeight = "60px";
 
@@ -116,6 +120,10 @@ const CardPage = () => {
         }
     };
 
+    const handleAddTask = (status) => {
+        console.log("status", status);
+    };
+
     return (
         <>
             <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
@@ -145,7 +153,7 @@ const CardPage = () => {
                     />
 
                     <DragDropContext onDragEnd={onDragEnd}>
-                        <div className="d-flex gap-3" style={{ overflowX: "auto", padding: "10px" }}>
+                        <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>
                             {STATUSES.map((status) => (
                                 <Droppable droppableId={status} key={status}>
                                     {(provided) => (
@@ -165,7 +173,13 @@ const CardPage = () => {
                                             {tasksByStatus[status].map((task, index) => (
                                                 <Draggable key={task.id} draggableId={task.id} index={index}>
                                                     {(provided) => (
-                                                        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-dark text-white border rounded mb-3 p-2">
+                                                        <div
+                                                            onClick={() => setSelectedTask(task)}
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className="bg-dark text-white border rounded mb-3 p-2"
+                                                        >
                                                             <strong>{task.title}</strong>
                                                             <p className="mb-1">{task.description}</p>
                                                             <small className="text-muted">Card: {task.cardName}</small>
@@ -175,6 +189,13 @@ const CardPage = () => {
                                             ))}
 
                                             {provided.placeholder}
+                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100" onClick={() => handleAddTask(status)}>
+                                                <div className="d-flex justify-content-between">
+                                                    <Icon width={20} icon="material-symbols:add" />
+                                                    <span> Add Task</span>
+                                                </div>
+                                                <Icon width={20} icon="material-symbols:ink-selection-rounded" />
+                                            </button>
                                         </div>
                                     )}
                                 </Droppable>
@@ -183,6 +204,7 @@ const CardPage = () => {
                     </DragDropContext>
                 </div>
             </div>
+            <TaskDetail task={selectedTask} onClose={() => setSelectedTask(null)} />
         </>
     );
 };
