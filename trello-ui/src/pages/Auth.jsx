@@ -7,11 +7,6 @@ import { leftImage, rightImage } from "../assets/global/index";
 import { socket, API_BASE_URL } from "../../config";
 
 const AuthPage = () => {
-    console.log("AuthPage rendering...");
-    console.log("leftImage:", leftImage);
-    console.log("rightImage:", rightImage);
-    console.log("API_BASE_URL:", API_BASE_URL);
-
     const navigate = useNavigate();
     const [code, setCode] = useState("");
     const [message, setMessage] = useState("");
