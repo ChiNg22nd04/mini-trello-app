@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 import { API_BASE_URL } from "../../../config";
 
@@ -13,9 +14,11 @@ const InvitePopup = ({ boardId, token, onClose }) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/boards/${boardId}/invite`, { emailMember: email.trim() }, { headers: { Authorization: `Bearer ${token}` } });
             console.log("Invite sent:", res.data);
+            toast.success(`Invitation sent to ${email.trim()} successfully!`);
             onClose();
         } catch (err) {
             console.error("Invite failed:", err.response?.data || err.message);
+            toast.error("Failed to send invitation. Please try again.");
         }
     };
 

@@ -9,7 +9,6 @@ const getTasksByCard = async (req, res) => {
         const taskRef = db.collection("tasks").where("cardId", "==", cardId);
         const snapshot = await taskRef.get();
         const task = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        console.log("task", task);
         res.json(task);
     } catch (err) {
         console.error("Error fetching task:", err.message);

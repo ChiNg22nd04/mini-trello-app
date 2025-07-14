@@ -17,14 +17,17 @@ function App() {
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
             <Routes>
-                <Route path="/" element={<LoginPage />} />
-                <Route path="/signin" element={<LoginPage />} />
-                <Route path="/github" element={<GithubCallback />} />
-                <Route path="/auth/verify" element={<AuthPage />} />
-                <Route path="/github/callback" element={<GithubCallback />} />
-                <Route path="/boards" element={<BoardPage />} />
+                <Route path="/boards/:id/invite/:inviteId/accept" element={<InviteAcceptPage />} />
                 <Route path="/boards/:id" element={<CardPage />} />
-                <Route path="/invite/:inviteId/accept" element={<InviteAcceptPage />} />
+                <Route path="/boards" element={<BoardPage />} />
+
+                <Route path="/auth/verify" element={<AuthPage />} />
+
+                <Route path="/github/callback" element={<GithubCallback />} />
+                <Route path="/github" element={<GithubCallback />} />
+
+                <Route path="/signin" element={<LoginPage />} />
+                <Route path="/" element={<LoginPage />} />
             </Routes>
         </BrowserRouter>
     );

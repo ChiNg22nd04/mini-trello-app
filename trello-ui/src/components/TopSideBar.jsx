@@ -1,19 +1,32 @@
 import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { socket } from "../../config";
+import { toast } from "react-toastify";
 import InvitePopup from "../pages/Board/InvitePopup";
 
 const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = {} }) => {
     const [showInvite, setShowInvite] = useState(false);
 
     useEffect(() => {
-        const handleInvite = (data) => {
-            console.log("📥 boardInviteSent:", data);
-            alert(`📨 ${data.emailMember} has been invited to board "${data.boardId}"!`);
+        const handleInviteSent = (data) => {
+            console.log("boardInviteSent:", data);
+            toast.success(
+                `Invitation sent to ${data.emailMember} successfully!`
+            );
         };
 
-        socket.on("boardInviteSent", handleInvite);
-        return () => socket.off("boardInviteSent", handleInvite);
+        const handleInviteAccepted = (data) => {
+            console.log("boardInviteAccepted:", data);
+            toast.success(`${data.emailMember} has joined the board!`);
+        };
+
+        socket.on("boardInviteSent", handleInviteSent);
+        socket.on("boardInviteAccepted", handleInviteAccepted);
+
+        return () => {
+            socket.off("boardInviteSent", handleInviteSent);
+            socket.off("boardInviteAccepted", handleInviteAccepted);
+        };
     }, []);
 
     return (
