@@ -181,6 +181,44 @@ const inviteToBoard = async (req, res) => {
     }
 };
 
+const acceptBoardInvite = async (req, res) => {
+    try {
+        const { inviteId } = req.params;
+        console.log("inviteId", inviteId);
+        const memberId = req.user.id;
+
+        const inviteSnapshot = await invitesCollection.doc(inviteId).get();
+        if (!inviteSnapshot.exists) {
+            return res.status(404).json({ error: "Invite not found" });
+        }
+
+        const inviteData = inviteSnapshot.data();
+
+        if (inviteData.status !== "pending") {
+            return res.status(400).json({ error: "Invite has already been responded to" });
+        }
+
+        const status = "accepted";
+
+        await invitesCollection.doc(inviteId).update({
+            status,
+            memberId,
+        });
+
+        await boardsCollection.doc(inviteData.boardId).update({
+            members: admin.firestore.FieldValue.arrayUnion(memberId),
+        });
+
+        console.log("BoardInviteAccepted", { inviteId, status });
+        getIO().emit("boardInviteAccepted", { inviteId, status });
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Error accepting board invite:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
 module.exports = {
     getBoards,
     createBoard,
@@ -188,4 +226,5 @@ module.exports = {
     updateBoard,
     deleteBoard,
     inviteToBoard,
+    acceptBoardInvite,
 };

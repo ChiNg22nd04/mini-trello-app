@@ -51,7 +51,8 @@ const sendCode = async (email, code) => {
 const sendInviteEmail = async (emailMember, boardName, inviteId, boardId, nameUser) => {
     const transporter = createTransporter();
     const frontendUrl = process.env.FRONTEND_URL;
-    const inviteLink = `${frontendUrl}/boards/${boardId}/invite/${inviteId}`;
+    const backendUrl = process.env.BACKEND_URL;
+    const inviteLink = `${backendUrl}/boards/${boardId}/invite/${inviteId}/accept`;
 
     const mailOptions = {
         from: process.env.EMAIL_USER,

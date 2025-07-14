@@ -6,6 +6,8 @@ import BoardPage from "./pages/Board";
 import CardPage from "./pages/Card";
 import GithubCallback from "./pages/GithubCallback";
 import { ToastContainer } from "react-toastify";
+import InviteAcceptPage from "./pages/Board/InviteAcceptPage";
+
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
@@ -22,6 +24,7 @@ function App() {
                 <Route path="/github/callback" element={<GithubCallback />} />
                 <Route path="/boards" element={<BoardPage />} />
                 <Route path="/boards/:id" element={<CardPage />} />
+                <Route path="/invite/:inviteId/accept" element={<InviteAcceptPage />} />
             </Routes>
         </BrowserRouter>
     );
