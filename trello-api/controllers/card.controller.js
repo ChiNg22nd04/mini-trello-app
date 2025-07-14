@@ -109,9 +109,6 @@ const updateCard = async (req, res) => {
         const cardId = req.params.id;
         const ownerId = req.user.id;
         const boardId = req.params.boardId;
-        console.log("ownerId", ownerId);
-        console.log("boardId", boardId);
-        console.log("cardId", cardId);
 
         const { name, description, ...rest } = req.body;
 

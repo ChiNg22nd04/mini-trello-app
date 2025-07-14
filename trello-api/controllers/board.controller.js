@@ -1,4 +1,4 @@
-const { db } = require("../firebase");
+const { db, admin } = require("../firebase");
 const { getIO } = require("../config/socket");
 const { sendInviteEmail } = require("../services/email.service");
 
@@ -139,8 +139,8 @@ const inviteToBoard = async (req, res) => {
     try {
         const nameUser = req.user.username;
         const boardOwnerId = req.user.id;
-
         const boardId = req.params.id;
+
         const { emailMember, status = "pending" } = req.body;
 
         const boardDoc = await boardsCollection.doc(boardId).get();
@@ -168,11 +168,11 @@ const inviteToBoard = async (req, res) => {
         await inviteRef.set(newInvite);
 
         const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
+        getIO().emit("boardInviteSent", newInvite);
+
         if (!emailResult.success) {
             console.error("Failed to send invite email:", emailResult.error);
         }
-
-        getIO().emit("boardInviteSent", newInvite);
 
         res.status(201).json(newInvite);
     } catch (err) {
@@ -198,20 +198,26 @@ const acceptBoardInvite = async (req, res) => {
             return res.status(400).json({ error: "Invite has already been responded to" });
         }
 
-        const status = "accepted";
-
         await invitesCollection.doc(inviteId).update({
-            status,
+            status: "accepted",
             memberId,
         });
 
-        await boardsCollection.doc(inviteData.boardId).update({
+        const boardRef = boardsCollection.doc(inviteData.boardId);
+        await boardRef.update({
             members: admin.firestore.FieldValue.arrayUnion(memberId),
         });
+        const acceptedInfo = {
+            inviteId,
+            boardId: inviteData.boardId,
+            memberId,
+            emailMember: inviteData.emailMember,
+            status: "accepted",
+        };
 
-        console.log("BoardInviteAccepted", { inviteId, status });
-        getIO().emit("boardInviteAccepted", { inviteId, status });
+        getIO().emit("boardInviteAccepted", acceptedInfo);
 
+        console.log("Board invite accepted:", acceptedInfo);
         res.status(200).json({ success: true });
     } catch (error) {
         console.error("Error accepting board invite:", error);
