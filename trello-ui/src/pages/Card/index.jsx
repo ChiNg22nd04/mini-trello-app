@@ -147,12 +147,15 @@ const CardPage = () => {
                     }}
                 >
                     <TopSideBar
+                        memberId={board?.members}
+                        ownerId={board?.ownerId}
                         token={token}
                         boardId={boardId}
                         boardName={board?.name}
                         className="text-white fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
                         style={{ backgroundColor: "#743153" }}
                     />
+                    {console.log("user", user)}
                     {console.log("token", token)}
                     {console.log("board", board)}
                     {console.log("boardId", boardId)}

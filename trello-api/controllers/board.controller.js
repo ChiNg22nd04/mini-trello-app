@@ -135,18 +135,112 @@ const deleteBoard = async (req, res) => {
     }
 };
 
+// const inviteToBoard = async (req, res) => {
+//     try {
+//         const nameUser = req.user.username;
+//         console.log("nameUser", nameUser);
+//         const boardId = req.params.id;
+//         console.log("boardId", boardId);
+//         const { boardOwnerId, memberId, emailMember, status = "pending" } = req.body;
+
+//         const boardDoc = await boardsCollection.doc(boardId).get();
+//         if (!boardDoc.exists) {
+//             return res.status(404).json({ error: "Board not found" });
+//         }
+//         const boardData = boardDoc.data();
+//         const boardName = boardData.name;
+
+//         const inviteRef = invitesCollection.doc();
+//         const inviteId = inviteRef.id;
+
+//         const newInvite = {
+//             inviteId,
+//             boardId,
+//             boardOwnerId,
+//             memberId,
+//             emailMember,
+//             status,
+//             type: "board",
+//             createdAt: new Date(),
+//         };
+
+//         console.log("newInvite", newInvite);
+//         await inviteRef.set(newInvite);
+
+//         const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
+//         if (!emailResult.success) {
+//             console.error("Failed to send invite email:", emailResult.error);
+//         }
+
+//         getIO().emit("boardInviteSent", newInvite);
+
+//         res.status(201).json(newInvite);
+//     } catch (err) {
+//         console.error("Failed to invite to board:", err);
+//         res.status(500).json({ msg: "Error inviting to board" });
+//     }
+// };
+
+// const inviteToBoard = async (req, res) => {
+//     try {
+//         const username = req.user.username;
+//         const ownerId = req.user.id;
+//         const boardId = res.params.id;
+//         const { emailMember, status = "pending" } = req.body;
+
+//         if (!emailMember) {
+//             return res.status(400).json({ error: "Email member is required" });
+//         }
+
+//         const boardDoc = await boardsCollection.doc(boardId).get();
+//         if (!boardDoc.exists) {
+//             return res.status(404).json({ error: "Board not found" });
+//         }
+
+//         const boardData = boardDoc.data();
+//         const boardName = boardData.name;
+
+//         const inviteRef = invitesCollection.doc();
+//         const inviteId = inviteRef.id;
+//         const newInvite = {
+//             inviteId,
+//             boardId,
+//             ownerId,
+//             memberId: null,
+//             emailMember,
+//             status,
+//             type: "board",
+//             createdAt: new Date(),
+//         };
+//         console.log("newInvite", newInvite);
+//         await inviteRef.set(newInvite);
+
+//         const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
+//         if (!emailResult.success) {
+//             console.error("Failed to send invite email:", emailResult.error);
+//         }
+
+//         getIO().emit("boardInviteSent", newInvite);
+
+//         res.status(201).json(newInvite);
+//     } catch (err) {
+//         console.error("Failed to invite to board:", err);
+//     }
+// };
+
 const inviteToBoard = async (req, res) => {
     try {
         const nameUser = req.user.username;
-        console.log("nameUser", nameUser);
+        const boardOwnerId = req.user.id;
+
         const boardId = req.params.id;
-        console.log("boardId", boardId);
-        const { boardOwnerId, memberId, emailMember, status = "pending" } = req.body;
+        const { emailMember, status = "pending" } = req.body;
 
         const boardDoc = await boardsCollection.doc(boardId).get();
         if (!boardDoc.exists) {
             return res.status(404).json({ error: "Board not found" });
         }
+
         const boardData = boardDoc.data();
         const boardName = boardData.name;
 
@@ -157,14 +251,13 @@ const inviteToBoard = async (req, res) => {
             inviteId,
             boardId,
             boardOwnerId,
-            memberId,
+            memberId: null,
             emailMember,
             status,
             type: "board",
             createdAt: new Date(),
         };
 
-        console.log("newInvite", newInvite);
         await inviteRef.set(newInvite);
 
         const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
@@ -176,8 +269,8 @@ const inviteToBoard = async (req, res) => {
 
         res.status(201).json(newInvite);
     } catch (err) {
-        console.error("Failed to invite to board:", err);
-        res.status(500).json({ msg: "Error inviting to board" });
+        console.error("Error inviting to board:", err);
+        res.status(500).json({ msg: "Internal server error" });
     }
 };
 
