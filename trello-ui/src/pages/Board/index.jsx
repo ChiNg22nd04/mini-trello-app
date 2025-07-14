@@ -16,7 +16,17 @@ const BoardPage = () => {
     const { user, token } = useUser();
     const [boards, setBoards] = useState([]);
     const [showForm, setShowForm] = useState(false);
+
+    console.log("BoardPage rendered - user:", user, "token:", token);
     console.log("showForm value:", showForm);
+
+    useEffect(() => {
+        if (!user || !token) {
+            console.log("No user or token, redirecting to login");
+            navigate("/signin");
+            return;
+        }
+    }, [user, token, navigate]);
 
     useEffect(() => {
         if (!user || !token) return;
@@ -79,7 +89,10 @@ const BoardPage = () => {
 
         return (
             <>
-                <Header username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
+                <Header
+                    username={user?.username}
+                    style={{ height: headerHeight, zIndex: 1030 }}
+                />
 
                 <div
                     className="d-flex bg-dark text-white"
@@ -100,10 +113,16 @@ const BoardPage = () => {
                             padding: "1.5rem",
                         }}
                     >
-                        <h6 className="text-secondary fw-bold mb-4">YOUR WORKSPACES</h6>
+                        <h6 className="text-secondary fw-bold mb-4">
+                            YOUR WORKSPACES
+                        </h6>
 
                         <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable droppableId="board-list" direction="horizontal" isDropDisabled={false}>
+                            <Droppable
+                                droppableId="board-list"
+                                direction="horizontal"
+                                isDropDisabled={false}
+                            >
                                 {(provided) => (
                                     <div
                                         className="d-grid"
@@ -111,21 +130,38 @@ const BoardPage = () => {
                                         ref={provided.innerRef}
                                         style={{
                                             display: "grid",
-                                            gridTemplateColumns: "repeat(4, 1fr)",
+                                            gridTemplateColumns:
+                                                "repeat(4, 1fr)",
                                             gap: "1rem",
                                         }}
                                     >
                                         {boards.map((board, index) => (
-                                            <Draggable key={board.id} draggableId={String(board.id)} index={index}>
+                                            <Draggable
+                                                key={board.id}
+                                                draggableId={String(board.id)}
+                                                index={index}
+                                            >
                                                 {(provided) => (
                                                     <div
-                                                        onClick={() => handleClickBoard(board.id)}
+                                                        onClick={() =>
+                                                            handleClickBoard(
+                                                                board.id
+                                                            )
+                                                        }
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
-                                                        style={{ position: "relative" }}
+                                                        style={{
+                                                            position:
+                                                                "relative",
+                                                        }}
                                                     >
-                                                        <BoardCard title={board.name} description={board.description} />
+                                                        <BoardCard
+                                                            title={board.name}
+                                                            description={
+                                                                board.description
+                                                            }
+                                                        />
                                                         <span
                                                             className="position-absolute"
                                                             style={{
@@ -133,9 +169,12 @@ const BoardPage = () => {
                                                                 right: 0,
                                                                 width: 0,
                                                                 height: 0,
-                                                                borderLeft: "20px solid transparent",
-                                                                borderBottom: "20px solid #888888",
-                                                                borderBottomRightRadius: "0.375rem",
+                                                                borderLeft:
+                                                                    "20px solid transparent",
+                                                                borderBottom:
+                                                                    "20px solid #888888",
+                                                                borderBottomRightRadius:
+                                                                    "0.375rem",
                                                             }}
                                                         />
                                                     </div>
@@ -148,11 +187,22 @@ const BoardPage = () => {
                                         <div className="col-12">
                                             <div
                                                 className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
-                                                onClick={() => setShowForm(true)}
-                                                style={{ cursor: "pointer", minHeight: "100px", ...createCardStyle }}
+                                                onClick={() =>
+                                                    setShowForm(true)
+                                                }
+                                                style={{
+                                                    cursor: "pointer",
+                                                    minHeight: "100px",
+                                                    ...createCardStyle,
+                                                }}
                                             >
-                                                <Icon className="text-white" icon="material-symbols:add" />
-                                                <span className="text-white">Create a new board</span>
+                                                <Icon
+                                                    className="text-white"
+                                                    icon="material-symbols:add"
+                                                />
+                                                <span className="text-white">
+                                                    Create a new board
+                                                </span>
                                                 <span
                                                     className="position-absolute"
                                                     style={{
@@ -160,9 +210,12 @@ const BoardPage = () => {
                                                         right: 0,
                                                         width: 0,
                                                         height: 0,
-                                                        borderLeft: "20px solid transparent",
-                                                        borderBottom: "20px solid #888888",
-                                                        borderBottomRightRadius: "0.375rem",
+                                                        borderLeft:
+                                                            "20px solid transparent",
+                                                        borderBottom:
+                                                            "20px solid #888888",
+                                                        borderBottomRightRadius:
+                                                            "0.375rem",
                                                     }}
                                                 />
                                             </div>
@@ -180,7 +233,12 @@ const BoardPage = () => {
     return (
         <>
             {content}
-            {showForm && <CreateBoardForm onSubmit={onSubmit} onClose={() => setShowForm(false)} />}
+            {showForm && (
+                <CreateBoardForm
+                    onSubmit={onSubmit}
+                    onClose={() => setShowForm(false)}
+                />
+            )}
         </>
     );
 };
