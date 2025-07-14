@@ -1,4 +1,4 @@
-const { db } = require("../firebase");
+const { db, admin } = require("../firebase");
 const { getIO } = require("../config/socket");
 const { sendInviteEmail } = require("../services/email.service");
 
