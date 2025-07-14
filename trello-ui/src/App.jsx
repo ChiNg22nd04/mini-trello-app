@@ -4,7 +4,7 @@ import LoginPage from "./pages/Login";
 import AuthPage from "./pages/Auth";
 import BoardPage from "./pages/Board";
 import CardPage from "./pages/Card";
-
+import GithubCallback from "./pages/GithubCallback";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -17,7 +17,9 @@ function App() {
             <Routes>
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/signin" element={<LoginPage />} />
+                <Route path="/github" element={<GithubCallback />} />
                 <Route path="/auth/verify" element={<AuthPage />} />
+                <Route path="/github/callback" element={<GithubCallback />} />
                 <Route path="/boards" element={<BoardPage />} />
                 <Route path="/boards/:id" element={<CardPage />} />
             </Routes>

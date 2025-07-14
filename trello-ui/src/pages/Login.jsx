@@ -3,6 +3,7 @@ import axios from "axios";
 import { leftImage, rightImage, logo } from "../assets/global/index";
 import { API_BASE_URL } from "../../config";
 import { useNavigate } from "react-router-dom";
+import { Icon } from "@iconify/react";
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -21,6 +22,11 @@ const LoginPage = () => {
             console.log(err);
             setMessage("Please try again.");
         }
+    };
+
+    const handleGithubLogin = async () => {
+        const githubAuthUrl = `${API_BASE_URL}/github`;
+        window.location.href = githubAuthUrl;
     };
 
     return (
@@ -53,6 +59,15 @@ const LoginPage = () => {
                             Continue
                         </button>
                     </div>
+
+                    <div className="text-center mb-3">
+                        <span className="text-muted">— sign in another way —</span>
+                    </div>
+
+                    <button onClick={handleGithubLogin} className="btn mb-3 btn-dark w-100 d-flex align-items-center justify-content-center gap-2">
+                        <Icon icon="mdi:github" width="20" />
+                        Continue with GitHub
+                    </button>
 
                     <small className="text-muted">
                         <p className="text-center mb-1">Privacy Policy</p>
