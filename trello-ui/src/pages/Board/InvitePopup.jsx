@@ -63,7 +63,7 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                         className="btn btn-outline-light"
                         onClick={handleInvite}
                     >
-                        <span style={{ marginRight: 4 }}>$</span> Send
+                        Send
                     </button>
                 </div>
             </div>
