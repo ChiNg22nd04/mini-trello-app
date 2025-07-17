@@ -26,14 +26,12 @@ const useUser = () => {
     useEffect(() => {
         updateUserData();
 
-        // Listen for localStorage changes from other tabs
         const handleStorageChange = (event) => {
             if (event.key === "user" || event.key === "accessToken") {
                 updateUserData();
             }
         };
 
-        // Listen for custom userLogin event
         const handleUserLogin = () => {
             updateUserData();
         };

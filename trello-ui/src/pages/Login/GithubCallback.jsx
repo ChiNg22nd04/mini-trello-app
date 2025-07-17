@@ -31,7 +31,7 @@ const GithubCallback = () => {
                 localStorage.setItem("accessToken", token);
                 localStorage.setItem("user", JSON.stringify(user));
 
-                navigate("/home");
+                navigate("/boards");
             } catch (err) {
                 console.error("GitHub login failed", err);
                 alert("GitHub login failed");

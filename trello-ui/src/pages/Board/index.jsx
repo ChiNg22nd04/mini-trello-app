@@ -21,11 +21,14 @@ const BoardPage = () => {
     console.log("showForm value:", showForm);
 
     useEffect(() => {
-        if (!user || !token) {
-            console.log("No user or token, redirecting to login");
-            navigate("/signin");
-            return;
-        }
+        const timeout = setTimeout(() => {
+            if (!user || !token) {
+                console.log("No user or token, redirecting to login");
+                navigate("/signin");
+            }
+        }, 100);
+
+        return () => clearTimeout(timeout);
     }, [user, token, navigate]);
 
     useEffect(() => {

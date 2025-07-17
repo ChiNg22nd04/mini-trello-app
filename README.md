@@ -2,16 +2,15 @@
 
 Coding Challenge from SKIPLI
 
-
 ---
 
 ## Features
 
--  Create boards, cards, and tasks
--  Invite members to boards via email
--  Accept invitations via secure link
--  Real-time updates with Socket.io
--  GitHub OAuth and Email account login
+-   Create boards, cards, and tasks
+-   Invite members to boards via email
+-   Accept invitations via secure link
+-   Real-time updates with Socket.io
+-   GitHub OAuth and Email account login
 
 ---
 
@@ -24,7 +23,7 @@ mini-trello-app/
 │   ├── controllers/                   # Handle logic for routes
 │   ├── firebase/                      # Firebase setup
 │   ├── middleware/                    # Middlewares
-│   ├── routes/                        # API route 
+│   ├── routes/                        # API route
 │   ├── services/                      # Email services
 │   ├── .env                           # Environment variables (ignored in Git)
 │   ├── .gitignore                     # Ignore node_modules, .env, etc.
@@ -50,6 +49,7 @@ mini-trello-app/
 └── README.md                          # This file
 
 ```
+
 ---
 
 ## Setup & Run Project
@@ -60,12 +60,16 @@ mini-trello-app/
 git clone https://github.com/ChiNg22nd04/mini-trello-app.git
 cd mini-trello-app
 ```
+
 ### 2. Backend Setup (trello-api)
+
 ```bash
 cd trello-api
 pnpm install
 ```
-- Create a .env file in the trello-api folder:
+
+-   Create a .env file in the trello-api folder:
+
 ```bash
 PORT=3000
 JWT_SECRET=your_jwt_secret
@@ -74,38 +78,47 @@ BACKEND_URL=http://localhost:5173
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-email-password
 ```
-- GitHub Login:
-Register an OAuth App at GitHub: https://github.com/settings/developers
-Update backend .env:
+
+-   GitHub Login:
+    Register an OAuth App at GitHub: https://github.com/settings/developers
+    Update backend .env:
+
 ```bash
 GITHUB_CLIENT_ID=your_client_id
 GITHUB_CLIENT_SECRET=your_client_secret
 GITHUB_REDIRECT_URI=your_redirect_uri
 ```
-- Start the backend server:
+
+-   Start the backend server:
+
 ```bash
 pnpm run dev
 ```
+
 ### 3. Frontend Setup (trello-ui)
+
 ```bash
 cd ../trello-ui
 pnpm install
 ```
-- Create a config.js file in the trello-ui folder:
+
+-   Create a config.js file in the trello-ui folder:
+
 ```bash
 API_BASE_URL=http://localhost:5173
 ```
-- Start the frontend:
+
+-   Start the frontend:
+
 ```bash
 pnpm run dev
 ```
+
 ### 4. Screenshots
+
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/2d97bc41-2120-4b68-a39f-601d7ccccaf5" />
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/92b40dce-60b0-4211-a12f-d57471d27eb5" />
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/fc5d5ed8-b1f8-4248-96b8-335bb9fc402a" />
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/ab8eefb8-5fb1-42d3-bfc8-52fa488747b3" />
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/b4f7e16c-8712-49a9-badc-091886de181c" />
-<img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/36577061-76e3-4ae6-a925-374f7e9d09d4" />
 <img width="1440" height="717" alt="image" src="https://github.com/user-attachments/assets/9733ae14-829b-40c7-be04-79b9849f9640" />
-
-
