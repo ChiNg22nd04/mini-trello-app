@@ -3,29 +3,29 @@ const { getIO } = require("../config/socket");
 
 const getTasksByCard = async (req, res) => {
     const { cardId } = req.params;
-    console.log("cardId", cardId);
-
     try {
-        const taskRef = db.collection("tasks").where("cardId", "==", cardId);
+        // tasks are stored under cards/{cardId}/tasks subcollection
+        const taskRef = db.collection(`cards/${cardId}/tasks`);
         const snapshot = await taskRef.get();
-        const task = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        res.json(task);
+        const tasks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        res.json(tasks);
     } catch (err) {
-        console.error("Error fetching task:", err.message);
-        res.status(500).json({ msg: "Error getting task" });
+        console.error("Error fetching tasks:", err.message);
+        res.status(500).json({ msg: "Error getting tasks" });
     }
 };
 
 // POST /cards/:cardId/tasks
 const createTask = async (req, res) => {
     const { cardId } = req.params;
-    console.log("cardId", cardId);
-    const { title, status = "todo" } = req.body;
+    const { title, status = "todo", description = "", completed = false } = req.body;
 
     try {
         const newTask = {
             title,
             status,
+            description,
+            completed,
             createdAt: Date.now(),
         };
 
@@ -41,4 +41,39 @@ const createTask = async (req, res) => {
     }
 };
 
-module.exports = { getTasksByCard, createTask };
+// PUT /cards/:cardId/tasks/:taskId
+const updateTask = async (req, res) => {
+    const { cardId, taskId } = req.params;
+    const updates = req.body || {};
+    try {
+        const taskDocRef = db.collection(`cards/${cardId}/tasks`).doc(taskId);
+        await taskDocRef.update(updates);
+        const updated = await taskDocRef.get();
+        const updatedTask = { id: updated.id, ...updated.data() };
+
+        getIO().to(cardId).emit("taskUpdated", { cardId, task: updatedTask });
+
+        res.json(updatedTask);
+    } catch (err) {
+        console.error("Error updating task:", err.message);
+        res.status(500).json({ msg: "Error updating task" });
+    }
+};
+
+// DELETE /cards/:cardId/tasks/:taskId
+const deleteTask = async (req, res) => {
+    const { cardId, taskId } = req.params;
+    try {
+        const taskDocRef = db.collection(`cards/${cardId}/tasks`).doc(taskId);
+        await taskDocRef.delete();
+
+        getIO().to(cardId).emit("taskDeleted", { cardId, taskId });
+
+        res.json({ id: taskId });
+    } catch (err) {
+        console.error("Error deleting task:", err.message);
+        res.status(500).json({ msg: "Error deleting task" });
+    }
+};
+
+module.exports = { getTasksByCard, createTask, updateTask, deleteTask };

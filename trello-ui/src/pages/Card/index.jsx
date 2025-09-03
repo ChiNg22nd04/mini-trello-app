@@ -312,6 +312,9 @@ const CardPage = () => {
             <CardDetail
                 card={selectedCard}
                 onClose={() => setSelectedCard(null)}
+                boardId={boardId}
+                token={token}
+                boardMembers={arrayMembers}
             />
         </>
     );
