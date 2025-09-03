@@ -269,7 +269,7 @@ const CardPage = () => {
                                                         width={20}
                                                         icon="material-symbols:add"
                                                     />
-                                                    <span> Add Task</span>
+                                                    <span>Add a card</span>
                                                 </div>
                                                 <Icon
                                                     width={20}
