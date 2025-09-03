@@ -28,16 +28,21 @@ const githubCallback = async (req, res) => {
                 client_id: process.env.GITHUB_CLIENT_ID,
                 client_secret: process.env.GITHUB_CLIENT_SECRET,
                 code,
+                redirect_uri: process.env.GITHUB_REDIRECT_URI,
             },
             {
                 headers: { Accept: "application/json" },
             }
         );
 
+        console.log("GitHub token response:", tokenResponse.data);
         const accessToken = tokenResponse.data.access_token;
         console.log("accessToken", accessToken);
 
-        if (!accessToken) return res.status(401).send("No access token received from GitHub");
+        if (!accessToken) {
+            console.error("No access token, tokenResponse:", tokenResponse.data);
+            return res.status(401).json({ msg: "No access token received from GitHub", details: tokenResponse.data });
+        }
 
         const userResponse = await axios.get("https://api.github.com/user", {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -64,17 +69,33 @@ const githubCallback = async (req, res) => {
             expiresIn: "2h",
         });
 
-        res.json({
+        // If the request accepts HTML, this is likely the GitHub redirect directly to backend.
+        // In that case, redirect user to frontend with token and user info as query params.
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+        const payload = {
             token,
             user: {
                 id: id.toString(),
                 username: login,
                 avatar: avatar_url,
             },
-        });
+        };
+
+        // If request comes directly from browser redirect (Accept: text/html), do a redirect.
+        const accept = req.get("Accept") || "";
+        if (accept.includes("text/html")) {
+            const url = new URL(`${frontendUrl}/auth/github/callback`);
+            url.searchParams.set("token", token);
+            url.searchParams.set("user", encodeURIComponent(JSON.stringify(payload.user)));
+            return res.redirect(url.toString());
+        }
+
+        // Otherwise return JSON (used by frontend AJAX call)
+        res.json(payload);
     } catch (err) {
-        console.error("GitHub Login Error:", err.message);
-        res.status(500).send("GitHub login failed");
+        console.error("GitHub Login Error:", err.response?.data || err.message);
+        const message = err.response?.data || { msg: err.message };
+        res.status(500).json({ msg: "GitHub login failed", details: message });
     }
 };
 
