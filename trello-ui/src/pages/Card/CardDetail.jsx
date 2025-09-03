@@ -67,7 +67,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const [editTitle, setEditTitle] = useState("");
     const [editAssigned, setEditAssigned] = useState([]);
     const [editDueDate, setEditDueDate] = useState("");
-    const [showEditAssignPicker, setShowEditAssignPicker] = useState(false);
+    const [showEditAssignPicker, setShowEditAssignPicker] = useState(null);
     const [showEditDuePicker, setShowEditDuePicker] = useState(false);
 
     const completedCount = tasks.filter((t) => t.completed).length;
@@ -231,7 +231,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     <div className="d-flex align-items-center gap-2">
                         <Icon icon="material-symbols:keyboard-onscreen" width={22} color="white" />
                         <div>
-                            <h5 className="mb-0 text-white">{card.name || card.title}</h5>
+                            <h5 className="mb-0 text-black">{card.name || card.title}</h5>
                             <small className="text-secondary">in list {card.status ? card.status.charAt(0).toUpperCase() + card.status.slice(1) : "To do"}</small>
                         </div>
                     </div>
@@ -240,21 +240,21 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     </button>
                 </div>
 
-                <div className="text-white ">
+                <div className="text-black ">
                     <div className="d-flex gap-4 mb-4 align-items-start">
                         {/* Members */}
                         <div style={{ minWidth: 200, maxWidth: 250 }}>
-                            <p className="mb-2 fw-semibold text-white">Members</p>
+                            <p className="mb-2 fw-semibold text-black">Members</p>
                             <div className="d-flex flex-wrap" style={{ gap: 8, rowGap: 12 }}>
                                 {assignedMembers.length === 0 ? (
-                                    <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40 }}>
+                                    <div className="bg-danger rounded-circle text-black d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40 }}>
                                         {(card.assignedTo || card.owner || (Array.isArray(card.members.username) && card.members.username[0]) || "").charAt(0).toUpperCase()}
                                     </div>
                                 ) : (
                                     assignedMembers.map((a, idx) => (
                                         <div
                                             key={a.id}
-                                            className="bg-primary rounded-circle border border-2 border-dark text-white d-flex align-items-center justify-content-center fw-semibold"
+                                            className="bg-primary rounded-circle border border-2 border-dark text-black d-flex align-items-center justify-content-center fw-semibold"
                                             style={{
                                                 width: 40,
                                                 height: 40,
@@ -277,12 +277,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                         {/* Description */}
                         <div className="flex-grow-1">
-                            <p className="d-flex align-items-center mb-2 fw-semibold text-white">
+                            <p className="d-flex align-items-center mb-2 fw-semibold text-black">
                                 <Icon icon="material-symbols:description" width={20} />
                                 <span className="ps-2">Description</span>
                             </p>
                             <div
-                                className="border border-secondary rounded-3 px-3 py-3 bg-dark text-white"
+                                className="border border-secondary rounded-3 px-3 py-3 bg-dark text-black"
                                 style={{
                                     minHeight: 80,
                                     lineHeight: 1.5,
@@ -295,15 +295,15 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     </div>
 
                     <div className="mb-4">
-                        <p className="d-flex align-items-center mb-2 fw-semibold text-white">
+                        <p className="d-flex align-items-center mb-2 fw-semibold text-black">
                             <Icon icon="material-symbols:checklist" width={20} />
                             <span className="ps-2">Checklist</span>
                         </p>
 
-                        <div className="border border-secondary rounded px-3 py-3 bg-dark text-white shadow-sm">
+                        <div className="border border-secondary rounded px-3 py-3 bg-dark text-black shadow-sm">
                             {/* Progress bar */}
                             <div className="d-flex align-items-center mb-3">
-                                <div className="small text-white me-auto fw-semibold">{progress}%</div>
+                                <div className="small text-black me-auto fw-semibold">{progress}%</div>
                                 <div style={{ flex: 1, margin: "0 12px" }}>
                                     <div
                                         style={{
@@ -338,7 +338,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                     <div key={t.id}>
                                         {/* Task item hiển thị */}
                                         <div
-                                            className="p-2 rounded d-flex justify-content-between align-items-center"
+                                            className="p-2 mb-1 rounded d-flex justify-content-between align-items-center"
                                             style={{
                                                 background: "#2c3034",
                                                 transition: "background 0.2s ease",
@@ -373,7 +373,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                         return (
                                                             <div
                                                                 key={idx}
-                                                                className="rounded-circle bg-primary text-white border border-2 border-dark d-flex align-items-center justify-content-center"
+                                                                className="rounded-circle bg-primary text-black border border-2 border-dark d-flex align-items-center justify-content-center"
                                                                 style={{
                                                                     width: 26,
                                                                     height: 26,
@@ -432,110 +432,104 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                             </div>
                                         </div>
 
-                                        {/* Inline editor nếu đang edit task này */}
-                                        {/* Inline editor nếu đang edit task này */}
-                                        {editingTaskId && (
+                                        {editingTaskId === t.id && (
                                             <div className="p-2">
-                                                {tasks
-                                                    .filter((x) => x.id === editingTaskId)
-                                                    .map((task) => (
-                                                        <div key={task.id} className="border p-2 rounded bg-dark">
-                                                            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="form-control mb-2 bg-dark text-white border-secondary" />
+                                                <div className="border p-2 rounded bg-dark">
+                                                    <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="form-control mb-2 bg-dark text-black border-secondary" />
 
-                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                                <div className="mb-2 d-flex align-items-center gap-2 position-relative">
-                                                                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditAssignPicker((s) => !s)}>
-                                                                        <Icon icon="material-symbols:person" width={16} /> Assign
-                                                                    </button>
-                                                                    {showEditAssignPicker && (
-                                                                        <div
-                                                                            className="position-absolute"
-                                                                            style={{
-                                                                                top: "105%",
-                                                                                left: 0,
-                                                                                zIndex: 2000,
-                                                                                background: "#1d2125",
-                                                                                border: "1px solid #444",
-                                                                                padding: 8,
-                                                                                borderRadius: 6,
-                                                                                minWidth: 220,
-                                                                            }}
-                                                                        >
-                                                                            {(boardMembers || []).map((m) => {
-                                                                                const mid = m.id || m._id || m.uid || m.name || m.email;
-                                                                                const checked = editAssigned.includes(mid);
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <div className="d-flex align-items-center gap-2 position-relative mb-2">
+                                                            <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditAssignPicker((s) => (s === t.id ? null : t.id))}>
+                                                                <Icon icon="material-symbols:person" width={16} /> Assign
+                                                            </button>
+                                                            {showEditAssignPicker === t.id && (
+                                                                <div
+                                                                    className="position-absolute"
+                                                                    style={{
+                                                                        top: "105%",
+                                                                        left: 0,
+                                                                        zIndex: 2000,
+                                                                        background: "#1d2125",
+                                                                        border: "1px solid #444",
+                                                                        padding: 8,
+                                                                        borderRadius: 6,
+                                                                        minWidth: 220,
+                                                                    }}
+                                                                >
+                                                                    {(boardMembers || []).map((m) => {
+                                                                        const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                                        const isSelected = editAssigned.includes(mid);
+                                                                        const label = m.username || m.name || m.displayName || m.email || mid;
+                                                                        const initial = getInitial(label);
 
-                                                                                const label = m.username || m.name || m.displayName || m.email || mid;
-                                                                                const initial = getInitial(label);
-
-                                                                                return (
-                                                                                    <div
-                                                                                        key={mid}
-                                                                                        className="d-flex align-items-center gap-2 p-1 rounded"
-                                                                                        style={{
-                                                                                            cursor: "pointer",
-                                                                                            background: checked ? "#2b2f31" : "transparent",
-                                                                                        }}
-                                                                                        onClick={() => {
-                                                                                            if (checked) {
-                                                                                                setEditAssigned((prev) => prev.filter((p) => p !== mid));
-                                                                                            } else {
-                                                                                                setEditAssigned((prev) => [...prev, mid]);
-                                                                                            }
-                                                                                        }}
-                                                                                    >
-                                                                                        <div
-                                                                                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                                                                            style={{ width: 28, height: 28, fontSize: 13 }}
-                                                                                        >
-                                                                                            {initial}
-                                                                                        </div>
-                                                                                        <span className="text-white small">{label}</span>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="position-relative">
-                                                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditDuePicker((s) => !s)}>
-                                                                            <Icon icon="material-symbols:schedule" width={16} /> Due date
-                                                                        </button>
-                                                                        {showEditDuePicker && (
+                                                                        return (
                                                                             <div
-                                                                                className="position-absolute"
+                                                                                key={mid}
+                                                                                className="d-flex align-items-center gap-2 p-1 rounded"
                                                                                 style={{
-                                                                                    top: "105%",
-                                                                                    left: 0,
-                                                                                    zIndex: 2000,
-                                                                                    background: "#1d2125",
-                                                                                    border: "1px solid #444",
-                                                                                    padding: 8,
-                                                                                    borderRadius: 6,
+                                                                                    cursor: "pointer",
+                                                                                    background: isSelected ? "#2b2f31" : "transparent",
+                                                                                }}
+                                                                                onClick={() => {
+                                                                                    if (isSelected) {
+                                                                                        setEditAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                                    } else {
+                                                                                        setEditAssigned((prev) => [...prev, mid]);
+                                                                                    }
                                                                                 }}
                                                                             >
-                                                                                <input
-                                                                                    type="date"
-                                                                                    value={editDueDate}
-                                                                                    onChange={(e) => setEditDueDate(e.target.value)}
-                                                                                    className="form-control form-control-sm bg-dark text-white border-secondary"
-                                                                                />
+                                                                                <div
+                                                                                    className="rounded-circle bg-primary text-black d-flex align-items-center justify-content-center"
+                                                                                    style={{ width: 28, height: 28, fontSize: 13 }}
+                                                                                >
+                                                                                    {initial}
+                                                                                </div>
+                                                                                <span className="text-black small">{label}</span>
                                                                             </div>
-                                                                        )}
-                                                                    </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
+                                                            )}
 
-                                                                <div className="d-flex gap-2">
-                                                                    <button className="btn btn-sm btn-primary" onClick={() => saveEdit(task.id)}>
-                                                                        Save
-                                                                    </button>
-                                                                    <button className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>
-                                                                        Cancel
-                                                                    </button>
-                                                                </div>
+                                                            {/* Due Date */}
+                                                            <div className="position-relative">
+                                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditDuePicker((s) => !s)}>
+                                                                    <Icon icon="material-symbols:schedule" width={16} />
+                                                                </button>
+                                                                {showEditDuePicker && (
+                                                                    <div
+                                                                        className="position-absolute"
+                                                                        style={{
+                                                                            top: "105%",
+                                                                            left: 0,
+                                                                            zIndex: 2000,
+                                                                            background: "#1d2125",
+                                                                            border: "1px solid #444",
+                                                                            padding: 8,
+                                                                            borderRadius: 6,
+                                                                        }}
+                                                                    >
+                                                                        <input
+                                                                            type="date"
+                                                                            value={editDueDate}
+                                                                            onChange={(e) => setEditDueDate(e.target.value)}
+                                                                            className="form-control form-control-sm bg-dark text-black border-secondary"
+                                                                        />
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                    ))}
+
+                                                        <div className="d-flex gap-2">
+                                                            <button className="btn btn-sm btn-primary" onClick={() => saveEdit(t.id)}>
+                                                                Save
+                                                            </button>
+                                                            <button className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -547,7 +541,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                     <input
                                         value={newTaskTitle}
                                         onChange={(e) => setNewTaskTitle(e.target.value)}
-                                        className="form-control form-control-sm bg-dark text-white border-secondary"
+                                        className="form-control form-control-sm bg-dark text-black border-secondary"
                                         placeholder="Add an item"
                                     />
 
@@ -612,12 +606,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                                 }}
                                                             >
                                                                 <div
-                                                                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                                                    className="rounded-circle bg-primary text-black d-flex align-items-center justify-content-center"
                                                                     style={{ width: 28, height: 28, fontSize: 13 }}
                                                                 >
                                                                     {initial}
                                                                 </div>
-                                                                <span className="text-white small">{label}</span>
+                                                                <span className="text-black small">{label}</span>
                                                             </div>
                                                         );
                                                     })}
@@ -645,7 +639,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                             type="date"
                                                             value={newDueDate}
                                                             onChange={(e) => setNewDueDate(e.target.value)}
-                                                            className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                            className="form-control form-control-sm bg-dark text-black border-secondary"
                                                         />
                                                     </div>
                                                 )}
@@ -664,17 +658,17 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                             <button className="btn btn-sm btn-outline-secondary ms-auto">Show details</button>
                         </p>
                         <div className="d-flex align-items-start gap-2">
-                            <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                            <div className="bg-danger rounded-circle text-black d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
                                 {(card.assignedTo || card.owner || (Array.isArray(card.members) && card.members[0]) || "").charAt(0).toUpperCase()}
                             </div>
-                            <input className="form-control bg-dark text-white border-secondary" placeholder="Write a comment" />
+                            <input className="form-control bg-dark text-black border-secondary" placeholder="Write a comment" />
                         </div>
                     </div> */}
                 </div>
 
                 {/* <div style={{ width: "25%" }}>
                         <div className="mb-4">
-                            <p className="text-white fw-bold mb-2">Add to card</p>
+                            <p className="text-black fw-bold mb-2">Add to card</p>
                             <button className="btn btn-outline-secondary w-100 text-start mb-2">
                                 <Icon icon="material-symbols:person" width={18} className="me-2" />
                                 Members
@@ -682,7 +676,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                         </div>
 
                         <div className="mb-4">
-                            <p className="text-white fw-bold mb-2">Power-Ups</p>
+                            <p className="text-black fw-bold mb-2">Power-Ups</p>
                             <button className="btn btn-dark w-100 text-start mb-2 d-flex align-items-center gap-2">
                                 <Icon icon="mdi:github" width={18} />
                                 GitHub

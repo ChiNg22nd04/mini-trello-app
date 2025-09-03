@@ -180,7 +180,7 @@ const CardPage = () => {
         <>
             <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
             <div
-                className="d-flex bg-dark text-white"
+                className="d-flex bg-dark text-black"
                 style={{
                     paddingTop: headerHeight,
                     minHeight: "100vh",
@@ -204,7 +204,7 @@ const CardPage = () => {
                         token={token}
                         boardId={boardId}
                         boardName={board?.name}
-                        className="text-white fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
+                        className="text-black fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
                         style={{ backgroundColor: "#743153" }}
                     />
                     {console.log("user", user)}
@@ -228,7 +228,7 @@ const CardPage = () => {
                                                 height: "100%",
                                             }}
                                         >
-                                            <p className="text-white mb-3">{STATUS_LABELS[status]}</p>
+                                            <p className="text-black mb-3">{STATUS_LABELS[status]}</p>
 
                                             {cardsByStatus[status].map((card, index) => (
                                                 <Draggable key={card.id} draggableId={String(card.id)} index={index}>
@@ -238,7 +238,7 @@ const CardPage = () => {
                                                             ref={provided.innerRef}
                                                             {...provided.draggableProps}
                                                             {...provided.dragHandleProps}
-                                                            className="bg-dark text-white border rounded mb-3 p-2"
+                                                            className="bg-dark text-black border rounded mb-3 p-2"
                                                         >
                                                             <strong>{card.name}</strong>
                                                             <small className="text-muted">Members: {Array.isArray(card.members) ? card.members.length : 0}</small>
@@ -254,7 +254,7 @@ const CardPage = () => {
                                             ))}
 
                                             {provided.placeholder}
-                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100" onClick={() => handleAddTask()}>
+                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-black text-start border-none mt-2 w-100" onClick={() => handleAddTask()}>
                                                 <div className="d-flex justify-content-between">
                                                     <Icon width={20} icon="material-symbols:add" />
                                                     <span>Add a card</span>

@@ -92,94 +92,44 @@ const BoardPage = () => {
 
         return (
             <>
-                <Header
-                    username={user?.username}
-                    style={{ height: headerHeight, zIndex: 1030 }}
-                />
-
+                <Header username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
                 <div
-                    className="d-flex bg-dark text-white"
+                    className="d-flex"
                     style={{
+                        backgroundColor: "#f4f6f9", // nền sáng
                         paddingTop: `calc(${headerHeight} + 20px)`,
                         minHeight: "100vh",
                     }}
                 >
-                    <div style={{ width: "25%", position: "fixed" }}>
-                        <Sidebar active="boards" fullHeight title="Board" />
-                    </div>
-
                     <div
                         style={{
-                            marginLeft: "25%",
-                            width: "75%",
+                            flex: 1,
                             overflowY: "auto",
-                            padding: "1.5rem",
+                            padding: "2rem",
                         }}
                     >
-                        <h6 className="text-secondary fw-bold mb-4">
-                            YOUR WORKSPACES
-                        </h6>
+                        <h6 className="text-secondary fw-bold mb-4">YOUR WORKSPACES</h6>
 
                         <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable
-                                droppableId="board-list"
-                                direction="horizontal"
-                                isDropDisabled={false}
-                            >
+                            <Droppable droppableId="board-list" direction="horizontal">
                                 {(provided) => (
-                                    <div
-                                        className="d-grid"
-                                        {...provided.droppableProps}
-                                        ref={provided.innerRef}
-                                        style={{
-                                            display: "grid",
-                                            gridTemplateColumns:
-                                                "repeat(4, 1fr)",
-                                            gap: "1rem",
-                                        }}
-                                    >
+                                    <div {...provided.droppableProps} ref={provided.innerRef} style={gridStyle}>
                                         {boards.map((board, index) => (
-                                            <Draggable
-                                                key={board.id}
-                                                draggableId={String(board.id)}
-                                                index={index}
-                                            >
-                                                {(provided) => (
+                                            <Draggable key={board.id} draggableId={String(board.id)} index={index}>
+                                                {(provided, snapshot) => (
                                                     <div
-                                                        onClick={() =>
-                                                            handleClickBoard(
-                                                                board.id
-                                                            )
-                                                        }
+                                                        onClick={() => handleClickBoard(board.id)}
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
                                                         style={{
-                                                            position:
-                                                                "relative",
+                                                            ...boardCardStyle,
+                                                            ...(snapshot.isDragging ? boardCardHover : {}),
                                                         }}
+                                                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, { ...boardCardStyle, ...boardCardHover })}
+                                                        onMouseLeave={(e) => Object.assign(e.currentTarget.style, { ...boardCardStyle })}
                                                     >
-                                                        <BoardCard
-                                                            title={board.name}
-                                                            description={
-                                                                board.description
-                                                            }
-                                                        />
-                                                        <span
-                                                            className="position-absolute"
-                                                            style={{
-                                                                bottom: 0,
-                                                                right: 0,
-                                                                width: 0,
-                                                                height: 0,
-                                                                borderLeft:
-                                                                    "20px solid transparent",
-                                                                borderBottom:
-                                                                    "20px solid #888888",
-                                                                borderBottomRightRadius:
-                                                                    "0.375rem",
-                                                            }}
-                                                        />
+                                                        <BoardCard title={board.name} description={board.description} />
                                                     </div>
                                                 )}
                                             </Draggable>
@@ -187,41 +137,14 @@ const BoardPage = () => {
 
                                         {provided.placeholder}
 
-                                        <div className="col-12">
-                                            <div
-                                                className="border rounded border-white p-3 d-flex align-items-center justify-content-center gap-2"
-                                                onClick={() =>
-                                                    setShowForm(true)
-                                                }
-                                                style={{
-                                                    cursor: "pointer",
-                                                    minHeight: "100px",
-                                                    ...createCardStyle,
-                                                }}
-                                            >
-                                                <Icon
-                                                    className="text-white"
-                                                    icon="material-symbols:add"
-                                                />
-                                                <span className="text-white">
-                                                    Create a new board
-                                                </span>
-                                                <span
-                                                    className="position-absolute"
-                                                    style={{
-                                                        bottom: 0,
-                                                        right: 0,
-                                                        width: 0,
-                                                        height: 0,
-                                                        borderLeft:
-                                                            "20px solid transparent",
-                                                        borderBottom:
-                                                            "20px solid #888888",
-                                                        borderBottomRightRadius:
-                                                            "0.375rem",
-                                                    }}
-                                                />
-                                            </div>
+                                        <div
+                                            style={createBoardCardStyle}
+                                            onMouseEnter={(e) => Object.assign(e.currentTarget.style, createBoardCardHover)}
+                                            onMouseLeave={(e) => Object.assign(e.currentTarget.style, createBoardCardStyle)}
+                                            onClick={() => setShowForm(true)}
+                                        >
+                                            <Icon className="text-primary" icon="material-symbols:add" width="28" />
+                                            <span className="fw-bold">Create a new board</span>
                                         </div>
                                     </div>
                                 )}
@@ -236,28 +159,76 @@ const BoardPage = () => {
     return (
         <>
             {content}
-            {showForm && (
-                <CreateBoardForm
-                    onSubmit={onSubmit}
-                    onClose={() => setShowForm(false)}
-                />
-            )}
+            {showForm && <CreateBoardForm onSubmit={onSubmit} onClose={() => setShowForm(false)} />}
         </>
     );
 };
 
-const createCardStyle = {
-    cursor: "pointer",
-    minHeight: "100px",
-    position: "relative",
+const layoutStyle = {
+    backgroundColor: "#f4f6f9",
+    paddingTop: "80px",
+    minHeight: "100vh",
+    display: "flex",
+};
+
+const boardCardHoverBlue = {
+    background: "#eef6ff",
+    borderColor: "#3399ff",
+};
+
+const sidebarWrapper = {
+    width: "240px",
+    position: "fixed",
+    top: "60px", // = headerHeight
+    left: 0,
+};
+
+const contentStyle = {
+    marginLeft: "240px",
+    flex: 1,
+    overflowY: "auto",
+    padding: "2rem",
+};
+
+const gridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    gap: "1.5rem",
+};
+
+const boardCardStyle = {
+    background: "#fff",
+    borderRadius: "12px",
     padding: "1rem",
-    border: "1px solid white",
-    borderRadius: "0.375rem",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
+};
+const boardCardHover = {
+    background: "#3399ff",
+    borderColor: "#3399ff",
+    color: "#fff",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.2)",
+    transform: "translateY(-4px)",
+};
+
+const createBoardCardStyle = {
+    background: "#f9fafb",
+    border: "2px dashed #bbb",
+    borderRadius: "12px",
+    padding: "2rem",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "0.5rem",
-    backgroundColor: "transparent",
+    gap: "0.75rem",
+    color: "#666",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+};
+const createBoardCardHover = {
+    background: "#eef6ff",
+    borderColor: "#3399ff",
+    color: "#3399ff",
 };
 
 export default BoardPage;
