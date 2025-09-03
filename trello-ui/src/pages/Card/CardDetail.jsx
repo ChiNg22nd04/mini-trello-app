@@ -240,171 +240,200 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     </button>
                 </div>
 
-                <div className="d-flex text-white" style={{ gap: "20px" }}>
-                    <div style={{ width: "75%" }}>
-                        <div className="d-flex mb-4 gap-5">
-                            <div>
-                                <p className="mb-1">Members</p>
-                                <div className="d-flex align-items-center gap-2">
-                                    {assignedMembers.length === 0 ? (
-                                        <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
-                                            {(card.assignedTo || card.owner || (Array.isArray(card.members.username) && card.members.username[0]) || "").charAt(0).toUpperCase()}
-                                        </div>
-                                    ) : (
-                                        assignedMembers.slice(0, 5).map((a) => (
-                                            <div
-                                                key={a.id}
-                                                className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
-                                                style={{
-                                                    width: 32,
-                                                    height: 32,
-                                                }}
-                                                title={a.member.username}
-                                            >
-                                                {getInitial(a.member.username)}
-                                            </div>
-                                        ))
-                                    )}
-
-                                    <div className="border border-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
-                                        <Icon icon="material-symbols:add" width={20} color="white" />
+                <div className="text-white ">
+                    <div className="d-flex gap-4 mb-4 align-items-start">
+                        {/* Members */}
+                        <div style={{ minWidth: 200, maxWidth: 250 }}>
+                            <p className="mb-2 fw-semibold text-white">Members</p>
+                            <div className="d-flex flex-wrap" style={{ gap: 8, rowGap: 12 }}>
+                                {assignedMembers.length === 0 ? (
+                                    <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40 }}>
+                                        {(card.assignedTo || card.owner || (Array.isArray(card.members.username) && card.members.username[0]) || "").charAt(0).toUpperCase()}
                                     </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="mb-1">Notifications</p>
-                                <div
-                                    className="px-2 py-1 border border-secondary rounded d-flex align-items-center gap-2"
-                                    style={{
-                                        cursor: "pointer",
-                                        width: "fit-content",
-                                    }}
-                                >
-                                    <Icon icon="material-symbols:eye-tracking-rounded" width={20} color="white" />
-                                    <span className="text-white">Watch</span>
-                                </div>
+                                ) : (
+                                    assignedMembers.map((a, idx) => (
+                                        <div
+                                            key={a.id}
+                                            className="bg-primary rounded-circle border border-2 border-dark text-white d-flex align-items-center justify-content-center fw-semibold"
+                                            style={{
+                                                width: 40,
+                                                height: 40,
+                                                fontSize: 14,
+                                                marginLeft: idx === 0 ? 0 : -15, // 👈 overlap nhẹ
+                                                zIndex: 100 - idx, // 👈 đảm bảo avatar sau nằm dưới
+                                                transition: "transform 0.2s ease",
+                                                cursor: "pointer",
+                                            }}
+                                            title={a.member.username}
+                                            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+                                            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                        >
+                                            {getInitial(a.member.username)}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 
-                        <div className="mb-4">
-                            <p className="d-flex align-items-center mb-2">
+                        {/* Description */}
+                        <div className="flex-grow-1">
+                            <p className="d-flex align-items-center mb-2 fw-semibold text-white">
                                 <Icon icon="material-symbols:description" width={20} />
                                 <span className="ps-2">Description</span>
                             </p>
-                            <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">{card.description || "Add a more detailed description"}</div>
+                            <div
+                                className="border border-secondary rounded-3 px-3 py-3 bg-dark text-white"
+                                style={{
+                                    minHeight: 80,
+                                    lineHeight: 1.5,
+                                    fontSize: 14,
+                                }}
+                            >
+                                {card.description ? <span>{card.description}</span> : <span className="text-muted fst-italic">Add a more detailed description</span>}
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="mb-4">
-                            <p className="d-flex align-items-center mb-2">
-                                <Icon icon="material-symbols:checklist" width={20} />
-                                <span className="ps-2">Checklist</span>
-                            </p>
+                    <div className="mb-4">
+                        <p className="d-flex align-items-center mb-2 fw-semibold text-white">
+                            <Icon icon="material-symbols:checklist" width={20} />
+                            <span className="ps-2">Checklist</span>
+                        </p>
 
-                            <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">
-                                <div className="d-flex align-items-center mb-2">
-                                    <div className="small text-white me-auto">{progress}%</div>
-                                    <div style={{ flex: 1, margin: "0 8px" }}>
+                        <div className="border border-secondary rounded px-3 py-3 bg-dark text-white shadow-sm">
+                            {/* Progress bar */}
+                            <div className="d-flex align-items-center mb-3">
+                                <div className="small text-white me-auto fw-semibold">{progress}%</div>
+                                <div style={{ flex: 1, margin: "0 12px" }}>
+                                    <div
+                                        style={{
+                                            height: 8,
+                                            background: "#2b2f31",
+                                            borderRadius: 50,
+                                            overflow: "hidden",
+                                        }}
+                                    >
                                         <div
                                             style={{
-                                                height: 8,
-                                                background: "#2b2f31",
-                                                borderRadius: 8,
+                                                width: `${progress}%`,
+                                                height: "100%",
+                                                background: "linear-gradient(90deg,#6ea8fe,#3a7afe)",
+                                                borderRadius: 50,
+                                                transition: "width 0.3s ease",
                                             }}
-                                        >
-                                            <div
-                                                style={{
-                                                    width: `${progress}%`,
-                                                    height: 8,
-                                                    background: "#6ea8fe",
-                                                    borderRadius: 8,
-                                                }}
-                                            />
-                                        </div>
+                                        />
                                     </div>
-                                    <button className="btn btn-sm btn-secondary ms-2" onClick={() => setHideChecked((s) => !s)}>
-                                        {hideChecked ? "Show checked items" : "Hide checked items"}
-                                    </button>
-                                    <button className="btn btn-sm btn-danger ms-2" onClick={handleDeleteChecked}>
-                                        Delete
-                                    </button>
                                 </div>
+                                <button className="btn btn-sm btn-outline-light ms-2" onClick={() => setHideChecked((s) => !s)}>
+                                    {hideChecked ? "Show checked" : "Hide checked"}
+                                </button>
+                                <button className="btn btn-sm btn-outline-danger ms-2" onClick={handleDeleteChecked}>
+                                    Delete
+                                </button>
+                            </div>
 
-                                {tasks.length === 0 ? (
-                                    <div className="text-white">No tasks for this card</div>
-                                ) : (
-                                    <div className="d-flex flex-column" style={{ gap: 8 }}>
-                                        {tasks
-                                            .filter((t) => (hideChecked ? !t.completed : true))
-                                            .map((t) => (
-                                                <div key={t.id} className="p-2 border rounded bg-secondary d-flex justify-content-between align-items-center">
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <input type="checkbox" checked={!!t.completed} onChange={() => handleToggle(t)} />
-                                                        <div>
-                                                            <div
-                                                                className="fw-bold"
-                                                                style={{
-                                                                    textDecoration: t.completed ? "line-through" : "none",
-                                                                    opacity: t.completed ? 0.6 : 1,
-                                                                }}
-                                                            >
-                                                                {t.title}
-                                                            </div>
-                                                            {t.description && <div className="small text-muted">{t.description}</div>}
-
-                                                            {/* show due date if present */}
-                                                            {t.dueDate && <div className="small text-warning">Due: {new Date(t.dueDate).toLocaleDateString()}</div>}
-
-                                                            {/* show assigned avatars / initials for multiple assignees */}
-                                                            <div className="d-flex gap-1 mt-1">
-                                                                {(Array.isArray(t.assignedTo) ? t.assignedTo : []).slice(0, 5).map((a, idx) => {
-                                                                    const mem = boardMembers.find((m) => String(m.id || m._id || m.uid || m.name || m.email) === String(a));
-
-                                                                    const label = mem?.username || mem?.name || mem?.displayName || mem?.email || a;
-                                                                    const initial = label.charAt(0).toUpperCase();
-
-                                                                    return (
-                                                                        <div
-                                                                            key={idx}
-                                                                            className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
-                                                                            style={{ width: 22, height: 22, fontSize: 12 }}
-                                                                            title={label}
-                                                                        >
-                                                                            {initial}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
+                            {tasks
+                                .filter((t) => (hideChecked ? !t.completed : true))
+                                .map((t) => (
+                                    <div key={t.id}>
+                                        {/* Task item hiển thị */}
+                                        <div
+                                            className="p-2 rounded d-flex justify-content-between align-items-center"
+                                            style={{
+                                                background: "#2c3034",
+                                                transition: "background 0.2s ease",
+                                            }}
+                                            onMouseEnter={(e) => (e.currentTarget.style.background = "#343a40")}
+                                            onMouseLeave={(e) => (e.currentTarget.style.background = "#2c3034")}
+                                        >
+                                            <div className="d-flex align-items-center gap-2">
+                                                <input type="checkbox" checked={!!t.completed} onChange={() => handleToggle(t)} />
+                                                <div>
+                                                    <div
+                                                        className="fw-semibold"
+                                                        style={{
+                                                            textDecoration: t.completed ? "line-through" : "none",
+                                                            opacity: t.completed ? 0.6 : 1,
+                                                        }}
+                                                    >
+                                                        {t.title}
                                                     </div>
-
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <button
-                                                            className="btn btn-sm btn-secondary btn-sm me-1"
-                                                            title="Edit task"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                startEdit(t);
-                                                            }}
-                                                        >
-                                                            Edit
-                                                        </button>
-
-                                                        <button
-                                                            className="btn btn-sm btn-link text-white p-0 ms-2"
-                                                            title="Delete task"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDelete(t.id);
-                                                            }}
-                                                        >
-                                                            <Icon icon="material-symbols:delete-outline" width={18} />
-                                                        </button>
-                                                    </div>
+                                                    {t.description && <div className="small text-muted">{t.description}</div>}
+                                                    {t.dueDate && <div className="small text-warning">Due: {new Date(t.dueDate).toLocaleDateString()}</div>}
                                                 </div>
-                                            ))}
+                                            </div>
 
-                                        {/* Inline editor for task */}
+                                            <div className="d-flex align-items-center gap-2">
+                                                {/* Avatars */}
+                                                <div className="d-flex" style={{ marginRight: 6 }}>
+                                                    {(Array.isArray(t.assignedTo) ? t.assignedTo : []).slice(0, 3).map((a, idx) => {
+                                                        const mem = boardMembers.find((m) => String(m.id || m._id || m.uid || m.name || m.email) === String(a));
+                                                        const label = mem?.username || mem?.name || mem?.displayName || mem?.email || a;
+                                                        const initial = label.charAt(0).toUpperCase();
+                                                        return (
+                                                            <div
+                                                                key={idx}
+                                                                className="rounded-circle bg-primary text-white border border-2 border-dark d-flex align-items-center justify-content-center"
+                                                                style={{
+                                                                    width: 26,
+                                                                    height: 26,
+                                                                    fontSize: 12,
+                                                                    marginLeft: idx === 0 ? 0 : -5,
+                                                                    zIndex: 10 - idx,
+                                                                }}
+                                                                title={label}
+                                                            >
+                                                                {initial}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Actions */}
+                                                <button
+                                                    className="d-flex align-items-center justify-content-center"
+                                                    title="Edit task"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        startEdit(t);
+                                                    }}
+                                                    style={{
+                                                        cursor: "pointer",
+                                                        border: "none",
+                                                        background: "transparent",
+                                                        color: "#6ea8fe",
+                                                        padding: "4px 8px",
+                                                    }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.color = "#3a7afe")}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.color = "#6ea8fe")}
+                                                >
+                                                    <Icon icon="material-symbols:edit-outline" width={20} />
+                                                </button>
+
+                                                <button
+                                                    className="d-flex align-items-center justify-content-center"
+                                                    title="Delete task"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(t.id);
+                                                    }}
+                                                    style={{
+                                                        cursor: "pointer",
+                                                        border: "none",
+                                                        background: "transparent",
+                                                        color: "#dc3545",
+                                                        padding: "4px 8px",
+                                                    }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4d5b")}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.color = "#dc3545")}
+                                                >
+                                                    <Icon icon="material-symbols:delete-outline" width={20} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Inline editor nếu đang edit task này */}
+                                        {/* Inline editor nếu đang edit task này */}
                                         {editingTaskId && (
                                             <div className="p-2">
                                                 {tasks
@@ -510,41 +539,96 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                ))}
 
-                                <div className="mt-3">
-                                    <div className="d-flex flex-column" style={{ gap: 8 }}>
-                                        <input
-                                            value={newTaskTitle}
-                                            onChange={(e) => setNewTaskTitle(e.target.value)}
-                                            className="form-control form-control-sm bg-dark text-white border-secondary"
-                                            placeholder="Add an item"
-                                        />
+                            {/* Input add task */}
+                            <div className="mt-3">
+                                <div className="d-flex flex-column" style={{ gap: 8 }}>
+                                    <input
+                                        value={newTaskTitle}
+                                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                                        className="form-control form-control-sm bg-dark text-white border-secondary"
+                                        placeholder="Add an item"
+                                    />
 
-                                        <div className="d-flex align-items-center justify-content-between mt-2">
-                                            <div className="d-flex gap-2">
-                                                <button className="btn btn-sm btn-primary" onClick={handleAddTask}>
-                                                    Save
-                                                </button>
-                                                <button
-                                                    className="btn btn-sm btn-outline-secondary"
-                                                    onClick={() => {
-                                                        setNewTaskTitle("");
-                                                        setNewAssigned([]);
-                                                        setNewDueDate("");
-                                                        setShowAssignPicker(false);
-                                                        setShowDuePicker(false);
+                                    <div className="d-flex align-items-center justify-content-between mt-2">
+                                        <div className="d-flex gap-2">
+                                            <button className="btn btn-sm btn-primary" onClick={handleAddTask}>
+                                                Save
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-outline-secondary"
+                                                onClick={() => {
+                                                    setNewTaskTitle("");
+                                                    setNewAssigned([]);
+                                                    setNewDueDate("");
+                                                    setShowAssignPicker(false);
+                                                    setShowDuePicker(false);
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+
+                                        <div className="d-flex align-items-center gap-2 position-relative">
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowAssignPicker((s) => !s)}>
+                                                <Icon icon="material-symbols:person" width={16} /> Assign
+                                            </button>
+                                            {showAssignPicker && (
+                                                <div
+                                                    className="position-absolute"
+                                                    style={{
+                                                        top: "105%",
+                                                        right: 0,
+                                                        zIndex: 2000,
+                                                        background: "#1d2125",
+                                                        border: "1px solid #444",
+                                                        padding: 8,
+                                                        borderRadius: 6,
+                                                        minWidth: 220,
                                                     }}
                                                 >
-                                                    Cancel
-                                                </button>
-                                            </div>
+                                                    {(boardMembers || []).map((m) => {
+                                                        const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                        const isSelected = newAssigned.includes(mid);
 
-                                            <div className="d-flex align-items-center gap-2 position-relative">
-                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowAssignPicker((s) => !s)}>
-                                                    <Icon icon="material-symbols:person" width={16} /> Assign
+                                                        const label = m.username || m.name || m.displayName || m.email || mid;
+                                                        const initial = getInitial(label);
+
+                                                        return (
+                                                            <div
+                                                                key={mid}
+                                                                className="d-flex align-items-center gap-2 p-1 rounded"
+                                                                style={{
+                                                                    cursor: "pointer",
+                                                                    background: isSelected ? "#2b2f31" : "transparent",
+                                                                }}
+                                                                onClick={() => {
+                                                                    if (isSelected) {
+                                                                        setNewAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                    } else {
+                                                                        setNewAssigned((prev) => [...prev, mid]);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                                                    style={{ width: 28, height: 28, fontSize: 13 }}
+                                                                >
+                                                                    {initial}
+                                                                </div>
+                                                                <span className="text-white small">{label}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            <div className="position-relative">
+                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowDuePicker((s) => !s)}>
+                                                    <Icon icon="material-symbols:schedule" width={16} />
                                                 </button>
-                                                {showAssignPicker && (
+                                                {showDuePicker && (
                                                     <div
                                                         className="position-absolute"
                                                         style={{
@@ -555,94 +639,40 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                             border: "1px solid #444",
                                                             padding: 8,
                                                             borderRadius: 6,
-                                                            minWidth: 220,
                                                         }}
                                                     >
-                                                        {(boardMembers || []).map((m) => {
-                                                            const mid = m.id || m._id || m.uid || m.name || m.email;
-                                                            const isSelected = newAssigned.includes(mid);
-
-                                                            const label = m.username || m.name || m.displayName || m.email || mid;
-                                                            const initial = getInitial(label);
-
-                                                            return (
-                                                                <div
-                                                                    key={mid}
-                                                                    className="d-flex align-items-center gap-2 p-1 rounded"
-                                                                    style={{
-                                                                        cursor: "pointer",
-                                                                        background: isSelected ? "#2b2f31" : "transparent",
-                                                                    }}
-                                                                    onClick={() => {
-                                                                        if (isSelected) {
-                                                                            setNewAssigned((prev) => prev.filter((p) => p !== mid));
-                                                                        } else {
-                                                                            setNewAssigned((prev) => [...prev, mid]);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <div
-                                                                        className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                                                        style={{ width: 28, height: 28, fontSize: 13 }}
-                                                                    >
-                                                                        {initial}
-                                                                    </div>
-                                                                    <span className="text-white small">{label}</span>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                        <input
+                                                            type="date"
+                                                            value={newDueDate}
+                                                            onChange={(e) => setNewDueDate(e.target.value)}
+                                                            className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                        />
                                                     </div>
                                                 )}
-
-                                                <div className="position-relative">
-                                                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowDuePicker((s) => !s)}>
-                                                        <Icon icon="material-symbols:schedule" width={16} />
-                                                    </button>
-                                                    {showDuePicker && (
-                                                        <div
-                                                            className="position-absolute"
-                                                            style={{
-                                                                top: "105%",
-                                                                right: 0,
-                                                                zIndex: 2000,
-                                                                background: "#1d2125",
-                                                                border: "1px solid #444",
-                                                                padding: 8,
-                                                                borderRadius: 6,
-                                                            }}
-                                                        >
-                                                            <input
-                                                                type="date"
-                                                                value={newDueDate}
-                                                                onChange={(e) => setNewDueDate(e.target.value)}
-                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div>
-                            <p className="d-flex align-items-center mb-2">
-                                <Icon icon="material-symbols:activity" width={20} />
-                                <span className="ps-2">Activity</span>
-                                <button className="btn btn-sm btn-outline-secondary ms-auto">Show details</button>
-                            </p>
-                            <div className="d-flex align-items-start gap-2">
-                                <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
-                                    {(card.assignedTo || card.owner || (Array.isArray(card.members) && card.members[0]) || "").charAt(0).toUpperCase()}
-                                </div>
-                                <input className="form-control bg-dark text-white border-secondary" placeholder="Write a comment" />
-                            </div>
-                        </div>
                     </div>
 
-                    <div style={{ width: "25%" }}>
+                    {/* <div>
+                        <p className="d-flex align-items-center mb-2">
+                            <Icon icon="material-symbols:activity" width={20} />
+                            <span className="ps-2">Activity</span>
+                            <button className="btn btn-sm btn-outline-secondary ms-auto">Show details</button>
+                        </p>
+                        <div className="d-flex align-items-start gap-2">
+                            <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                                {(card.assignedTo || card.owner || (Array.isArray(card.members) && card.members[0]) || "").charAt(0).toUpperCase()}
+                            </div>
+                            <input className="form-control bg-dark text-white border-secondary" placeholder="Write a comment" />
+                        </div>
+                    </div> */}
+                </div>
+
+                {/* <div style={{ width: "25%" }}>
                         <div className="mb-4">
                             <p className="text-white fw-bold mb-2">Add to card</p>
                             <button className="btn btn-outline-secondary w-100 text-start mb-2">
@@ -667,8 +697,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                             <Icon icon="material-symbols:archive" width={18} className="me-2" />
                             Archive
                         </button>
-                    </div>
-                </div>
+                    </div> */}
             </div>
         </>
     );
