@@ -2,6 +2,7 @@ const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
 
 const cardsCollection = db.collection("cards");
+const ALLOWED_STATUSES = ["todo", "doing", "done"];
 
 const getCards = async (req, res) => {
     try {
@@ -12,6 +13,7 @@ const getCards = async (req, res) => {
             return {
                 id: doc.id,
                 ...doc.data(),
+                status: doc.data().status || "todo",
             };
         });
 
@@ -26,7 +28,11 @@ const createCard = async (req, res) => {
     try {
         const ownerId = req.user.id;
         const boardId = req.params.boardId;
-        const { name, description, createdAt, members } = req.body;
+        const { name, description, createdAt, members, status } = req.body;
+
+        if (status && !ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ error: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(",")}` });
+        }
 
         const newCard = {
             boardId,
@@ -35,6 +41,7 @@ const createCard = async (req, res) => {
             ownerId,
             createdAt: createdAt || new Date(),
             members: members || [],
+            status: status || "todo",
         };
 
         const docRef = await cardsCollection.add(newCard);
@@ -46,6 +53,7 @@ const createCard = async (req, res) => {
             ownerId,
             createdAt: newCard.createdAt,
             members: newCard.members,
+            status: newCard.status,
         };
 
         getIO().emit("cardCreated", createdCard);
@@ -71,6 +79,7 @@ const getCardById = async (req, res) => {
             id: cardDoc.id,
             name: cardDoc.data().name,
             description: cardDoc.data().description,
+            status: cardDoc.data().status || "todo",
         };
 
         res.status(200).json(card);
@@ -98,6 +107,7 @@ const getCardByUser = async (req, res) => {
                 tasks_count: data.tasksCount || 0,
                 list_member: data.members || [],
                 createdAt: data.createdAt || null,
+                status: data.status || "todo",
             };
         });
 
@@ -114,7 +124,7 @@ const updateCard = async (req, res) => {
         const ownerId = req.user.id;
         const boardId = req.params.boardId;
 
-        const { name, description, ...rest } = req.body;
+        const { name, description, status, ...rest } = req.body;
 
         const cardRef = cardsCollection.doc(cardId);
         const cardDoc = await cardRef.get();
@@ -124,16 +134,22 @@ const updateCard = async (req, res) => {
         }
         const existingData = cardDoc.data();
 
+        if (status && !ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ error: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(",")}` });
+        }
+
         const updatedData = {
             name: name ?? existingData.name,
             description: description ?? existingData.description,
+            status: status ?? existingData.status ?? "todo",
             ...rest,
         };
 
         await cardRef.update(updatedData);
 
-        getIO().emit("cardUpdated", updatedData);
-        res.status(200).json(updatedData);
+        const payload = { id: cardId, ...updatedData };
+        getIO().emit("cardUpdated", payload);
+        res.status(200).json(payload);
     } catch (err) {
         console.error("Failed to update card:", err);
         res.status(500).json({ msg: "Error updating card" });

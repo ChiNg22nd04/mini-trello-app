@@ -26,13 +26,13 @@ const CardPage = () => {
 
     const [board, setBoard] = useState(null);
 
-    const [tasksByStatus, setTasksByStatus] = useState({
+    const [cardsByStatus, setCardsByStatus] = useState({
         todo: [],
         doing: [],
         done: [],
     });
 
-    const [selectedTask, setSelectedTask] = useState(null);
+    const [selectedCard, setSelectedCard] = useState(null);
     const [arrayMembers, setArrayMembers] = useState([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -51,6 +51,7 @@ const CardPage = () => {
             );
             setBoard(boardRes.data);
 
+            // Fetch cards and group them by their own status
             const cardsRes = await axios.get(
                 `${API_BASE_URL}/boards/${boardId}/cards`,
                 {
@@ -58,36 +59,19 @@ const CardPage = () => {
                 }
             );
 
-            const allTasks = [];
-
-            for (const card of cardsRes.data) {
-                const taskRes = await axios.get(
-                    `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-
-                const tasks = taskRes.data.map((task) => ({
-                    ...task,
-                    cardId: card.id,
-                    cardName: card.name,
-                }));
-
-                allTasks.push(...tasks);
-            }
-
             const grouped = {
                 todo: [],
                 doing: [],
                 done: [],
             };
 
-            allTasks.forEach((task) => {
-                const status = task.status || "todo";
-                grouped[status].push(task);
+            (cardsRes.data || []).forEach((card) => {
+                const status = card.status || "todo";
+                if (!grouped[status]) grouped[status] = [];
+                grouped[status].push(card);
             });
-            setTasksByStatus(grouped);
+
+            setCardsByStatus(grouped);
 
             const members = await axios.get(
                 `${API_BASE_URL}/boards/${boardId}/members`,
@@ -97,7 +81,7 @@ const CardPage = () => {
             );
             setArrayMembers(members.data.members || []);
         } catch (err) {
-            console.error("Failed to fetch board or tasks:", err);
+            console.error("Failed to fetch board or cards:", err);
         }
     }, [user, token, boardId]);
 
@@ -113,14 +97,15 @@ const CardPage = () => {
         const sourceStatus = source.droppableId;
         const destStatus = destination.droppableId;
 
-        const movedTask = tasksByStatus[sourceStatus].find(
-            (t) => t.id === draggableId
+        const movedCard = cardsByStatus[sourceStatus].find(
+            (c) => String(c.id) === String(draggableId)
         );
-        if (!movedTask) return;
+        if (!movedCard) return;
 
         try {
+            // Update card status on server
             await axios.put(
-                `${API_BASE_URL}/tasks/${draggableId}`,
+                `${API_BASE_URL}/cards/${draggableId}`,
                 {
                     status: destStatus,
                 },
@@ -129,20 +114,20 @@ const CardPage = () => {
                 }
             );
 
-            setTasksByStatus((prev) => {
+            setCardsByStatus((prev) => {
                 return {
                     ...prev,
                     [sourceStatus]: prev[sourceStatus].filter(
-                        (t) => t.id !== draggableId
+                        (c) => String(c.id) !== String(draggableId)
                     ),
                     [destStatus]: [
                         ...prev[destStatus],
-                        { ...movedTask, status: destStatus },
+                        { ...movedCard, status: destStatus },
                     ],
                 };
             });
         } catch (err) {
-            console.error("Failed to update task status:", err);
+            console.error("Failed to update card status:", err);
         }
     };
 
@@ -244,18 +229,20 @@ const CardPage = () => {
                                                 {STATUS_LABELS[status]}
                                             </p>
 
-                                            {tasksByStatus[status].map(
-                                                (task, index) => (
+                                            {cardsByStatus[status].map(
+                                                (card, index) => (
                                                     <Draggable
-                                                        key={task.id}
-                                                        draggableId={task.id}
+                                                        key={card.id}
+                                                        draggableId={String(
+                                                            card.id
+                                                        )}
                                                         index={index}
                                                     >
                                                         {(provided) => (
                                                             <div
                                                                 onClick={() =>
-                                                                    setSelectedTask(
-                                                                        task
+                                                                    setSelectedCard(
+                                                                        card
                                                                     )
                                                                 }
                                                                 ref={
@@ -266,18 +253,22 @@ const CardPage = () => {
                                                                 className="bg-dark text-white border rounded mb-3 p-2"
                                                             >
                                                                 <strong>
-                                                                    {task.title}
+                                                                    {card.name}
                                                                 </strong>
                                                                 <p className="mb-1">
                                                                     {
-                                                                        task.description
+                                                                        card.description
                                                                     }
                                                                 </p>
                                                                 <small className="text-muted">
-                                                                    Card:{" "}
-                                                                    {
-                                                                        task.cardName
-                                                                    }
+                                                                    Members:{" "}
+                                                                    {Array.isArray(
+                                                                        card.members
+                                                                    )
+                                                                        ? card
+                                                                              .members
+                                                                              .length
+                                                                        : 0}
                                                                 </small>
                                                             </div>
                                                         )}
@@ -319,8 +310,8 @@ const CardPage = () => {
             )}
 
             <CardDetail
-                task={selectedTask}
-                onClose={() => setSelectedTask(null)}
+                card={selectedCard}
+                onClose={() => setSelectedCard(null)}
             />
         </>
     );

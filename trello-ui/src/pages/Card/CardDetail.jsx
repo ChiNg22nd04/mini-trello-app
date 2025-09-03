@@ -1,8 +1,8 @@
 import React from "react";
 import { Icon } from "@iconify/react";
 
-const CardDetail = ({ task, onClose }) => {
-    if (!task) return null;
+const CardDetail = ({ card, onClose }) => {
+    if (!card) return null;
 
     return (
         <>
@@ -30,9 +30,15 @@ const CardDetail = ({ task, onClose }) => {
                             color="white"
                         />
                         <div>
-                            <h5 className="mb-0 text-white">{task.title}</h5>
+                            <h5 className="mb-0 text-white">
+                                {card.name || card.title}
+                            </h5>
                             <small className="text-secondary">
-                                in list To do
+                                in list{" "}
+                                {card.status
+                                    ? card.status.charAt(0).toUpperCase() +
+                                      card.status.slice(1)
+                                    : "To do"}
                             </small>
                         </div>
                     </div>
@@ -59,7 +65,13 @@ const CardDetail = ({ task, onClose }) => {
                                         className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
                                         style={{ width: 32, height: 32 }}
                                     >
-                                        {task.assignedTo
+                                        {(
+                                            card.assignedTo ||
+                                            card.owner ||
+                                            (Array.isArray(card.members) &&
+                                                card.members[0]) ||
+                                            ""
+                                        )
                                             .charAt(0)
                                             .toUpperCase()}
                                     </div>
@@ -104,7 +116,7 @@ const CardDetail = ({ task, onClose }) => {
                                 <span className="ps-2">Description</span>
                             </p>
                             <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">
-                                {task.description ||
+                                {card.description ||
                                     "Add a more detailed description"}
                             </div>
                         </div>
@@ -125,7 +137,15 @@ const CardDetail = ({ task, onClose }) => {
                                     className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
                                     style={{ width: 32, height: 32 }}
                                 >
-                                    {task.assignedTo.charAt(0).toUpperCase()}
+                                    {(
+                                        card.assignedTo ||
+                                        card.owner ||
+                                        (Array.isArray(card.members) &&
+                                            card.members[0]) ||
+                                        ""
+                                    )
+                                        .charAt(0)
+                                        .toUpperCase()}
                                 </div>
                                 <input
                                     className="form-control bg-dark text-white border-secondary"
