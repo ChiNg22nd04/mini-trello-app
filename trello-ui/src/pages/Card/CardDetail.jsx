@@ -3,63 +3,59 @@ import { Icon } from "@iconify/react";
 import axios from "axios";
 import API_BASE_URL from "../../../config/config";
 
-const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
+const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange }) => {
     const [tasks, setTasks] = useState([]);
     const [newTaskTitle, setNewTaskTitle] = useState("");
     const [newAssigned, setNewAssigned] = useState([]); // array of member ids
     const [newDueDate, setNewDueDate] = useState(""); // yyyy-mm-dd
     const [hideChecked, setHideChecked] = useState(false);
 
-    // derive unique assigned members across all tasks for this card
-    // Prefer member objects stored on tasks; otherwise lookup in boardMembers
     const assignedMembers = useMemo(() => {
-        if (!tasks || tasks.length === 0) return [];
+        if (!tasks || tasks.length === 0) {
+            console.log("assignedMembers: no tasks");
+            return [];
+        }
 
-        const raw = tasks.flatMap((t) =>
-            Array.isArray(t.assignedTo)
-                ? t.assignedTo
-                : t.assignedTo
-                ? [t.assignedTo]
-                : []
-        );
+        // B1: flatten assignedTo
+        const raw = tasks.flatMap((t) => (Array.isArray(t.assignedTo) ? t.assignedTo : t.assignedTo ? [t.assignedTo] : []));
+        console.log("assignedMembers raw:", raw);
 
+        // B2: chuẩn hóa id
         const normalized = raw
             .map((a) => {
                 if (!a) return null;
                 if (typeof a === "object") {
-                    const id =
-                        a.id || a._id || a.uid || a.email || a.name || null;
+                    const id = a.id || a._id || a.uid || a.email || a.name || null;
                     return id ? { id: String(id), memberFromTask: a } : null;
                 }
                 return { id: String(a), memberFromTask: null };
             })
             .filter(Boolean);
 
+        console.log("assignedMembers normalized:", normalized);
+
+        // B3: gom map
         const map = new Map();
         normalized.forEach(({ id, memberFromTask }) => {
             if (map.has(id)) return;
 
             let member = memberFromTask || null;
             if (!member) {
-                member = Array.isArray(boardMembers)
-                    ? boardMembers.find(
-                          (m) =>
-                              String(
-                                  m.id || m._id || m.uid || m.email || m.name
-                              ) === id
-                      )
-                    : null;
+                member = Array.isArray(boardMembers) ? boardMembers.find((m) => String(m.id || m._id || m.uid || m.email || m.name) === id) : null;
             }
 
-            const label = member
-                ? member.name || member.displayName || member.email || member.id
-                : id;
+            console.log("assignedMembers loop -> id:", id, "member:", member);
+
+            const label = member ? member.name || member.displayName || member.email || member.id : id;
             const initial = label ? String(label).charAt(0).toUpperCase() : "?";
 
             map.set(id, { id, member, label, initial });
         });
 
-        return Array.from(map.values());
+        const result = Array.from(map.values());
+        console.log("assignedMembers result:", result);
+
+        return result;
     }, [tasks, boardMembers]);
 
     // popover toggles for create
@@ -75,20 +71,22 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
     const [showEditDuePicker, setShowEditDuePicker] = useState(false);
 
     const completedCount = tasks.filter((t) => t.completed).length;
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round((completedCount / tasks.length) * 100);
+    const progress = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
+
+    // Notify parent when task counts change so it can update UI without reload
+    useEffect(() => {
+        if (!card || typeof onTaskCountsChange !== "function") return;
+        const done = tasks.filter((t) => t.completed).length;
+        const total = tasks.length;
+        onTaskCountsChange(card.id, { done, total });
+    }, [tasks, card, onTaskCountsChange]);
 
     const fetchTasks = useCallback(async () => {
         if (!card || !boardId || !token) return;
         try {
-            const res = await axios.get(
-                `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
+            const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setTasks(res.data || []);
         } catch (err) {
             console.error("Failed to fetch tasks for card:", err);
@@ -109,7 +107,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                 `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
                 {
                     title: newTaskTitle.trim(),
-                    assignedTo: newAssigned,
+                    assignedTo: newAssigned.map((mid) => String(mid)), // ✅ luôn là id dạng string
                     dueDate: newDueDate || null,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -126,22 +124,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
 
     const handleToggle = async (task) => {
         try {
-            const res = await axios.put(
-                `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${task.id}`,
-                { completed: !task.completed },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setTasks((prev) =>
-                prev.map((it) => (it.id === task.id ? res.data : it))
-            );
+            const res = await axios.put(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${task.id}`, { completed: !task.completed }, { headers: { Authorization: `Bearer ${token}` } });
+            setTasks((prev) => prev.map((it) => (it.id === task.id ? res.data : it)));
         } catch (err) {
             console.error("Failed to update task:", err);
             // fallback optimistic
-            setTasks((prev) =>
-                prev.map((it) =>
-                    it.id === task.id ? { ...it, completed: !it.completed } : it
-                )
-            );
+            setTasks((prev) => prev.map((it) => (it.id === task.id ? { ...it, completed: !it.completed } : it)));
         }
     };
 
@@ -149,12 +137,9 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
         const ok = window.confirm("Delete this task?");
         if (!ok) return;
         try {
-            await axios.delete(
-                `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
+            await axios.delete(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setTasks((prev) => prev.filter((t) => t.id !== taskId));
         } catch (err) {
             console.error("Failed to delete task:", err);
@@ -166,20 +151,10 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
         setEditingTaskId(task.id);
         setEditTitle(task.title || "");
         // Normalize assignedTo into array of ids or strings
-        const assigned = Array.isArray(task.assignedTo)
-            ? task.assignedTo.map((a) =>
-                  typeof a === "object" ? a.id || a._id || a.uid || a.name : a
-              )
-            : task.assignedTo
-            ? [task.assignedTo]
-            : [];
+        const assigned = Array.isArray(task.assignedTo) ? task.assignedTo.map((a) => (typeof a === "object" ? a.id || a._id || a.uid || a.name : a)) : task.assignedTo ? [task.assignedTo] : [];
         setEditAssigned(assigned);
         // dueDate -> yyyy-mm-dd
-        setEditDueDate(
-            task.dueDate
-                ? new Date(task.dueDate).toISOString().slice(0, 10)
-                : ""
-        );
+        setEditDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "");
     };
 
     const cancelEdit = () => {
@@ -195,14 +170,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                 `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`,
                 {
                     title: editTitle.trim(),
-                    assignedTo: editAssigned,
+                    assignedTo: editAssigned.map((mid) => String(mid)), // ✅ normalize về string id
                     dueDate: editDueDate || null,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            setTasks((prev) =>
-                prev.map((it) => (it.id === taskId ? res.data : it))
-            );
+            setTasks((prev) => prev.map((it) => (it.id === taskId ? res.data : it)));
             cancelEdit();
         } catch (err) {
             console.error("Failed to update task:", err);
@@ -213,19 +186,14 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
     const handleDeleteChecked = async () => {
         const checked = tasks.filter((t) => t.completed);
         if (checked.length === 0) return;
-        const confirmDelete = window.confirm(
-            `Delete ${checked.length} completed item(s)?`
-        );
+        const confirmDelete = window.confirm(`Delete ${checked.length} completed item(s)?`);
         if (!confirmDelete) return;
         try {
             await Promise.all(
                 checked.map((t) =>
-                    axios.delete(
-                        `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${t.id}`,
-                        {
-                            headers: { Authorization: `Bearer ${token}` },
-                        }
-                    )
+                    axios.delete(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${t.id}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    })
                 )
             );
             setTasks((prev) => prev.filter((t) => !t.completed));
@@ -235,13 +203,19 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
         }
     };
 
+    const getInitial = (name) => {
+        console.log("name", name);
+        if (!name) return "?";
+        return name
+            .normalize("NFD") // chuẩn Unicode tách dấu
+            .replace(/[\u0300-\u036f]/g, "") // xóa dấu
+            .charAt(0)
+            .toUpperCase();
+    };
+
     return (
         <>
-            <div
-                className="position-fixed top-0 start-0 w-100 h-100"
-                style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1040 }}
-                onClick={onClose}
-            />
+            <div className="position-fixed top-0 start-0 w-100 h-100" style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1040 }} onClick={onClose} />
 
             <div
                 className="position-fixed top-50 start-50 translate-middle rounded shadow px-4 py-4"
@@ -255,34 +229,14 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
             >
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <div className="d-flex align-items-center gap-2">
-                        <Icon
-                            icon="material-symbols:keyboard-onscreen"
-                            width={22}
-                            color="white"
-                        />
+                        <Icon icon="material-symbols:keyboard-onscreen" width={22} color="white" />
                         <div>
-                            <h5 className="mb-0 text-white">
-                                {card.name || card.title}
-                            </h5>
-                            <small className="text-secondary">
-                                in list{" "}
-                                {card.status
-                                    ? card.status.charAt(0).toUpperCase() +
-                                      card.status.slice(1)
-                                    : "To do"}
-                            </small>
+                            <h5 className="mb-0 text-white">{card.name || card.title}</h5>
+                            <small className="text-secondary">in list {card.status ? card.status.charAt(0).toUpperCase() + card.status.slice(1) : "To do"}</small>
                         </div>
                     </div>
-                    <button
-                        className="btn"
-                        style={{ marginRight: "-18px" }}
-                        onClick={onClose}
-                    >
-                        <Icon
-                            icon="material-symbols:close"
-                            width={24}
-                            color="white"
-                        />
+                    <button className="btn" style={{ marginRight: "-18px" }} onClick={onClose}>
+                        <Icon icon="material-symbols:close" width={24} color="white" />
                     </button>
                 </div>
 
@@ -293,19 +247,8 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                 <p className="mb-1">Members</p>
                                 <div className="d-flex align-items-center gap-2">
                                     {assignedMembers.length === 0 ? (
-                                        <div
-                                            className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
-                                            style={{ width: 32, height: 32 }}
-                                        >
-                                            {(
-                                                card.assignedTo ||
-                                                card.owner ||
-                                                (Array.isArray(card.members) &&
-                                                    card.members[0]) ||
-                                                ""
-                                            )
-                                                .charAt(0)
-                                                .toUpperCase()}
+                                        <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                                            {(card.assignedTo || card.owner || (Array.isArray(card.members.username) && card.members.username[0]) || "").charAt(0).toUpperCase()}
                                         </div>
                                     ) : (
                                         assignedMembers.slice(0, 5).map((a) => (
@@ -316,22 +259,15 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                     width: 32,
                                                     height: 32,
                                                 }}
-                                                title={a.label}
+                                                title={a.member.username}
                                             >
-                                                {a.initial}
+                                                {getInitial(a.member.username)}
                                             </div>
                                         ))
                                     )}
 
-                                    <div
-                                        className="border border-primary rounded-circle d-flex align-items-center justify-content-center"
-                                        style={{ width: 32, height: 32 }}
-                                    >
-                                        <Icon
-                                            icon="material-symbols:add"
-                                            width={20}
-                                            color="white"
-                                        />
+                                    <div className="border border-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                                        <Icon icon="material-symbols:add" width={20} color="white" />
                                     </div>
                                 </div>
                             </div>
@@ -345,11 +281,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                         width: "fit-content",
                                     }}
                                 >
-                                    <Icon
-                                        icon="material-symbols:eye-tracking-rounded"
-                                        width={20}
-                                        color="white"
-                                    />
+                                    <Icon icon="material-symbols:eye-tracking-rounded" width={20} color="white" />
                                     <span className="text-white">Watch</span>
                                 </div>
                             </div>
@@ -357,32 +289,21 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
 
                         <div className="mb-4">
                             <p className="d-flex align-items-center mb-2">
-                                <Icon
-                                    icon="material-symbols:description"
-                                    width={20}
-                                />
+                                <Icon icon="material-symbols:description" width={20} />
                                 <span className="ps-2">Description</span>
                             </p>
-                            <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">
-                                {card.description ||
-                                    "Add a more detailed description"}
-                            </div>
+                            <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">{card.description || "Add a more detailed description"}</div>
                         </div>
 
                         <div className="mb-4">
                             <p className="d-flex align-items-center mb-2">
-                                <Icon
-                                    icon="material-symbols:checklist"
-                                    width={20}
-                                />
+                                <Icon icon="material-symbols:checklist" width={20} />
                                 <span className="ps-2">Checklist</span>
                             </p>
 
                             <div className="border border-secondary rounded px-3 py-2 bg-dark text-white">
                                 <div className="d-flex align-items-center mb-2">
-                                    <div className="small text-white me-auto">
-                                        {progress}%
-                                    </div>
+                                    <div className="small text-white me-auto">{progress}%</div>
                                     <div style={{ flex: 1, margin: "0 8px" }}>
                                         <div
                                             style={{
@@ -401,169 +322,58 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                             />
                                         </div>
                                     </div>
-                                    <button
-                                        className="btn btn-sm btn-secondary ms-2"
-                                        onClick={() =>
-                                            setHideChecked((s) => !s)
-                                        }
-                                    >
-                                        {hideChecked
-                                            ? "Show checked items"
-                                            : "Hide checked items"}
+                                    <button className="btn btn-sm btn-secondary ms-2" onClick={() => setHideChecked((s) => !s)}>
+                                        {hideChecked ? "Show checked items" : "Hide checked items"}
                                     </button>
-                                    <button
-                                        className="btn btn-sm btn-danger ms-2"
-                                        onClick={handleDeleteChecked}
-                                    >
+                                    <button className="btn btn-sm btn-danger ms-2" onClick={handleDeleteChecked}>
                                         Delete
                                     </button>
                                 </div>
 
                                 {tasks.length === 0 ? (
-                                    <div className="text-white">
-                                        No tasks for this card
-                                    </div>
+                                    <div className="text-white">No tasks for this card</div>
                                 ) : (
-                                    <div
-                                        className="d-flex flex-column"
-                                        style={{ gap: 8 }}
-                                    >
+                                    <div className="d-flex flex-column" style={{ gap: 8 }}>
                                         {tasks
-                                            .filter((t) =>
-                                                hideChecked
-                                                    ? !t.completed
-                                                    : true
-                                            )
+                                            .filter((t) => (hideChecked ? !t.completed : true))
                                             .map((t) => (
-                                                <div
-                                                    key={t.id}
-                                                    className="p-2 border rounded bg-secondary d-flex justify-content-between align-items-center"
-                                                >
+                                                <div key={t.id} className="p-2 border rounded bg-secondary d-flex justify-content-between align-items-center">
                                                     <div className="d-flex align-items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={
-                                                                !!t.completed
-                                                            }
-                                                            onChange={() =>
-                                                                handleToggle(t)
-                                                            }
-                                                        />
+                                                        <input type="checkbox" checked={!!t.completed} onChange={() => handleToggle(t)} />
                                                         <div>
                                                             <div
                                                                 className="fw-bold"
                                                                 style={{
-                                                                    textDecoration:
-                                                                        t.completed
-                                                                            ? "line-through"
-                                                                            : "none",
-                                                                    opacity:
-                                                                        t.completed
-                                                                            ? 0.6
-                                                                            : 1,
+                                                                    textDecoration: t.completed ? "line-through" : "none",
+                                                                    opacity: t.completed ? 0.6 : 1,
                                                                 }}
                                                             >
                                                                 {t.title}
                                                             </div>
-                                                            {t.description && (
-                                                                <div className="small text-muted">
-                                                                    {
-                                                                        t.description
-                                                                    }
-                                                                </div>
-                                                            )}
+                                                            {t.description && <div className="small text-muted">{t.description}</div>}
 
                                                             {/* show due date if present */}
-                                                            {t.dueDate && (
-                                                                <div className="small text-warning">
-                                                                    Due:{" "}
-                                                                    {new Date(
-                                                                        t.dueDate
-                                                                    ).toLocaleDateString()}
-                                                                </div>
-                                                            )}
+                                                            {t.dueDate && <div className="small text-warning">Due: {new Date(t.dueDate).toLocaleDateString()}</div>}
 
                                                             {/* show assigned avatars / initials for multiple assignees */}
                                                             <div className="d-flex gap-1 mt-1">
-                                                                {(Array.isArray(
-                                                                    t.assignedTo
-                                                                )
-                                                                    ? t.assignedTo
-                                                                    : t.assignedTo
-                                                                    ? [
-                                                                          t.assignedTo,
-                                                                      ]
-                                                                    : []
-                                                                )
-                                                                    .slice(0, 5)
-                                                                    .map(
-                                                                        (
-                                                                            a,
-                                                                            idx
-                                                                        ) => {
-                                                                            // try to find member object
-                                                                            const mem =
-                                                                                Array.isArray(
-                                                                                    boardMembers
-                                                                                )
-                                                                                    ? boardMembers.find(
-                                                                                          (
-                                                                                              m
-                                                                                          ) =>
-                                                                                              (m.id ||
-                                                                                                  m._id ||
-                                                                                                  m.uid ||
-                                                                                                  m.name) ===
-                                                                                                  a ||
-                                                                                              m.id ===
-                                                                                                  a ||
-                                                                                              m._id ===
-                                                                                                  a ||
-                                                                                              m.uid ===
-                                                                                                  a
-                                                                                      )
-                                                                                    : null;
-                                                                            const label =
-                                                                                mem
-                                                                                    ? mem.name ||
-                                                                                      mem.displayName ||
-                                                                                      mem.email ||
-                                                                                      mem.id
-                                                                                    : String(
-                                                                                          a
-                                                                                      ).slice(
-                                                                                          0,
-                                                                                          4
-                                                                                      );
-                                                                            const initial =
-                                                                                label
-                                                                                    ? String(
-                                                                                          label
-                                                                                      )
-                                                                                          .charAt(
-                                                                                              0
-                                                                                          )
-                                                                                          .toUpperCase()
-                                                                                    : "?";
-                                                                            return (
-                                                                                <div
-                                                                                    key={
-                                                                                        idx
-                                                                                    }
-                                                                                    className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
-                                                                                    style={{
-                                                                                        width: 22,
-                                                                                        height: 22,
-                                                                                        fontSize: 12,
-                                                                                    }}
-                                                                                >
-                                                                                    {
-                                                                                        initial
-                                                                                    }
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                    )}
+                                                                {(Array.isArray(t.assignedTo) ? t.assignedTo : []).slice(0, 5).map((a, idx) => {
+                                                                    const mem = boardMembers.find((m) => String(m.id || m._id || m.uid || m.name || m.email) === String(a));
+
+                                                                    const label = mem?.username || mem?.name || mem?.displayName || mem?.email || a;
+                                                                    const initial = label.charAt(0).toUpperCase();
+
+                                                                    return (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
+                                                                            style={{ width: 22, height: 22, fontSize: 12 }}
+                                                                            title={label}
+                                                                        >
+                                                                            {initial}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -585,15 +395,10 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                             title="Delete task"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleDelete(
-                                                                    t.id
-                                                                );
+                                                                handleDelete(t.id);
                                                             }}
                                                         >
-                                                            <Icon
-                                                                icon="material-symbols:delete-outline"
-                                                                width={18}
-                                                            />
+                                                            <Icon icon="material-symbols:delete-outline" width={18} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -603,211 +408,102 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                         {editingTaskId && (
                                             <div className="p-2">
                                                 {tasks
-                                                    .filter(
-                                                        (x) =>
-                                                            x.id ===
-                                                            editingTaskId
-                                                    )
+                                                    .filter((x) => x.id === editingTaskId)
                                                     .map((task) => (
-                                                        <div
-                                                            key={task.id}
-                                                            className="border p-2 rounded bg-dark"
-                                                        >
-                                                            <input
-                                                                value={
-                                                                    editTitle
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setEditTitle(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                                className="form-control mb-2 bg-dark text-white border-secondary"
-                                                            />
+                                                        <div key={task.id} className="border p-2 rounded bg-dark">
+                                                            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="form-control mb-2 bg-dark text-white border-secondary" />
 
-                                                            <div className="mb-2 d-flex align-items-center gap-2 position-relative">
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-secondary"
-                                                                    onClick={() =>
-                                                                        setShowEditAssignPicker(
-                                                                            (
-                                                                                s
-                                                                            ) =>
-                                                                                !s
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Icon
-                                                                        icon="material-symbols:person"
-                                                                        width={
-                                                                            16
-                                                                        }
-                                                                    />{" "}
-                                                                    Assign
-                                                                </button>
-                                                                {showEditAssignPicker && (
-                                                                    <div
-                                                                        className="position-absolute"
-                                                                        style={{
-                                                                            top: "105%",
-                                                                            left: 0,
-                                                                            zIndex: 2000,
-                                                                            background:
-                                                                                "#1d2125",
-                                                                            border: "1px solid #444",
-                                                                            padding: 8,
-                                                                            borderRadius: 6,
-                                                                            minWidth: 220,
-                                                                        }}
-                                                                    >
-                                                                        {(
-                                                                            boardMembers ||
-                                                                            []
-                                                                        ).map(
-                                                                            (
-                                                                                m
-                                                                            ) => {
-                                                                                const mid =
-                                                                                    m.id ||
-                                                                                    m._id ||
-                                                                                    m.uid ||
-                                                                                    m.name ||
-                                                                                    m.email;
-                                                                                const checked =
-                                                                                    editAssigned.includes(
-                                                                                        mid
-                                                                                    );
-                                                                                return (
-                                                                                    <label
-                                                                                        key={
-                                                                                            mid
-                                                                                        }
-                                                                                        className="d-flex align-items-center gap-2"
-                                                                                        style={{
-                                                                                            display:
-                                                                                                "block",
-                                                                                        }}
-                                                                                    >
-                                                                                        <input
-                                                                                            type="checkbox"
-                                                                                            checked={
-                                                                                                checked
-                                                                                            }
-                                                                                            onChange={() => {
-                                                                                                if (
-                                                                                                    checked
-                                                                                                )
-                                                                                                    setEditAssigned(
-                                                                                                        (
-                                                                                                            prev
-                                                                                                        ) =>
-                                                                                                            prev.filter(
-                                                                                                                (
-                                                                                                                    p
-                                                                                                                ) =>
-                                                                                                                    p !==
-                                                                                                                    mid
-                                                                                                            )
-                                                                                                    );
-                                                                                                else
-                                                                                                    setEditAssigned(
-                                                                                                        (
-                                                                                                            prev
-                                                                                                        ) => [
-                                                                                                            ...prev,
-                                                                                                            mid,
-                                                                                                        ]
-                                                                                                    );
-                                                                                            }}
-                                                                                        />
-                                                                                        <span className="text-white small">
-                                                                                            {m.name ||
-                                                                                                m.displayName ||
-                                                                                                m.email ||
-                                                                                                mid}
-                                                                                        </span>
-                                                                                    </label>
-                                                                                );
-                                                                            }
-                                                                        )}
-                                                                    </div>
-                                                                )}
-
-                                                                <div className="position-relative">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-secondary"
-                                                                        onClick={() =>
-                                                                            setShowEditDuePicker(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    !s
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Icon
-                                                                            icon="material-symbols:schedule"
-                                                                            width={
-                                                                                16
-                                                                            }
-                                                                        />{" "}
-                                                                        Due date
+                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                                <div className="mb-2 d-flex align-items-center gap-2 position-relative">
+                                                                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditAssignPicker((s) => !s)}>
+                                                                        <Icon icon="material-symbols:person" width={16} /> Assign
                                                                     </button>
-                                                                    {showEditDuePicker && (
+                                                                    {showEditAssignPicker && (
                                                                         <div
                                                                             className="position-absolute"
                                                                             style={{
                                                                                 top: "105%",
                                                                                 left: 0,
                                                                                 zIndex: 2000,
-                                                                                background:
-                                                                                    "#1d2125",
+                                                                                background: "#1d2125",
                                                                                 border: "1px solid #444",
                                                                                 padding: 8,
                                                                                 borderRadius: 6,
+                                                                                minWidth: 220,
                                                                             }}
                                                                         >
-                                                                            <input
-                                                                                type="date"
-                                                                                value={
-                                                                                    editDueDate
-                                                                                }
-                                                                                onChange={(
-                                                                                    e
-                                                                                ) =>
-                                                                                    setEditDueDate(
-                                                                                        e
-                                                                                            .target
-                                                                                            .value
-                                                                                    )
-                                                                                }
-                                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
-                                                                            />
+                                                                            {(boardMembers || []).map((m) => {
+                                                                                const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                                                const checked = editAssigned.includes(mid);
+
+                                                                                const label = m.username || m.name || m.displayName || m.email || mid;
+                                                                                const initial = getInitial(label);
+
+                                                                                return (
+                                                                                    <div
+                                                                                        key={mid}
+                                                                                        className="d-flex align-items-center gap-2 p-1 rounded"
+                                                                                        style={{
+                                                                                            cursor: "pointer",
+                                                                                            background: checked ? "#2b2f31" : "transparent",
+                                                                                        }}
+                                                                                        onClick={() => {
+                                                                                            if (checked) {
+                                                                                                setEditAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                                            } else {
+                                                                                                setEditAssigned((prev) => [...prev, mid]);
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                                                                            style={{ width: 28, height: 28, fontSize: 13 }}
+                                                                                        >
+                                                                                            {initial}
+                                                                                        </div>
+                                                                                        <span className="text-white small">{label}</span>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
                                                                         </div>
                                                                     )}
-                                                                </div>
-                                                            </div>
 
-                                                            <div className="d-flex gap-2">
-                                                                <button
-                                                                    className="btn btn-sm btn-primary"
-                                                                    onClick={() =>
-                                                                        saveEdit(
-                                                                            task.id
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Save
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-secondary"
-                                                                    onClick={
-                                                                        cancelEdit
-                                                                    }
-                                                                >
-                                                                    Cancel
-                                                                </button>
+                                                                    <div className="position-relative">
+                                                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowEditDuePicker((s) => !s)}>
+                                                                            <Icon icon="material-symbols:schedule" width={16} /> Due date
+                                                                        </button>
+                                                                        {showEditDuePicker && (
+                                                                            <div
+                                                                                className="position-absolute"
+                                                                                style={{
+                                                                                    top: "105%",
+                                                                                    left: 0,
+                                                                                    zIndex: 2000,
+                                                                                    background: "#1d2125",
+                                                                                    border: "1px solid #444",
+                                                                                    padding: 8,
+                                                                                    borderRadius: 6,
+                                                                                }}
+                                                                            >
+                                                                                <input
+                                                                                    type="date"
+                                                                                    value={editDueDate}
+                                                                                    onChange={(e) => setEditDueDate(e.target.value)}
+                                                                                    className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="d-flex gap-2">
+                                                                    <button className="btn btn-sm btn-primary" onClick={() => saveEdit(task.id)}>
+                                                                        Save
+                                                                    </button>
+                                                                    <button className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -817,25 +513,17 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                 )}
 
                                 <div className="mt-3">
-                                    <div
-                                        className="d-flex flex-column"
-                                        style={{ gap: 8 }}
-                                    >
+                                    <div className="d-flex flex-column" style={{ gap: 8 }}>
                                         <input
                                             value={newTaskTitle}
-                                            onChange={(e) =>
-                                                setNewTaskTitle(e.target.value)
-                                            }
+                                            onChange={(e) => setNewTaskTitle(e.target.value)}
                                             className="form-control form-control-sm bg-dark text-white border-secondary"
                                             placeholder="Add an item"
                                         />
 
                                         <div className="d-flex align-items-center justify-content-between mt-2">
                                             <div className="d-flex gap-2">
-                                                <button
-                                                    className="btn btn-sm btn-primary"
-                                                    onClick={handleAddTask}
-                                                >
+                                                <button className="btn btn-sm btn-primary" onClick={handleAddTask}>
                                                     Save
                                                 </button>
                                                 <button
@@ -844,9 +532,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                         setNewTaskTitle("");
                                                         setNewAssigned([]);
                                                         setNewDueDate("");
-                                                        setShowAssignPicker(
-                                                            false
-                                                        );
+                                                        setShowAssignPicker(false);
                                                         setShowDuePicker(false);
                                                     }}
                                                 >
@@ -855,19 +541,8 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                             </div>
 
                                             <div className="d-flex align-items-center gap-2 position-relative">
-                                                <button
-                                                    className="btn btn-sm btn-outline-secondary"
-                                                    onClick={() =>
-                                                        setShowAssignPicker(
-                                                            (s) => !s
-                                                        )
-                                                    }
-                                                >
-                                                    <Icon
-                                                        icon="material-symbols:person"
-                                                        width={16}
-                                                    />{" "}
-                                                    Assign
+                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowAssignPicker((s) => !s)}>
+                                                    <Icon icon="material-symbols:person" width={16} /> Assign
                                                 </button>
                                                 {showAssignPicker && (
                                                     <div
@@ -876,93 +551,52 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                             top: "105%",
                                                             right: 0,
                                                             zIndex: 2000,
-                                                            background:
-                                                                "#1d2125",
+                                                            background: "#1d2125",
                                                             border: "1px solid #444",
                                                             padding: 8,
                                                             borderRadius: 6,
                                                             minWidth: 220,
                                                         }}
                                                     >
-                                                        {(
-                                                            boardMembers || []
-                                                        ).map((m) => {
-                                                            const mid =
-                                                                m.id ||
-                                                                m._id ||
-                                                                m.uid ||
-                                                                m.name ||
-                                                                m.email;
-                                                            const checked =
-                                                                newAssigned.includes(
-                                                                    mid
-                                                                );
+                                                        {(boardMembers || []).map((m) => {
+                                                            const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                            const isSelected = newAssigned.includes(mid);
+
+                                                            const label = m.username || m.name || m.displayName || m.email || mid;
+                                                            const initial = getInitial(label);
+
                                                             return (
-                                                                <label
+                                                                <div
                                                                     key={mid}
-                                                                    className="d-flex align-items-center gap-2"
+                                                                    className="d-flex align-items-center gap-2 p-1 rounded"
                                                                     style={{
-                                                                        display:
-                                                                            "block",
+                                                                        cursor: "pointer",
+                                                                        background: isSelected ? "#2b2f31" : "transparent",
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        if (isSelected) {
+                                                                            setNewAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                        } else {
+                                                                            setNewAssigned((prev) => [...prev, mid]);
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={
-                                                                            checked
-                                                                        }
-                                                                        onChange={() => {
-                                                                            if (
-                                                                                checked
-                                                                            )
-                                                                                setNewAssigned(
-                                                                                    (
-                                                                                        prev
-                                                                                    ) =>
-                                                                                        prev.filter(
-                                                                                            (
-                                                                                                p
-                                                                                            ) =>
-                                                                                                p !==
-                                                                                                mid
-                                                                                        )
-                                                                                );
-                                                                            else
-                                                                                setNewAssigned(
-                                                                                    (
-                                                                                        prev
-                                                                                    ) => [
-                                                                                        ...prev,
-                                                                                        mid,
-                                                                                    ]
-                                                                                );
-                                                                        }}
-                                                                    />
-                                                                    <span className="text-white small">
-                                                                        {m.name ||
-                                                                            m.displayName ||
-                                                                            m.email ||
-                                                                            mid}
-                                                                    </span>
-                                                                </label>
+                                                                    <div
+                                                                        className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                                                        style={{ width: 28, height: 28, fontSize: 13 }}
+                                                                    >
+                                                                        {initial}
+                                                                    </div>
+                                                                    <span className="text-white small">{label}</span>
+                                                                </div>
                                                             );
                                                         })}
                                                     </div>
                                                 )}
 
                                                 <div className="position-relative">
-                                                    <button
-                                                        className="btn btn-sm btn-outline-secondary"
-                                                        onClick={() =>
-                                                            setShowDuePicker(
-                                                                (s) => !s
-                                                            )
-                                                        }
-                                                    >
-                                                        <Icon
-                                                            icon="material-symbols:schedule"
-                                                            width={16}
-                                                        />
+                                                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowDuePicker((s) => !s)}>
+                                                        <Icon icon="material-symbols:schedule" width={16} />
                                                     </button>
                                                     {showDuePicker && (
                                                         <div
@@ -971,8 +605,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                                 top: "105%",
                                                                 right: 0,
                                                                 zIndex: 2000,
-                                                                background:
-                                                                    "#1d2125",
+                                                                background: "#1d2125",
                                                                 border: "1px solid #444",
                                                                 padding: 8,
                                                                 borderRadius: 6,
@@ -980,15 +613,8 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                         >
                                                             <input
                                                                 type="date"
-                                                                value={
-                                                                    newDueDate
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setNewDueDate(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
+                                                                value={newDueDate}
+                                                                onChange={(e) => setNewDueDate(e.target.value)}
                                                                 className="form-control form-control-sm bg-dark text-white border-secondary"
                                                             />
                                                         </div>
@@ -1003,49 +629,24 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
 
                         <div>
                             <p className="d-flex align-items-center mb-2">
-                                <Icon
-                                    icon="material-symbols:activity"
-                                    width={20}
-                                />
+                                <Icon icon="material-symbols:activity" width={20} />
                                 <span className="ps-2">Activity</span>
-                                <button className="btn btn-sm btn-outline-secondary ms-auto">
-                                    Show details
-                                </button>
+                                <button className="btn btn-sm btn-outline-secondary ms-auto">Show details</button>
                             </p>
                             <div className="d-flex align-items-start gap-2">
-                                <div
-                                    className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
-                                    style={{ width: 32, height: 32 }}
-                                >
-                                    {(
-                                        card.assignedTo ||
-                                        card.owner ||
-                                        (Array.isArray(card.members) &&
-                                            card.members[0]) ||
-                                        ""
-                                    )
-                                        .charAt(0)
-                                        .toUpperCase()}
+                                <div className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                                    {(card.assignedTo || card.owner || (Array.isArray(card.members) && card.members[0]) || "").charAt(0).toUpperCase()}
                                 </div>
-                                <input
-                                    className="form-control bg-dark text-white border-secondary"
-                                    placeholder="Write a comment"
-                                />
+                                <input className="form-control bg-dark text-white border-secondary" placeholder="Write a comment" />
                             </div>
                         </div>
                     </div>
 
                     <div style={{ width: "25%" }}>
                         <div className="mb-4">
-                            <p className="text-white fw-bold mb-2">
-                                Add to card
-                            </p>
+                            <p className="text-white fw-bold mb-2">Add to card</p>
                             <button className="btn btn-outline-secondary w-100 text-start mb-2">
-                                <Icon
-                                    icon="material-symbols:person"
-                                    width={18}
-                                    className="me-2"
-                                />
+                                <Icon icon="material-symbols:person" width={18} className="me-2" />
                                 Members
                             </button>
                         </div>
@@ -1056,26 +657,14 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                 <Icon icon="mdi:github" width={18} />
                                 GitHub
                             </button>
-                            <button className="btn btn-outline-secondary w-100 text-start mb-2">
-                                Attach Branch
-                            </button>
-                            <button className="btn btn-outline-secondary w-100 text-start mb-2">
-                                Attach Commit
-                            </button>
-                            <button className="btn btn-outline-secondary w-100 text-start mb-2">
-                                Attach Issue
-                            </button>
-                            <button className="btn btn-outline-secondary w-100 text-start mb-2">
-                                Attach Pull Request...
-                            </button>
+                            <button className="btn btn-outline-secondary w-100 text-start mb-2">Attach Branch</button>
+                            <button className="btn btn-outline-secondary w-100 text-start mb-2">Attach Commit</button>
+                            <button className="btn btn-outline-secondary w-100 text-start mb-2">Attach Issue</button>
+                            <button className="btn btn-outline-secondary w-100 text-start mb-2">Attach Pull Request...</button>
                         </div>
 
                         <button className="btn btn-outline-secondary w-100 text-start">
-                            <Icon
-                                icon="material-symbols:archive"
-                                width={18}
-                                className="me-2"
-                            />
+                            <Icon icon="material-symbols:archive" width={18} className="me-2" />
                             Archive
                         </button>
                     </div>

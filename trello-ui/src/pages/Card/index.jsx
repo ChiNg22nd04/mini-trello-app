@@ -35,6 +35,7 @@ const CardPage = () => {
     const [selectedCard, setSelectedCard] = useState(null);
     const [arrayMembers, setArrayMembers] = useState([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [taskCounts, setTaskCounts] = useState({});
 
     const headerHeight = "60px";
 
@@ -43,21 +44,15 @@ const CardPage = () => {
     const fetchData = useCallback(async () => {
         if (!user || !token || !boardId) return;
         try {
-            const boardRes = await axios.get(
-                `${API_BASE_URL}/boards/${boardId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
+            const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setBoard(boardRes.data);
 
             // Fetch cards and group them by their own status
-            const cardsRes = await axios.get(
-                `${API_BASE_URL}/boards/${boardId}/cards`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
+            const cardsRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
             const grouped = {
                 todo: [],
@@ -73,12 +68,31 @@ const CardPage = () => {
 
             setCardsByStatus(grouped);
 
-            const members = await axios.get(
-                `${API_BASE_URL}/boards/${boardId}/members`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
+            // Fetch task counts (done/total) for each card
+            const allCards = Array.isArray(cardsRes.data) ? cardsRes.data : [];
+            if (allCards.length > 0) {
+                try {
+                    const entries = await Promise.all(
+                        allCards.map(async (c) => {
+                            try {
+                                const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${c.id}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+                                const tasks = res.data || [];
+                                const done = tasks.filter((t) => t.completed).length;
+                                return [c.id, { done, total: tasks.length }];
+                            } catch {
+                                return [c.id, { done: 0, total: 0 }];
+                            }
+                        })
+                    );
+                    setTaskCounts((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+                } catch {
+                    // ignore
                 }
-            );
+            }
+
+            const members = await axios.get(`${API_BASE_URL}/boards/${boardId}/members`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setArrayMembers(members.data.members || []);
         } catch (err) {
             console.error("Failed to fetch board or cards:", err);
@@ -91,15 +105,12 @@ const CardPage = () => {
 
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result;
-        if (!destination || source.droppableId === destination.droppableId)
-            return;
+        if (!destination || source.droppableId === destination.droppableId) return;
 
         const sourceStatus = source.droppableId;
         const destStatus = destination.droppableId;
 
-        const movedCard = cardsByStatus[sourceStatus].find(
-            (c) => String(c.id) === String(draggableId)
-        );
+        const movedCard = cardsByStatus[sourceStatus].find((c) => String(c.id) === String(draggableId));
         if (!movedCard) return;
 
         try {
@@ -117,19 +128,25 @@ const CardPage = () => {
             setCardsByStatus((prev) => {
                 return {
                     ...prev,
-                    [sourceStatus]: prev[sourceStatus].filter(
-                        (c) => String(c.id) !== String(draggableId)
-                    ),
-                    [destStatus]: [
-                        ...prev[destStatus],
-                        { ...movedCard, status: destStatus },
-                    ],
+                    [sourceStatus]: prev[sourceStatus].filter((c) => String(c.id) !== String(draggableId)),
+                    [destStatus]: [...prev[destStatus], { ...movedCard, status: destStatus }],
                 };
             });
         } catch (err) {
             console.error("Failed to update card status:", err);
         }
     };
+
+    // Callback to receive live task count updates from CardDetail
+    const handleTaskCountsChange = useCallback((cardId, counts) => {
+        setTaskCounts((prev) => ({
+            ...prev,
+            [cardId]: {
+                done: counts?.done ?? 0,
+                total: counts?.total ?? 0,
+            },
+        }));
+    }, []);
 
     const handleAddTask = () => {
         setIsCreateOpen(true);
@@ -154,21 +171,14 @@ const CardPage = () => {
             setIsCreateOpen(false);
             await fetchData();
         } catch (err) {
-            console.error(
-                "Failed to create card:",
-                err.response || err.message || err
-            );
+            console.error("Failed to create card:", err.response || err.message || err);
             alert("Failed to create card");
         }
     };
 
     return (
         <>
-            <Header
-                isShow={false}
-                username={user?.username}
-                style={{ height: headerHeight, zIndex: 1030 }}
-            />
+            <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
             <div
                 className="d-flex bg-dark text-white"
                 style={{
@@ -177,11 +187,7 @@ const CardPage = () => {
                 }}
             >
                 <div style={{ width: "20%", position: "fixed" }}>
-                    <Sidebar
-                        members={arrayMembers}
-                        fullHeight
-                        title={board?.name}
-                    />
+                    <Sidebar members={arrayMembers} fullHeight title={board?.name} />
                 </div>
 
                 <div
@@ -207,10 +213,7 @@ const CardPage = () => {
                     {console.log("boardId", boardId)}
 
                     <DragDropContext onDragEnd={onDragEnd}>
-                        <div
-                            className="d-flex gap-3 p-3"
-                            style={{ overflowX: "auto" }}
-                        >
+                        <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>
                             {STATUSES.map((status) => (
                                 <Droppable droppableId={status} key={status}>
                                     {(provided) => (
@@ -225,73 +228,38 @@ const CardPage = () => {
                                                 height: "100%",
                                             }}
                                         >
-                                            <p className="text-white mb-3">
-                                                {STATUS_LABELS[status]}
-                                            </p>
+                                            <p className="text-white mb-3">{STATUS_LABELS[status]}</p>
 
-                                            {cardsByStatus[status].map(
-                                                (card, index) => (
-                                                    <Draggable
-                                                        key={card.id}
-                                                        draggableId={String(
-                                                            card.id
-                                                        )}
-                                                        index={index}
-                                                    >
-                                                        {(provided) => (
-                                                            <div
-                                                                onClick={() =>
-                                                                    setSelectedCard(
-                                                                        card
-                                                                    )
-                                                                }
-                                                                ref={
-                                                                    provided.innerRef
-                                                                }
-                                                                {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                className="bg-dark text-white border rounded mb-3 p-2"
-                                                            >
-                                                                <strong>
-                                                                    {card.name}
-                                                                </strong>
-                                                                <p className="mb-1">
-                                                                    {
-                                                                        card.description
-                                                                    }
-                                                                </p>
-                                                                <small className="text-muted">
-                                                                    Members:{" "}
-                                                                    {Array.isArray(
-                                                                        card.members
-                                                                    )
-                                                                        ? card
-                                                                              .members
-                                                                              .length
-                                                                        : 0}
+                                            {cardsByStatus[status].map((card, index) => (
+                                                <Draggable key={card.id} draggableId={String(card.id)} index={index}>
+                                                    {(provided) => (
+                                                        <div
+                                                            onClick={() => setSelectedCard(card)}
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className="bg-dark text-white border rounded mb-3 p-2"
+                                                        >
+                                                            <strong>{card.name}</strong>
+                                                            <small className="text-muted">Members: {Array.isArray(card.members) ? card.members.length : 0}</small>
+                                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                                <Icon style={{ marginRight: 5 }} icon="material-symbols:checklist" width={20} />
+                                                                <small className="text-info d-block">
+                                                                    {taskCounts[card.id]?.done ?? 0}/{taskCounts[card.id]?.total ?? 0}
                                                                 </small>
                                                             </div>
-                                                        )}
-                                                    </Draggable>
-                                                )
-                                            )}
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
 
                                             {provided.placeholder}
-                                            <button
-                                                className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100"
-                                                onClick={() => handleAddTask()}
-                                            >
+                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100" onClick={() => handleAddTask()}>
                                                 <div className="d-flex justify-content-between">
-                                                    <Icon
-                                                        width={20}
-                                                        icon="material-symbols:add"
-                                                    />
+                                                    <Icon width={20} icon="material-symbols:add" />
                                                     <span>Add a card</span>
                                                 </div>
-                                                <Icon
-                                                    width={20}
-                                                    icon="material-symbols:ink-selection-rounded"
-                                                />
+                                                <Icon width={20} icon="material-symbols:ink-selection-rounded" />
                                             </button>
                                         </div>
                                     )}
@@ -301,21 +269,9 @@ const CardPage = () => {
                     </DragDropContext>
                 </div>
             </div>
-            {isCreateOpen && (
-                <CreateCardModal
-                    onClose={() => setIsCreateOpen(false)}
-                    onCreate={handleCreateCard}
-                    members={arrayMembers}
-                />
-            )}
+            {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembers} />}
 
-            <CardDetail
-                card={selectedCard}
-                onClose={() => setSelectedCard(null)}
-                boardId={boardId}
-                token={token}
-                boardMembers={arrayMembers}
-            />
+            <CardDetail card={selectedCard} onClose={() => setSelectedCard(null)} boardId={boardId} token={token} boardMembers={arrayMembers} onTaskCountsChange={handleTaskCountsChange} />
         </>
     );
 };
