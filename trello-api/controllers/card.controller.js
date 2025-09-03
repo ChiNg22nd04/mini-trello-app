@@ -26,7 +26,7 @@ const createCard = async (req, res) => {
     try {
         const ownerId = req.user.id;
         const boardId = req.params.boardId;
-        const { name, description, createdAt } = req.body;
+        const { name, description, createdAt, members } = req.body;
 
         const newCard = {
             boardId,
@@ -34,6 +34,7 @@ const createCard = async (req, res) => {
             description,
             ownerId,
             createdAt: createdAt || new Date(),
+            members: members || [],
         };
 
         const docRef = await cardsCollection.add(newCard);
@@ -42,6 +43,9 @@ const createCard = async (req, res) => {
             id: docRef.id,
             name,
             description,
+            ownerId,
+            createdAt: newCard.createdAt,
+            members: newCard.members,
         };
 
         getIO().emit("cardCreated", createdCard);

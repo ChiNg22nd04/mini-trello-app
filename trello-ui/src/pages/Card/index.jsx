@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -9,6 +9,7 @@ import API_BASE_URL from "../../../config/config";
 import { Header, TopSideBar } from "../../components";
 import Sidebar from "./Sidebar";
 import CardDetail from "./CardDetail";
+import CreateCardModal from "./CreateCardModal";
 
 import { useUser } from "../../hooks";
 const STATUSES = ["todo", "doing", "done"];
@@ -33,76 +34,76 @@ const CardPage = () => {
 
     const [selectedTask, setSelectedTask] = useState(null);
     const [arrayMembers, setArrayMembers] = useState([]);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const headerHeight = "60px";
 
     console.log(boardId);
 
-    useEffect(() => {
+    const fetchData = useCallback(async () => {
         if (!user || !token || !boardId) return;
-
-        const fetchData = async () => {
-            try {
-                const boardRes = await axios.get(
-                    `${API_BASE_URL}/boards/${boardId}`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-                setBoard(boardRes.data);
-
-                const cardsRes = await axios.get(
-                    `${API_BASE_URL}/boards/${boardId}/cards`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-
-                const allTasks = [];
-
-                for (const card of cardsRes.data) {
-                    const taskRes = await axios.get(
-                        `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
-                        {
-                            headers: { Authorization: `Bearer ${token}` },
-                        }
-                    );
-
-                    const tasks = taskRes.data.map((task) => ({
-                        ...task,
-                        cardId: card.id,
-                        cardName: card.name,
-                    }));
-
-                    allTasks.push(...tasks);
+        try {
+            const boardRes = await axios.get(
+                `${API_BASE_URL}/boards/${boardId}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
                 }
+            );
+            setBoard(boardRes.data);
 
-                const grouped = {
-                    todo: [],
-                    doing: [],
-                    done: [],
-                };
+            const cardsRes = await axios.get(
+                `${API_BASE_URL}/boards/${boardId}/cards`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
 
-                allTasks.forEach((task) => {
-                    const status = task.status || "todo";
-                    grouped[status].push(task);
-                });
-                setTasksByStatus(grouped);
+            const allTasks = [];
 
-                const members = await axios.get(
-                    `${API_BASE_URL}/boards/${boardId}/members`,
+            for (const card of cardsRes.data) {
+                const taskRes = await axios.get(
+                    `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
                     {
                         headers: { Authorization: `Bearer ${token}` },
                     }
                 );
-                setArrayMembers(members.data.members || []);
-            } catch (err) {
-                console.error("Failed to fetch board or tasks:", err);
-            }
-        };
 
-        fetchData();
+                const tasks = taskRes.data.map((task) => ({
+                    ...task,
+                    cardId: card.id,
+                    cardName: card.name,
+                }));
+
+                allTasks.push(...tasks);
+            }
+
+            const grouped = {
+                todo: [],
+                doing: [],
+                done: [],
+            };
+
+            allTasks.forEach((task) => {
+                const status = task.status || "todo";
+                grouped[status].push(task);
+            });
+            setTasksByStatus(grouped);
+
+            const members = await axios.get(
+                `${API_BASE_URL}/boards/${boardId}/members`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            setArrayMembers(members.data.members || []);
+        } catch (err) {
+            console.error("Failed to fetch board or tasks:", err);
+        }
     }, [user, token, boardId]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result;
@@ -145,8 +146,35 @@ const CardPage = () => {
         }
     };
 
-    const handleAddTask = (status) => {
-        console.log("status", status);
+    const handleAddTask = () => {
+        setIsCreateOpen(true);
+    };
+
+    const handleCreateCard = async ({ name, description, members }) => {
+        const createdAt = new Date().toISOString();
+        try {
+            await axios.post(
+                `${API_BASE_URL}/boards/${boardId}/cards`,
+                {
+                    name,
+                    description,
+                    createdAt,
+                    members,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            setIsCreateOpen(false);
+            await fetchData();
+        } catch (err) {
+            console.error(
+                "Failed to create card:",
+                err.response || err.message || err
+            );
+            alert("Failed to create card");
+        }
     };
 
     return (
@@ -260,9 +288,7 @@ const CardPage = () => {
                                             {provided.placeholder}
                                             <button
                                                 className="d-flex justify-content-between mt-2 btn btn-sm text-white text-start border-none mt-2 w-100"
-                                                onClick={() =>
-                                                    handleAddTask(status)
-                                                }
+                                                onClick={() => handleAddTask()}
                                             >
                                                 <div className="d-flex justify-content-between">
                                                     <Icon
@@ -284,6 +310,14 @@ const CardPage = () => {
                     </DragDropContext>
                 </div>
             </div>
+            {isCreateOpen && (
+                <CreateCardModal
+                    onClose={() => setIsCreateOpen(false)}
+                    onCreate={handleCreateCard}
+                    members={arrayMembers}
+                />
+            )}
+
             <CardDetail
                 task={selectedTask}
                 onClose={() => setSelectedTask(null)}
