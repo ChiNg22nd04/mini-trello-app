@@ -12,7 +12,9 @@ const githubLogin = (req, res) => {
     const clientID = process.env.GITHUB_CLIENT_ID;
     const redirectURI = process.env.GITHUB_REDIRECT_URI;
 
-    const githubOAuthURL = `${authorizeURL}?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}`;
+    // Request user email scope so we can access private/primary emails when available
+    const scope = "user:email";
+    const githubOAuthURL = `${authorizeURL}?client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectURI)}&scope=${encodeURIComponent(scope)}`;
     console.log("githubOAuthURL", githubOAuthURL);
     res.redirect(githubOAuthURL);
 };
@@ -45,10 +47,30 @@ const githubCallback = async (req, res) => {
         }
 
         const userResponse = await axios.get("https://api.github.com/user", {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
         });
 
-        const { id, login, avatar_url, email } = userResponse.data;
+        // GitHub may not always return the user's email in /user (it only returns public email).
+        // Fetch the list of emails and prefer the primary, verified one.
+        let emailFromApi = userResponse.data.email || "";
+        try {
+            const emailsResponse = await axios.get("https://api.github.com/user/emails", {
+                headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+            });
+
+            if (Array.isArray(emailsResponse.data) && emailsResponse.data.length > 0) {
+                const primaryVerified = emailsResponse.data.find((e) => e.primary && e.verified);
+                const primary = emailsResponse.data.find((e) => e.primary);
+                const first = emailsResponse.data[0];
+                const chosen = primaryVerified || primary || first;
+                if (chosen && chosen.email) emailFromApi = chosen.email;
+            }
+        } catch (e) {
+            // If fetching emails fails, continue with whatever /user provided (may be empty)
+            console.warn("Could not fetch user emails from GitHub:", e.message || e);
+        }
+
+        const { id, login, avatar_url } = userResponse.data;
         const uid = id.toString();
         const userRef = db.collection("users").doc(uid);
         const userDoc = await userRef.get();
@@ -58,14 +80,14 @@ const githubCallback = async (req, res) => {
                 uid,
                 githubId: id,
                 username: login,
-                email: email || "",
+                email: emailFromApi || "",
                 avatar: avatar_url,
                 createdAt: new Date(),
                 loginMethod: "github",
             });
         }
 
-        const token = jwt.sign({ id: uid, username: login, email }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username: login, email: emailFromApi || "" }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 

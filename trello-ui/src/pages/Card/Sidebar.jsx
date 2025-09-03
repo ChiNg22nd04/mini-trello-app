@@ -11,7 +11,7 @@ const Sidebar = ({ members, fullHeight = false, title }) => {
         >
             <div className="d-flex align-items-center mb-2 p-2 justify-content-between">
                 <h5 className="m-0 fw-normal">Your boards</h5>
-                <Icon icon="mdi:dots-horizontal" width="28" />
+                {/* <Icon icon="mdi:dots-horizontal" width="28" /> */}
             </div>
 
             <div className="d-flex align-items-center p-2 mb-1">
@@ -46,36 +46,45 @@ const Sidebar = ({ members, fullHeight = false, title }) => {
                 </li>
 
                 <li style={{ paddingLeft: "10px" }}>
-                    {members.map((member) => (
-                        <div
-                            key={member.id}
-                            className="d-flex align-items-center py-1"
-                            style={{ overflow: "hidden" }}
-                        >
-                            <div
-                                className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
-                                style={{
-                                    width: "30px",
-                                    height: "30px",
-                                    fontSize: "14px",
-                                }}
-                            >
-                                {member.username.charAt(0).toUpperCase()}
-                            </div>
-                            <p
-                                className="m-0 ps-2 fw-normal fs-6"
-                                style={{
-                                    maxWidth: "165px",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                }}
-                            >
-                                {member.username.charAt(0).toUpperCase() +
-                                    member.username.slice(1)}
-                            </p>
-                        </div>
-                    ))}
+                    {members.map(
+                        (member) => (
+                            console.log("member", member),
+                            (
+                                <div
+                                    key={member.id}
+                                    className="d-flex align-items-center py-1"
+                                    style={{ overflow: "hidden" }}
+                                >
+                                    <div
+                                        className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
+                                        style={{
+                                            width: "30px",
+                                            height: "30px",
+                                            fontSize: "14px",
+                                        }}
+                                    >
+                                        {member.username
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </div>
+                                    <p
+                                        className="m-0 ps-2 fw-normal fs-6"
+                                        style={{
+                                            maxWidth: "165px",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                        }}
+                                    >
+                                        {member.username
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            member.username.slice(1)}
+                                    </p>
+                                </div>
+                            )
+                        )
+                    )}
                 </li>
             </ul>
         </div>

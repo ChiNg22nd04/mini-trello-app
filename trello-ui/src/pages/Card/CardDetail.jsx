@@ -6,7 +6,21 @@ import API_BASE_URL from "../../../config/config";
 const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
     const [tasks, setTasks] = useState([]);
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [newAssigned, setNewAssigned] = useState([]); // array of member ids
+    const [newDueDate, setNewDueDate] = useState(""); // yyyy-mm-dd
     const [hideChecked, setHideChecked] = useState(false);
+
+    // popover toggles for create
+    const [showAssignPicker, setShowAssignPicker] = useState(false);
+    const [showDuePicker, setShowDuePicker] = useState(false);
+
+    // editing existing task
+    const [editingTaskId, setEditingTaskId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editAssigned, setEditAssigned] = useState([]);
+    const [editDueDate, setEditDueDate] = useState("");
+    const [showEditAssignPicker, setShowEditAssignPicker] = useState(false);
+    const [showEditDuePicker, setShowEditDuePicker] = useState(false);
 
     const completedCount = tasks.filter((t) => t.completed).length;
     const progress =
@@ -41,11 +55,17 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
         try {
             const res = await axios.post(
                 `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
-                { title: newTaskTitle.trim() },
+                {
+                    title: newTaskTitle.trim(),
+                    assignedTo: newAssigned,
+                    dueDate: newDueDate || null,
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setTasks((prev) => [...prev, res.data]);
             setNewTaskTitle("");
+            setNewAssigned([]);
+            setNewDueDate("");
         } catch (err) {
             console.error("Failed to create task:", err);
             alert("Failed to add task");
@@ -87,6 +107,54 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
         } catch (err) {
             console.error("Failed to delete task:", err);
             alert("Failed to delete task");
+        }
+    };
+
+    const startEdit = (task) => {
+        setEditingTaskId(task.id);
+        setEditTitle(task.title || "");
+        // Normalize assignedTo into array of ids or strings
+        const assigned = Array.isArray(task.assignedTo)
+            ? task.assignedTo.map((a) =>
+                  typeof a === "object" ? a.id || a._id || a.uid || a.name : a
+              )
+            : task.assignedTo
+            ? [task.assignedTo]
+            : [];
+        setEditAssigned(assigned);
+        // dueDate -> yyyy-mm-dd
+        setEditDueDate(
+            task.dueDate
+                ? new Date(task.dueDate).toISOString().slice(0, 10)
+                : ""
+        );
+    };
+
+    const cancelEdit = () => {
+        setEditingTaskId(null);
+        setEditTitle("");
+        setEditAssigned([]);
+        setEditDueDate("");
+    };
+
+    const saveEdit = async (taskId) => {
+        try {
+            const res = await axios.put(
+                `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`,
+                {
+                    title: editTitle.trim(),
+                    assignedTo: editAssigned,
+                    dueDate: editDueDate || null,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setTasks((prev) =>
+                prev.map((it) => (it.id === taskId ? res.data : it))
+            );
+            cancelEdit();
+        } catch (err) {
+            console.error("Failed to update task:", err);
+            alert("Failed to save task");
         }
     };
 
@@ -335,17 +403,114 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                                     }
                                                                 </div>
                                                             )}
+
+                                                            {/* show due date if present */}
+                                                            {t.dueDate && (
+                                                                <div className="small text-warning">
+                                                                    Due:{" "}
+                                                                    {new Date(
+                                                                        t.dueDate
+                                                                    ).toLocaleDateString()}
+                                                                </div>
+                                                            )}
+
+                                                            {/* show assigned avatars / initials for multiple assignees */}
+                                                            <div className="d-flex gap-1 mt-1">
+                                                                {(Array.isArray(
+                                                                    t.assignedTo
+                                                                )
+                                                                    ? t.assignedTo
+                                                                    : t.assignedTo
+                                                                    ? [
+                                                                          t.assignedTo,
+                                                                      ]
+                                                                    : []
+                                                                )
+                                                                    .slice(0, 5)
+                                                                    .map(
+                                                                        (
+                                                                            a,
+                                                                            idx
+                                                                        ) => {
+                                                                            // try to find member object
+                                                                            const mem =
+                                                                                Array.isArray(
+                                                                                    boardMembers
+                                                                                )
+                                                                                    ? boardMembers.find(
+                                                                                          (
+                                                                                              m
+                                                                                          ) =>
+                                                                                              (m.id ||
+                                                                                                  m._id ||
+                                                                                                  m.uid ||
+                                                                                                  m.name) ===
+                                                                                                  a ||
+                                                                                              m.id ===
+                                                                                                  a ||
+                                                                                              m._id ===
+                                                                                                  a ||
+                                                                                              m.uid ===
+                                                                                                  a
+                                                                                      )
+                                                                                    : null;
+                                                                            const label =
+                                                                                mem
+                                                                                    ? mem.name ||
+                                                                                      mem.displayName ||
+                                                                                      mem.email ||
+                                                                                      mem.id
+                                                                                    : String(
+                                                                                          a
+                                                                                      ).slice(
+                                                                                          0,
+                                                                                          4
+                                                                                      );
+                                                                            const initial =
+                                                                                label
+                                                                                    ? String(
+                                                                                          label
+                                                                                      )
+                                                                                          .charAt(
+                                                                                              0
+                                                                                          )
+                                                                                          .toUpperCase()
+                                                                                    : "?";
+                                                                            return (
+                                                                                <div
+                                                                                    key={
+                                                                                        idx
+                                                                                    }
+                                                                                    className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
+                                                                                    style={{
+                                                                                        width: 22,
+                                                                                        height: 22,
+                                                                                        fontSize: 12,
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        initial
+                                                                                    }
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                    )}
+                                                            </div>
                                                         </div>
                                                     </div>
 
                                                     <div className="d-flex align-items-center gap-2">
-                                                        <div className="text-white small">
-                                                            {t.assignedTo
-                                                                ? String(
-                                                                      t.assignedTo
-                                                                  ).slice(0, 4)
-                                                                : "-"}
-                                                        </div>
+                                                        <button
+                                                            className="btn btn-sm btn-secondary btn-sm me-1"
+                                                            title="Edit task"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                startEdit(t);
+                                                            }}
+                                                        >
+                                                            Edit
+                                                        </button>
+
                                                         <button
                                                             className="btn btn-sm btn-link text-white p-0 ms-2"
                                                             title="Delete task"
@@ -364,11 +529,229 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                                     </div>
                                                 </div>
                                             ))}
+
+                                        {/* Inline editor for task */}
+                                        {editingTaskId && (
+                                            <div className="p-2">
+                                                {tasks
+                                                    .filter(
+                                                        (x) =>
+                                                            x.id ===
+                                                            editingTaskId
+                                                    )
+                                                    .map((task) => (
+                                                        <div
+                                                            key={task.id}
+                                                            className="border p-2 rounded bg-dark"
+                                                        >
+                                                            <input
+                                                                value={
+                                                                    editTitle
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setEditTitle(
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className="form-control mb-2 bg-dark text-white border-secondary"
+                                                            />
+
+                                                            <div className="mb-2 d-flex align-items-center gap-2 position-relative">
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-secondary"
+                                                                    onClick={() =>
+                                                                        setShowEditAssignPicker(
+                                                                            (
+                                                                                s
+                                                                            ) =>
+                                                                                !s
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Icon
+                                                                        icon="material-symbols:person"
+                                                                        width={
+                                                                            16
+                                                                        }
+                                                                    />{" "}
+                                                                    Assign
+                                                                </button>
+                                                                {showEditAssignPicker && (
+                                                                    <div
+                                                                        className="position-absolute"
+                                                                        style={{
+                                                                            top: "105%",
+                                                                            left: 0,
+                                                                            zIndex: 2000,
+                                                                            background:
+                                                                                "#1d2125",
+                                                                            border: "1px solid #444",
+                                                                            padding: 8,
+                                                                            borderRadius: 6,
+                                                                            minWidth: 220,
+                                                                        }}
+                                                                    >
+                                                                        {(
+                                                                            boardMembers ||
+                                                                            []
+                                                                        ).map(
+                                                                            (
+                                                                                m
+                                                                            ) => {
+                                                                                const mid =
+                                                                                    m.id ||
+                                                                                    m._id ||
+                                                                                    m.uid ||
+                                                                                    m.name ||
+                                                                                    m.email;
+                                                                                const checked =
+                                                                                    editAssigned.includes(
+                                                                                        mid
+                                                                                    );
+                                                                                return (
+                                                                                    <label
+                                                                                        key={
+                                                                                            mid
+                                                                                        }
+                                                                                        className="d-flex align-items-center gap-2"
+                                                                                        style={{
+                                                                                            display:
+                                                                                                "block",
+                                                                                        }}
+                                                                                    >
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            checked={
+                                                                                                checked
+                                                                                            }
+                                                                                            onChange={() => {
+                                                                                                if (
+                                                                                                    checked
+                                                                                                )
+                                                                                                    setEditAssigned(
+                                                                                                        (
+                                                                                                            prev
+                                                                                                        ) =>
+                                                                                                            prev.filter(
+                                                                                                                (
+                                                                                                                    p
+                                                                                                                ) =>
+                                                                                                                    p !==
+                                                                                                                    mid
+                                                                                                            )
+                                                                                                    );
+                                                                                                else
+                                                                                                    setEditAssigned(
+                                                                                                        (
+                                                                                                            prev
+                                                                                                        ) => [
+                                                                                                            ...prev,
+                                                                                                            mid,
+                                                                                                        ]
+                                                                                                    );
+                                                                                            }}
+                                                                                        />
+                                                                                        <span className="text-white small">
+                                                                                            {m.name ||
+                                                                                                m.displayName ||
+                                                                                                m.email ||
+                                                                                                mid}
+                                                                                        </span>
+                                                                                    </label>
+                                                                                );
+                                                                            }
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="position-relative">
+                                                                    <button
+                                                                        className="btn btn-sm btn-outline-secondary"
+                                                                        onClick={() =>
+                                                                            setShowEditDuePicker(
+                                                                                (
+                                                                                    s
+                                                                                ) =>
+                                                                                    !s
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Icon
+                                                                            icon="material-symbols:schedule"
+                                                                            width={
+                                                                                16
+                                                                            }
+                                                                        />{" "}
+                                                                        Due date
+                                                                    </button>
+                                                                    {showEditDuePicker && (
+                                                                        <div
+                                                                            className="position-absolute"
+                                                                            style={{
+                                                                                top: "105%",
+                                                                                left: 0,
+                                                                                zIndex: 2000,
+                                                                                background:
+                                                                                    "#1d2125",
+                                                                                border: "1px solid #444",
+                                                                                padding: 8,
+                                                                                borderRadius: 6,
+                                                                            }}
+                                                                        >
+                                                                            <input
+                                                                                type="date"
+                                                                                value={
+                                                                                    editDueDate
+                                                                                }
+                                                                                onChange={(
+                                                                                    e
+                                                                                ) =>
+                                                                                    setEditDueDate(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    )
+                                                                                }
+                                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="d-flex gap-2">
+                                                                <button
+                                                                    className="btn btn-sm btn-primary"
+                                                                    onClick={() =>
+                                                                        saveEdit(
+                                                                            task.id
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-secondary"
+                                                                    onClick={
+                                                                        cancelEdit
+                                                                    }
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
                                 <div className="mt-3">
-                                    <div className="d-flex gap-2">
+                                    <div
+                                        className="d-flex flex-column"
+                                        style={{ gap: 8 }}
+                                    >
                                         <input
                                             value={newTaskTitle}
                                             onChange={(e) =>
@@ -377,12 +760,173 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                                             className="form-control form-control-sm bg-dark text-white border-secondary"
                                             placeholder="Add an item"
                                         />
-                                        <button
-                                            className="btn btn-sm btn-primary"
-                                            onClick={handleAddTask}
-                                        >
-                                            Add
-                                        </button>
+
+                                        <div className="d-flex align-items-center justify-content-between mt-2">
+                                            <div className="d-flex gap-2">
+                                                <button
+                                                    className="btn btn-sm btn-primary"
+                                                    onClick={handleAddTask}
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-outline-secondary"
+                                                    onClick={() => {
+                                                        setNewTaskTitle("");
+                                                        setNewAssigned([]);
+                                                        setNewDueDate("");
+                                                        setShowAssignPicker(
+                                                            false
+                                                        );
+                                                        setShowDuePicker(false);
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+
+                                            <div className="d-flex align-items-center gap-2 position-relative">
+                                                <button
+                                                    className="btn btn-sm btn-outline-secondary"
+                                                    onClick={() =>
+                                                        setShowAssignPicker(
+                                                            (s) => !s
+                                                        )
+                                                    }
+                                                >
+                                                    <Icon
+                                                        icon="material-symbols:person"
+                                                        width={16}
+                                                    />{" "}
+                                                    Assign
+                                                </button>
+                                                {showAssignPicker && (
+                                                    <div
+                                                        className="position-absolute"
+                                                        style={{
+                                                            top: "105%",
+                                                            right: 0,
+                                                            zIndex: 2000,
+                                                            background:
+                                                                "#1d2125",
+                                                            border: "1px solid #444",
+                                                            padding: 8,
+                                                            borderRadius: 6,
+                                                            minWidth: 220,
+                                                        }}
+                                                    >
+                                                        {(
+                                                            boardMembers || []
+                                                        ).map((m) => {
+                                                            const mid =
+                                                                m.id ||
+                                                                m._id ||
+                                                                m.uid ||
+                                                                m.name ||
+                                                                m.email;
+                                                            const checked =
+                                                                newAssigned.includes(
+                                                                    mid
+                                                                );
+                                                            return (
+                                                                <label
+                                                                    key={mid}
+                                                                    className="d-flex align-items-center gap-2"
+                                                                    style={{
+                                                                        display:
+                                                                            "block",
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={
+                                                                            checked
+                                                                        }
+                                                                        onChange={() => {
+                                                                            if (
+                                                                                checked
+                                                                            )
+                                                                                setNewAssigned(
+                                                                                    (
+                                                                                        prev
+                                                                                    ) =>
+                                                                                        prev.filter(
+                                                                                            (
+                                                                                                p
+                                                                                            ) =>
+                                                                                                p !==
+                                                                                                mid
+                                                                                        )
+                                                                                );
+                                                                            else
+                                                                                setNewAssigned(
+                                                                                    (
+                                                                                        prev
+                                                                                    ) => [
+                                                                                        ...prev,
+                                                                                        mid,
+                                                                                    ]
+                                                                                );
+                                                                        }}
+                                                                    />
+                                                                    <span className="text-white small">
+                                                                        {m.name ||
+                                                                            m.displayName ||
+                                                                            m.email ||
+                                                                            mid}
+                                                                    </span>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                <div className="position-relative">
+                                                    <button
+                                                        className="btn btn-sm btn-outline-secondary"
+                                                        onClick={() =>
+                                                            setShowDuePicker(
+                                                                (s) => !s
+                                                            )
+                                                        }
+                                                    >
+                                                        <Icon
+                                                            icon="material-symbols:schedule"
+                                                            width={16}
+                                                        />
+                                                    </button>
+                                                    {showDuePicker && (
+                                                        <div
+                                                            className="position-absolute"
+                                                            style={{
+                                                                top: "105%",
+                                                                right: 0,
+                                                                zIndex: 2000,
+                                                                background:
+                                                                    "#1d2125",
+                                                                border: "1px solid #444",
+                                                                padding: 8,
+                                                                borderRadius: 6,
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="date"
+                                                                value={
+                                                                    newDueDate
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setNewDueDate(
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -473,6 +1017,3 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
 };
 
 export default CardDetail;
-<button className="btn btn-outline-secondary w-100 text-start mb-2">
-    Attach Issue
-</button>;
