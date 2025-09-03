@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Icon } from "@iconify/react";
 import axios from "axios";
 import API_BASE_URL from "../../../config/config";
@@ -9,6 +9,58 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
     const [newAssigned, setNewAssigned] = useState([]); // array of member ids
     const [newDueDate, setNewDueDate] = useState(""); // yyyy-mm-dd
     const [hideChecked, setHideChecked] = useState(false);
+
+    // derive unique assigned members across all tasks for this card
+    // Prefer member objects stored on tasks; otherwise lookup in boardMembers
+    const assignedMembers = useMemo(() => {
+        if (!tasks || tasks.length === 0) return [];
+
+        const raw = tasks.flatMap((t) =>
+            Array.isArray(t.assignedTo)
+                ? t.assignedTo
+                : t.assignedTo
+                ? [t.assignedTo]
+                : []
+        );
+
+        const normalized = raw
+            .map((a) => {
+                if (!a) return null;
+                if (typeof a === "object") {
+                    const id =
+                        a.id || a._id || a.uid || a.email || a.name || null;
+                    return id ? { id: String(id), memberFromTask: a } : null;
+                }
+                return { id: String(a), memberFromTask: null };
+            })
+            .filter(Boolean);
+
+        const map = new Map();
+        normalized.forEach(({ id, memberFromTask }) => {
+            if (map.has(id)) return;
+
+            let member = memberFromTask || null;
+            if (!member) {
+                member = Array.isArray(boardMembers)
+                    ? boardMembers.find(
+                          (m) =>
+                              String(
+                                  m.id || m._id || m.uid || m.email || m.name
+                              ) === id
+                      )
+                    : null;
+            }
+
+            const label = member
+                ? member.name || member.displayName || member.email || member.id
+                : id;
+            const initial = label ? String(label).charAt(0).toUpperCase() : "?";
+
+            map.set(id, { id, member, label, initial });
+        });
+
+        return Array.from(map.values());
+    }, [tasks, boardMembers]);
 
     // popover toggles for create
     const [showAssignPicker, setShowAssignPicker] = useState(false);
@@ -240,20 +292,37 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [] }) => {
                             <div>
                                 <p className="mb-1">Members</p>
                                 <div className="d-flex align-items-center gap-2">
-                                    <div
-                                        className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
-                                        style={{ width: 32, height: 32 }}
-                                    >
-                                        {(
-                                            card.assignedTo ||
-                                            card.owner ||
-                                            (Array.isArray(card.members) &&
-                                                card.members[0]) ||
-                                            ""
-                                        )
-                                            .charAt(0)
-                                            .toUpperCase()}
-                                    </div>
+                                    {assignedMembers.length === 0 ? (
+                                        <div
+                                            className="bg-danger rounded-circle text-white d-flex align-items-center justify-content-center"
+                                            style={{ width: 32, height: 32 }}
+                                        >
+                                            {(
+                                                card.assignedTo ||
+                                                card.owner ||
+                                                (Array.isArray(card.members) &&
+                                                    card.members[0]) ||
+                                                ""
+                                            )
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                        </div>
+                                    ) : (
+                                        assignedMembers.slice(0, 5).map((a) => (
+                                            <div
+                                                key={a.id}
+                                                className="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
+                                                style={{
+                                                    width: 32,
+                                                    height: 32,
+                                                }}
+                                                title={a.label}
+                                            >
+                                                {a.initial}
+                                            </div>
+                                        ))
+                                    )}
+
                                     <div
                                         className="border border-primary rounded-circle d-flex align-items-center justify-content-center"
                                         style={{ width: 32, height: 32 }}
