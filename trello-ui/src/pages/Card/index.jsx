@@ -8,7 +8,7 @@ import API_BASE_URL from "../../../config/config";
 
 import { Header, TopSideBar } from "../../components";
 import Sidebar from "./Sidebar";
-import TaskDetail from "./TaskDetail";
+import CardDetail from "./CardDetail";
 
 import { useUser } from "../../hooks";
 const STATUSES = ["todo", "doing", "done"];
@@ -284,7 +284,7 @@ const CardPage = () => {
                     </DragDropContext>
                 </div>
             </div>
-            <TaskDetail
+            <CardDetail
                 task={selectedTask}
                 onClose={() => setSelectedTask(null)}
             />
