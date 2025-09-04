@@ -22,6 +22,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const [editDueDate, setEditDueDate] = useState("");
     const [showEditAssignPicker, setShowEditAssignPicker] = useState(null);
     const [showEditDuePicker, setShowEditDuePicker] = useState(false);
+    const [eyePulse, setEyePulse] = useState(false);
 
     // NEW: members from API
     const [cardMembers, setCardMembers] = useState([]); // [{id, username, avatar}, ...]
@@ -185,7 +186,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const startEdit = (task) => {
         setEditingTaskId(task.id);
         setEditTitle(task.title || "");
-        // Normalize assignedTo into array of ids or strings
         const assigned = Array.isArray(task.assignedTo) ? task.assignedTo.map((a) => (typeof a === "object" ? a.id || a._id || a.uid || a.name : a)) : task.assignedTo ? [task.assignedTo] : [];
         setEditAssigned(assigned);
         setEditDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "");
@@ -300,7 +300,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 @keyframes slideUp {
                     from {
                         opacity: 0;
-                        transform: translate(-50%, -40%) scale(0.95);
+                        transform: translate(-50%, -60%) scale(0.95);
                     }
                     to {
                         opacity: 1;
@@ -601,13 +601,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     margin-bottom: 0.75rem;
                     transition: all 0.3s ease;
                     position: relative;
-                    overflow: hidden;
+                    overflow: visible;
                 }
 
                 .task-item:hover {
                     background: white;
                     border-color: rgba(156, 163, 175, 0.8);
-                    transform: translateY(-1px);
                     box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
                 }
 
@@ -629,12 +628,44 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 .task-title {
                     font-weight: 500;
                     color: #374151;
-                    transition: all 0.3s ease;
+                    transition: all 0.1s ease;
                 }
 
                 .task-title.completed {
                     text-decoration: line-through;
                     opacity: 0.6;
+                }
+
+                .task-row {
+                    overflow: visible;
+                    max-height: 240px;
+                    margin-bottom: 0.75rem;
+                }
+
+                .task-row.hidden-checked {
+                    opacity: 0;
+                    transform: translateY(-6px) scale(0.98);
+                    max-height: 0;
+                    margin: 0;
+                    pointer-events: none;
+                }
+
+                .task-row.hidden-checked .task-item {
+                    margin: 0;
+                    border-width: 0;
+                    padding-top: 0;
+                    padding-bottom: 0;
+                }
+
+                .eye-btn.active {
+                    background: rgba(59, 130, 246, 0.08);
+                    border-color: #9ca3af;
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 12px -5px rgba(59, 130, 246, 0.25);
+                }
+
+                .eye-btn.pulse {
+                    animation: pulse-custom 0.32s ease-in-out;
                 }
 
                 .input-field {
@@ -661,18 +692,17 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     background: white;
                     border: 1px solid #d1d5db;
                     border-radius: 12px;
-                    padding: 0.5rem;
+                    padding: 0.15rem;
                     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
                     z-index: 1000;
                     min-width: 220px;
-                    animation: slideUp 0.2s ease-out;
                 }
 
                 .dropdown-item {
                     display: flex;
                     align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.75rem;
+                    gap: 0.25rem;
+                    padding: 0.25rem 0.5rem;
                     border-radius: 8px;
                     cursor: pointer;
                     transition: all 0.2s ease;
@@ -688,6 +718,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 }
 
                 .avatar-small {
+                    margin-right: -5px;
                     width: 40px;
                     height: 40px;
                     border-radius: 50%;
@@ -855,9 +886,15 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                         <div className="progress-bar-container">
                             <div className="progress-bar" style={{ width: `${progress}%` }} />
                         </div>
-                        <button className="btn btn-outline" onClick={() => setHideChecked((s) => !s)}>
+                        <button
+                            className={`btn btn-outline eye-btn ${hideChecked ? "active" : ""} ${eyePulse ? "pulse" : ""}`}
+                            onClick={() => {
+                                setHideChecked((s) => !s);
+                                setEyePulse(true);
+                                setTimeout(() => setEyePulse(false), 320); // trùng thời lượng animation
+                            }}
+                        >
                             <Icon icon={hideChecked ? "material-symbols:visibility" : "material-symbols:visibility-off"} width={24} />
-                            {/* {hideChecked ? "Show checked" : "Hide checked"} */}
                         </button>
                         <button className="btn btn-danger" onClick={handleDeleteChecked}>
                             <Icon icon="material-symbols:delete-outline" width={24} />
@@ -866,12 +903,20 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     </div>
 
                     {/* Task List */}
-                    {tasks
-                        .filter((t) => (hideChecked ? !t.completed : true))
-                        .map((t) => {
-                            const tMembers = taskMembersMap[t.id] || [];
-                            return (
-                                <div key={t.id}>
+                    {tasks.map((t) => {
+                        const tMembers = taskMembersMap[t.id] || [];
+                        const isEditing = editingTaskId === t.id;
+                        // Nếu đang edit thì đừng ẩn dù có hideChecked
+                        const hidden = hideChecked && t.completed && !isEditing;
+
+                        if (hidden) {
+                            return <div id={`task-row-${t.id}`} key={t.id} className="task-row hidden-checked" />;
+                        }
+
+                        return (
+                            <div id={`task-row-${t.id}`} key={t.id} className="task-row">
+                                {/* ======= CHẾ ĐỘ XEM (VIEW) ======= */}
+                                {!isEditing && (
                                     <div className={`task-item ${t.completed ? "completed" : ""}`}>
                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1 }}>
@@ -884,7 +929,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                             </div>
 
                                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                                {/* Task Avatars from API + count */}
+                                                {/* Avatars */}
                                                 <div className="task-avatars" title={`${tMembers.length} member(s)`}>
                                                     {tMembers.slice(0, 3).map((u, idx) => {
                                                         const label = safeLabel(u);
@@ -900,7 +945,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                     })}
                                                 </div>
 
-                                                {/* Action Buttons */}
+                                                {/* Actions */}
                                                 <button
                                                     className="action-btn"
                                                     title="Edit task"
@@ -927,74 +972,83 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                             </div>
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Edit Form */}
-                                    {editingTaskId === t.id && (
-                                        <div className="edit-section">
-                                            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="input-field" style={{ marginBottom: "1rem" }} placeholder="Task title" />
+                                {/* ======= CHẾ ĐỘ EDIT (REPLACE VIEW) ======= */}
+                                {isEditing && (
+                                    <div className="edit-section">
+                                        <input
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            className="input-field"
+                                            style={{ marginBottom: "1rem" }}
+                                            placeholder="Task title"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Escape") cancelEdit();
+                                                if (e.key === "Enter" && editTitle.trim()) saveEdit(t.id);
+                                            }}
+                                        />
 
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
-                                                    <button className="btn btn-outline" onClick={() => setShowEditAssignPicker((s) => (s === t.id ? null : t.id))}>
-                                                        <Icon icon="material-symbols:person" width={24} /> Assign
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
+                                                <button className="btn btn-outline" onClick={() => setShowEditAssignPicker((s) => (s === t.id ? null : t.id))}>
+                                                    <Icon icon="material-symbols:person" width={24} /> Assign
+                                                </button>
+
+                                                {showEditAssignPicker === t.id && (
+                                                    <div className="dropdown" style={{ top: "105%", left: 0 }}>
+                                                        {(boardMembers || []).map((m) => {
+                                                            const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                            const isSelected = editAssigned.includes(mid);
+                                                            const label = m.username || m.name || m.displayName || m.email || mid;
+                                                            const initial = getInitial(label);
+
+                                                            return (
+                                                                <div
+                                                                    key={mid}
+                                                                    className={`dropdown-item ${isSelected ? "selected" : ""}`}
+                                                                    onClick={() => {
+                                                                        if (isSelected) setEditAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                        else setEditAssigned((prev) => [...prev, mid]);
+                                                                    }}
+                                                                >
+                                                                    <div className="avatar-small">{initial}</div>
+                                                                    <span style={{ fontSize: "0.875rem" }}>{label}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                <div style={{ position: "relative" }}>
+                                                    <button className="btn btn-outline" onClick={() => setShowEditDuePicker((s) => !s)}>
+                                                        <Icon icon="material-symbols:schedule" width={24} />
                                                     </button>
-
-                                                    {showEditAssignPicker === t.id && (
+                                                    {showEditDuePicker && (
                                                         <div className="dropdown" style={{ top: "105%", left: 0 }}>
-                                                            {(boardMembers || []).map((m) => {
-                                                                const mid = m.id || m._id || m.uid || m.name || m.email;
-                                                                const isSelected = editAssigned.includes(mid);
-                                                                const label = m.username || m.name || m.displayName || m.email || mid;
-                                                                const initial = getInitial(label);
-
-                                                                return (
-                                                                    <div
-                                                                        key={mid}
-                                                                        className={`dropdown-item ${isSelected ? "selected" : ""}`}
-                                                                        onClick={() => {
-                                                                            if (isSelected) {
-                                                                                setEditAssigned((prev) => prev.filter((p) => p !== mid));
-                                                                            } else {
-                                                                                setEditAssigned((prev) => [...prev, mid]);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <div className="avatar-small">{initial}</div>
-                                                                        <span style={{ fontSize: "0.875rem" }}>{label}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                            <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="input-field" />
                                                         </div>
                                                     )}
-
-                                                    <div style={{ position: "relative" }}>
-                                                        <button className="btn btn-outline" onClick={() => setShowEditDuePicker((s) => !s)}>
-                                                            <Icon icon="material-symbols:schedule" width={24} />
-                                                        </button>
-                                                        {showEditDuePicker && (
-                                                            <div className="dropdown" style={{ top: "105%", left: 0 }}>
-                                                                <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="input-field" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div style={{ display: "flex", gap: "0.5rem" }}>
-                                                    <button className="btn btn-primary" onClick={() => saveEdit(t.id)}>
-                                                        <Icon icon="material-symbols:save" width={24} />
-                                                        Save
-                                                    </button>
-                                                    <button className="btn btn-outline" onClick={cancelEdit}>
-                                                        <Icon icon="material-symbols:close" width={24} />
-                                                        Cancel
-                                                    </button>
                                                 </div>
                                             </div>
+
+                                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                                                <button className="btn btn-primary" onClick={() => saveEdit(t.id)} disabled={!editTitle.trim()}>
+                                                    <Icon icon="material-symbols:save" width={24} />
+                                                    Save
+                                                </button>
+                                                <button className="btn btn-outline" onClick={cancelEdit}>
+                                                    <Icon icon="material-symbols:close" width={24} />
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
                     {/* Add Task */}
                     {!showAddTask ? (
                         <div className="add-task-button" onClick={() => setShowAddTask(true)}>
