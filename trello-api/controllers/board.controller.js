@@ -231,11 +231,7 @@ const getMembersOfBoard = async (req, res) => {
         const boardId = req.params.id;
         const userId = req.user.id;
 
-        console.log("userId", userId);
-        console.log("boardId", boardId);
-
         const boardDoc = await boardsCollection.doc(boardId).get();
-
         if (!boardDoc.exists) {
             return res.status(404).json({ error: "Board not found" });
         }
@@ -253,18 +249,31 @@ const getMembersOfBoard = async (req, res) => {
 
             if (userDoc.exists) {
                 const userData = userDoc.data();
+
+                let avatar = null;
+                if (userData.avatar) {
+                    avatar = userData.avatar;
+                } else if (userData.avatar) {
+                    avatar = userData.avatar;
+                } else {
+                    // default: chữ cái đầu tên
+                    const firstLetter = (userData.username || "U").charAt(0).toUpperCase();
+                    avatar = `https://ui-avatars.com/api/?name=${firstLetter}&background=random`;
+                }
+
                 allMembers.push({
                     id: memberId,
                     username: userData.username || "Unknown",
+                    avatar,
                 });
             } else {
                 allMembers.push({
                     id: memberId,
                     username: "Unknown",
+                    avatar: "https://ui-avatars.com/api/?name=U&background=random",
                 });
             }
         }
-        console.log("allMembers", allMembers);
 
         res.status(200).json({ members: allMembers });
     } catch (err) {
@@ -281,5 +290,5 @@ module.exports = {
     deleteBoard,
     inviteToBoard,
     acceptBoardInvite,
-    getMembersOfBoard
+    getMembersOfBoard,
 };

@@ -45,8 +45,9 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
         <>
             <style jsx>{`
                 .top-sidebar-container {
-                    background: #10b981;
+                    background: #fff;
                     border-radius: 16px;
+                    border: 1px solid #10b981;
                     padding: 1rem 2rem;
                     position: relative;
                     overflow: hidden;
@@ -79,11 +80,10 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                 }
 
                 .board-title {
-                    color: white;
+                    color: #10b981;
                     font-size: 1.25rem;
                     font-weight: 700;
                     margin: 0;
-                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
                     letter-spacing: -0.02em;
                     flex: 1;
                     white-space: nowrap;
@@ -96,7 +96,7 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     display: flex;
                     align-items: center;
                     padding: 0.75rem 1.5rem;
-                    background: rgba(255, 255, 255, 0.15);
+                    background: #10b981;
                     border: 1px solid rgba(255, 255, 255, 0.2);
                     border-radius: 12px;
                     color: white;
@@ -121,7 +121,7 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                 }
 
                 .invite-button:hover {
-                    background: rgba(255, 255, 255, 0.25);
+                    background: #10b981;
                     border-color: rgba(255, 255, 255, 0.4);
                     transform: translateY(-2px);
                     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(16, 185, 129, 0.3);

@@ -168,6 +168,56 @@ const deleteCard = async (req, res) => {
     }
 };
 
+const getMembersOfCard = async (req, res) => {
+    try {
+        const cardId = req.params.id;
+
+        // 1. Lấy tất cả task thuộc cardId
+        const taskSnapshot = await tasksCollection.where("cardId", "==", cardId).get();
+
+        if (taskSnapshot.empty) {
+            return res.status(200).json([]);
+        }
+
+        // 2. Lấy tất cả userId được assign trong các task
+        const memberIdsSet = new Set();
+        taskSnapshot.forEach((doc) => {
+            const task = doc.data();
+            if (task.assignedTo) {
+                if (Array.isArray(task.assignedTo)) {
+                    task.assignedTo.forEach((uid) => memberIdsSet.add(uid));
+                } else {
+                    memberIdsSet.add(task.assignedTo);
+                }
+            }
+        });
+
+        if (memberIdsSet.size === 0) {
+            return res.status(200).json([]);
+        }
+
+        // 3. Lấy thông tin user từ usersCollection
+        const members = [];
+        for (const uid of memberIdsSet) {
+            const userDoc = await usersCollection.doc(uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                members.push({
+                    id: userDoc.id,
+                    username: userData.username,
+                    avatar: userData.avatar || `https://ui-avatars.com/api/?name=${(userData.username || "U")[0]}&background=random`,
+                });
+            }
+        }
+
+        console.log("Members for card via tasks:", members);
+        res.status(200).json(members);
+    } catch (err) {
+        console.error("Failed to get members of card:", err);
+        res.status(500).json({ msg: "Error fetching card members" });
+    }
+};
+
 module.exports = {
     getCards,
     createCard,
@@ -175,4 +225,5 @@ module.exports = {
     getCardByUser,
     updateCard,
     deleteCard,
+    getMembersOfCard,
 };

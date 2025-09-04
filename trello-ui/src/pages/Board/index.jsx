@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import API_BASE_URL from "../../../config/config";
 
-import { BoardCard, Sidebar, Header, CreateBoardForm } from "../../components";
+import { BoardCard, Header, CreateBoardForm } from "../../components";
 
 import { useUser } from "../../hooks";
 import { Icon } from "@iconify/react";
@@ -307,7 +307,7 @@ const BoardPage = () => {
                     }
                 `}</style>
 
-                <Header username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
+                <Header username={user?.username} avatar={user?.avatar} style={{ height: headerHeight, zIndex: 1030 }} />
 
                 <div className="board-page">
                     <div className="content-wrapper">
@@ -318,10 +318,7 @@ const BoardPage = () => {
                                 <span>Total Boards</span>
                                 <span className="stat-number">{boards.length}</span>
                             </div>
-                            <div className="stat-item">
-                                <Users size={18} />
-                                <span className="welcome-text">Welcome back, {user?.username}</span>
-                            </div>
+
                             <div className="stat-item">
                                 <Star size={18} />
                                 <span>Personal Workspace</span>

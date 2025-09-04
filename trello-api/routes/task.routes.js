@@ -7,5 +7,6 @@ router.get("/", authMiddleware, taskController.getTasksByCard);
 router.post("/", authMiddleware, taskController.createTask);
 router.put("/:taskId", authMiddleware, taskController.updateTask);
 router.delete("/:taskId", authMiddleware, taskController.deleteTask);
+router.get("/:taskId/members", authMiddleware, taskController.getMembersOfTask);
 
 module.exports = router;

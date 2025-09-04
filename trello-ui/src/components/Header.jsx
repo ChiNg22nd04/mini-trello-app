@@ -2,18 +2,13 @@ import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { logoTrello } from "../assets/global/index";
 
-const Header = ({ username = "Board Management", style = {} }) => {
+const Header = ({ username = "Board Management", avatar = "", style = {} }) => {
     const [visible, setVisible] = useState(true);
 
     useEffect(() => {
         const handleScroll = () => {
-            if (window.scrollY === 0) {
-                setVisible(true); // ở top -> hiện
-            } else {
-                setVisible(false); // cuộn xuống -> ẩn
-            }
+            setVisible(window.scrollY === 0);
         };
-
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
@@ -35,7 +30,7 @@ const Header = ({ username = "Board Management", style = {} }) => {
                 borderRadius: "16px",
             }}
         >
-            {/* Logo + Title */}
+            {/* Logo */}
             <div className="d-flex align-items-center gap-2">
                 <img src={logoTrello} alt="Logo" style={{ height: "55px" }} />
             </div>
@@ -45,32 +40,40 @@ const Header = ({ username = "Board Management", style = {} }) => {
                 <Icon
                     icon="material-symbols:notifications"
                     width="28"
-                    style={{
-                        cursor: "pointer",
-                        color: "#555",
-                        transition: "0.2s",
-                    }}
+                    style={{ cursor: "pointer", color: "#555", transition: "0.2s" }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = "#3399ff")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                 />
 
-                <div
-                    className="rounded-circle d-flex align-items-center justify-content-center"
-                    style={{
-                        width: 40,
-                        height: 40,
-                        backgroundColor: "#3399ff",
-                        color: "#fff",
-                        fontWeight: "600",
-                        fontSize: "0.9rem",
-                        cursor: "pointer",
-                        transition: "0.2s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#267acc")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#3399ff")}
-                >
-                    {username.charAt(0).toUpperCase()}
-                </div>
+                {avatar ? (
+                    <img
+                        src={avatar}
+                        alt="User Avatar"
+                        className="rounded-circle"
+                        style={{
+                            width: 40,
+                            height: 40,
+                            objectFit: "cover",
+                            cursor: "pointer",
+                            border: "2px solid #3399ff",
+                        }}
+                    />
+                ) : (
+                    <div
+                        className="rounded-circle d-flex align-items-center justify-content-center"
+                        style={{
+                            width: 40,
+                            height: 40,
+                            backgroundColor: "#3399ff",
+                            color: "#fff",
+                            fontWeight: "600",
+                            fontSize: "0.9rem",
+                            cursor: "pointer",
+                        }}
+                    >
+                        {username.charAt(0).toUpperCase()}
+                    </div>
+                )}
             </div>
         </div>
     );

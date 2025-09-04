@@ -7,6 +7,20 @@ const { getIO } = require("../config/socket");
 
 const magicCodesCollection = db.collection("magicCodes");
 
+function generateAvatar({ email, githubAvatar, username }) {
+    if (email && !githubAvatar) {
+        const hash = crypto.createHash("md5").update(email.trim().toLowerCase()).digest("hex");
+        return `https://www.gravatar.com/avatar/${hash}?d=identicon`;
+    }
+
+    if (githubAvatar) {
+        return githubAvatar;
+    }
+
+    const firstChar = username ? username.charAt(0).toUpperCase() : "U";
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(firstChar)}&background=random&color=fff`;
+}
+
 const githubLogin = (req, res) => {
     const authorizeURL = "https://github.com/login/oauth/authorize";
     const clientID = process.env.GITHUB_CLIENT_ID;
@@ -50,8 +64,6 @@ const githubCallback = async (req, res) => {
             headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
         });
 
-        // GitHub may not always return the user's email in /user (it only returns public email).
-        // Fetch the list of emails and prefer the primary, verified one.
         let emailFromApi = userResponse.data.email || "";
         try {
             const emailsResponse = await axios.get("https://api.github.com/user/emails", {
@@ -75,31 +87,34 @@ const githubCallback = async (req, res) => {
         const userRef = db.collection("users").doc(uid);
         const userDoc = await userRef.get();
 
+        const avatar = generateAvatar({ email: emailFromApi, githubAvatar: avatar_url, username: login });
+
         if (!userDoc.exists) {
             await userRef.set({
                 uid,
                 githubId: id,
                 username: login,
                 email: emailFromApi || "",
-                avatar: avatar_url,
+                avatar,
                 createdAt: new Date(),
                 loginMethod: "github",
             });
+        } else if (!userDoc.data().avatar) {
+            await userRef.update({ avatar });
         }
 
-        const token = jwt.sign({ id: uid, username: login, email: emailFromApi || "" }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username: login, email: emailFromApi || "", avatar }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
-        // If the request accepts HTML, this is likely the GitHub redirect directly to backend.
-        // In that case, redirect user to frontend with token and user info as query params.
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
         const payload = {
             token,
             user: {
                 id: id.toString(),
                 username: login,
-                avatar: avatar_url,
+                email: emailFromApi || "",
+                avatar,
             },
         };
 
@@ -181,30 +196,39 @@ const verifyMagicCode = async (req, res) => {
         const usersCollection = db.collection("users");
         const userQuery = await usersCollection.where("email", "==", email).get();
 
-        let uid, username;
+        let uid, username, avatar;
 
         if (userQuery.empty) {
             uid = crypto.randomUUID();
             username = email.split("@")[0];
+            avatar = generateAvatar({ email, username });
+
             await usersCollection.doc(uid).set({
                 uid,
                 email,
                 username,
+                avatar,
                 createdAt: new Date().toISOString(),
                 loginMethod: "email-code",
             });
 
-            getIO().emit("new-user", { uid, username });
-            console.log("Emitting new-user:", { uid, username });
+            getIO().emit("new-user", { uid, username, avatar });
+            console.log("Emitting new-user:", { uid, username, avatar });
         } else {
             const userDoc = userQuery.docs[0];
             uid = userDoc.data().uid || userDoc.id;
             username = userDoc.data().username;
+            avatar = userDoc.data().avatar;
+
+            if (!avatar) {
+                avatar = generateAvatar({ email, username });
+                await usersCollection.doc(uid).update({ avatar });
+            }
         }
 
         await docRef.update({ used: true });
 
-        const token = jwt.sign({ id: uid, username, email }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username, email, avatar }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
@@ -214,6 +238,7 @@ const verifyMagicCode = async (req, res) => {
                 id: uid,
                 username,
                 email,
+                avatar,
             },
         });
     } catch (err) {
