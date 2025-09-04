@@ -9,55 +9,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const [newAssigned, setNewAssigned] = useState([]); // array of member ids
     const [newDueDate, setNewDueDate] = useState(""); // yyyy-mm-dd
     const [hideChecked, setHideChecked] = useState(false);
-    const [showAddTask, setShowAddTask] = useState(false); // Toggle for add task section
-
-    const assignedMembers = useMemo(() => {
-        if (!tasks || tasks.length === 0) {
-            console.log("assignedMembers: no tasks");
-            return [];
-        }
-
-        // B1: flatten assignedTo
-        const raw = tasks.flatMap((t) => (Array.isArray(t.assignedTo) ? t.assignedTo : t.assignedTo ? [t.assignedTo] : []));
-        console.log("assignedMembers raw:", raw);
-
-        // B2: chuẩn hóa id
-        const normalized = raw
-            .map((a) => {
-                if (!a) return null;
-                if (typeof a === "object") {
-                    const id = a.id || a._id || a.uid || a.email || a.name || null;
-                    return id ? { id: String(id), memberFromTask: a } : null;
-                }
-                return { id: String(a), memberFromTask: null };
-            })
-            .filter(Boolean);
-
-        console.log("assignedMembers normalized:", normalized);
-
-        // B3: gom map
-        const map = new Map();
-        normalized.forEach(({ id, memberFromTask }) => {
-            if (map.has(id)) return;
-
-            let member = memberFromTask || null;
-            if (!member) {
-                member = Array.isArray(boardMembers) ? boardMembers.find((m) => String(m.id || m._id || m.uid || m.email || m.name) === id) : null;
-            }
-
-            console.log("assignedMembers loop -> id:", id, "member:", member);
-
-            const label = member ? member.name || member.displayName || member.email || member.id : id;
-            const initial = label ? String(label).charAt(0).toUpperCase() : "?";
-
-            map.set(id, { id, member, label, initial });
-        });
-
-        const result = Array.from(map.values());
-        console.log("assignedMembers result:", result);
-
-        return result;
-    }, [tasks, boardMembers]);
+    const [showAddTask, setShowAddTask] = useState(false);
 
     // popover toggles for create
     const [showAssignPicker, setShowAssignPicker] = useState(false);
@@ -71,6 +23,13 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const [showEditAssignPicker, setShowEditAssignPicker] = useState(null);
     const [showEditDuePicker, setShowEditDuePicker] = useState(false);
 
+    // NEW: members from API
+    const [cardMembers, setCardMembers] = useState([]); // [{id, username, avatar}, ...]
+    const [taskMembersMap, setTaskMembersMap] = useState({}); // { [taskId]: Member[] }
+
+    // (optional) cache by id
+    const memberCache = useMemo(() => new Map(), []);
+
     const completedCount = tasks.filter((t) => t.completed).length;
     const progress = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
 
@@ -82,25 +41,83 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         onTaskCountsChange(card.id, { done, total });
     }, [tasks, card, onTaskCountsChange]);
 
+    const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
+
     const fetchTasks = useCallback(async () => {
         if (!card || !boardId || !token) return;
         try {
             const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: authHeaders,
             });
-            setTasks(res.data || []);
+            const list = res.data || [];
+            setTasks(list);
+            // hydrate members after tasks loaded
+            fetchCardMembers();
+            hydrateAllTaskMembers(list);
         } catch (err) {
             console.error("Failed to fetch tasks for card:", err);
             setTasks([]);
+            setTaskMembersMap({});
+            setCardMembers([]);
         }
-    }, [card, boardId, token]);
+    }, [card, boardId, token]); // fetchCardMembers & hydrateAllTaskMembers defined below with stable deps
 
     useEffect(() => {
         fetchTasks();
     }, [fetchTasks]);
 
+    const fetchCardMembers = useCallback(async () => {
+        try {
+            if (!card?.id || !token) return;
+            const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/members`, {
+                headers: authHeaders,
+            });
+            console.log("res members of card", res);
+            const list = res.data || [];
+            console.log("list members of card", list);
+            setCardMembers(list);
+            list.forEach((u) => memberCache.set(String(u.id), u));
+        } catch (e) {
+            console.error("fetchCardMembers error", e);
+            setCardMembers([]);
+        }
+    }, [card?.id, token, authHeaders, memberCache]);
+
+    const fetchTaskMembers = useCallback(
+        async (taskId) => {
+            try {
+                if (!card?.id || !taskId || !token) return [];
+                const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}/members`, {
+                    headers: authHeaders,
+                });
+                const list = res.data || [];
+                list.forEach((u) => memberCache.set(String(u.id), u));
+                return list;
+            } catch (e) {
+                console.error("fetchTaskMembers error", taskId, e);
+                return [];
+            }
+        },
+        [card?.id, token, authHeaders, memberCache]
+    );
+
+    const hydrateAllTaskMembers = useCallback(
+        async (taskList) => {
+            const ids = (taskList || []).map((t) => t.id).filter(Boolean);
+            const pairs = await Promise.all(
+                ids.map(async (tid) => {
+                    const members = await fetchTaskMembers(tid);
+                    return [tid, members];
+                })
+            );
+            setTaskMembersMap(Object.fromEntries(pairs));
+        },
+        [fetchTaskMembers]
+    );
+
     if (!card) return null;
 
+    // -------- Task CRUD handlers --------
     const handleAddTask = async () => {
         if (!newTaskTitle.trim()) return;
         try {
@@ -108,16 +125,24 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks`,
                 {
                     title: newTaskTitle.trim(),
-                    assignedTo: newAssigned.map((mid) => String(mid)), // ✅ luôn là id dạng string
+                    assignedTo: newAssigned.map((mid) => String(mid)),
                     dueDate: newDueDate || null,
                 },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: authHeaders }
             );
-            setTasks((prev) => [...prev, res.data]);
+            const created = res.data;
+            setTasks((prev) => [...prev, created]);
             setNewTaskTitle("");
             setNewAssigned([]);
             setNewDueDate("");
-            setShowAddTask(false); // Hide after adding
+            setShowAddTask(false);
+
+            // sync members for new task + card
+            if (created?.id) {
+                const m = await fetchTaskMembers(created.id);
+                setTaskMembersMap((prev) => ({ ...prev, [created.id]: m }));
+            }
+            fetchCardMembers();
         } catch (err) {
             console.error("Failed to create task:", err);
             alert("Failed to add task");
@@ -126,8 +151,9 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
     const handleToggle = async (task) => {
         try {
-            const res = await axios.put(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${task.id}`, { completed: !task.completed }, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.put(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${task.id}`, { completed: !task.completed }, { headers: authHeaders });
             setTasks((prev) => prev.map((it) => (it.id === task.id ? res.data : it)));
+            // (optional) no members change
         } catch (err) {
             console.error("Failed to update task:", err);
             // fallback optimistic
@@ -140,9 +166,16 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         if (!ok) return;
         try {
             await axios.delete(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: authHeaders,
             });
             setTasks((prev) => prev.filter((t) => t.id !== taskId));
+            setTaskMembersMap((prev) => {
+                const next = { ...prev };
+                delete next[taskId];
+                return next;
+            });
+            // card members might change if the deleted task had unique assignees
+            fetchCardMembers();
         } catch (err) {
             console.error("Failed to delete task:", err);
             alert("Failed to delete task");
@@ -155,7 +188,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         // Normalize assignedTo into array of ids or strings
         const assigned = Array.isArray(task.assignedTo) ? task.assignedTo.map((a) => (typeof a === "object" ? a.id || a._id || a.uid || a.name : a)) : task.assignedTo ? [task.assignedTo] : [];
         setEditAssigned(assigned);
-        // dueDate -> yyyy-mm-dd
         setEditDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "");
     };
 
@@ -165,6 +197,14 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         setEditAssigned([]);
         setEditDueDate("");
     };
+    const handleCancelAddTask = () => {
+        setNewTaskTitle("");
+        setNewAssigned([]);
+        setNewDueDate("");
+        setShowAssignPicker(false);
+        setShowDuePicker(false);
+        setShowAddTask(false);
+    };
 
     const saveEdit = async (taskId) => {
         try {
@@ -172,13 +212,18 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 `${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${taskId}`,
                 {
                     title: editTitle.trim(),
-                    assignedTo: editAssigned.map((mid) => String(mid)), // ✅ normalize về string id
+                    assignedTo: editAssigned.map((mid) => String(mid)),
                     dueDate: editDueDate || null,
                 },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: authHeaders }
             );
             setTasks((prev) => prev.map((it) => (it.id === taskId ? res.data : it)));
             cancelEdit();
+
+            // members can change → refresh for this task + card
+            const m = await fetchTaskMembers(taskId);
+            setTaskMembersMap((prev) => ({ ...prev, [taskId]: m }));
+            fetchCardMembers();
         } catch (err) {
             console.error("Failed to update task:", err);
             alert("Failed to save task");
@@ -194,32 +239,33 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
             await Promise.all(
                 checked.map((t) =>
                     axios.delete(`${API_BASE_URL}/boards/${boardId}/cards/${card.id}/tasks/${t.id}`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                        headers: authHeaders,
                     })
                 )
             );
-            setTasks((prev) => prev.filter((t) => !t.completed));
+            const remaining = tasks.filter((t) => !t.completed);
+            setTasks(remaining);
+            // drop removed tasks from members map
+            setTaskMembersMap((prev) => {
+                const next = { ...prev };
+                checked.forEach((t) => delete next[t.id]);
+                return next;
+            });
+            // recompute card members from backend
+            fetchCardMembers();
         } catch (err) {
             console.error("Failed to delete tasks:", err);
             alert("Failed to delete tasks");
         }
     };
 
-    const handleCancelAddTask = () => {
-        setNewTaskTitle("");
-        setNewAssigned([]);
-        setNewDueDate("");
-        setShowAssignPicker(false);
-        setShowDuePicker(false);
-        setShowAddTask(false);
-    };
-
+    const safeLabel = (u) => u?.username || u?.name || u?.displayName || u?.email || String(u?.id || "U");
     const getInitial = (name) => {
-        console.log("name", name);
-        if (!name) return "?";
-        return name
-            .normalize("NFD") // chuẩn Unicode tách dấu
-            .replace(/[\u0300-\u036f]/g, "") // xóa dấu
+        const s = String(name || "").trim();
+        if (!s) return "U";
+        return s
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
             .charAt(0)
             .toUpperCase();
     };
@@ -551,7 +597,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     background: rgba(255, 255, 255, 0.9);
                     border: 1px solid rgba(229, 231, 235, 0.6);
                     border-radius: 12px;
-                    padding: 1rem;
+                    padding: 0.5rem;
                     margin-bottom: 0.75rem;
                     transition: all 0.3s ease;
                     position: relative;
@@ -572,6 +618,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                 .task-checkbox {
                     background: #e5e7eb;
+                    margin: 10px;
                     width: 20px;
                     height: 20px;
                     border-radius: 6px;
@@ -641,16 +688,26 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 }
 
                 .avatar-small {
-                    width: 28px;
-                    height: 28px;
+                    width: 40px;
+                    height: 40px;
                     border-radius: 50%;
-                    background: linear-gradient(135deg, #10b981, #059669);
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8); /* nếu ko có ảnh */
                     color: white;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-weight: 500;
-                    font-size: 12px;
+                    font-weight: 600;
+                    font-size: 14px;
+
+                    /* border trắng + shadow */
+                    border: 2px solid #fff;
+                    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                .avatar-small img {
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); /* đổ bóng nhẹ */
                 }
 
                 .task-avatars {
@@ -659,8 +716,8 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 }
 
                 .task-avatar {
-                    width: 26px;
-                    height: 26px;
+                    width: 30px;
+                    height: 30px;
                     border-radius: 50%;
                     background: linear-gradient(135deg, #3b82f6, #1d4ed8);
                     color: white;
@@ -742,6 +799,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     color: #374151;
                 }
             `}</style>
+            {/* styles giữ nguyên ... */}
 
             <div className="backdrop" onClick={onClose} />
 
@@ -759,64 +817,50 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                         </div>
                     </div>
 
-                    {/* Members Section */}
-                    <div className="" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    {/* Members Section (FROM API) */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                         <div style={{ paddingLeft: "3rem" }} className="section-header">
-                            <Icon icon="material-symbols:user-group" width={20} />
+                            <Icon icon="material-symbols:groups" width={24} />
                             Members
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center" }}>
-                            {assignedMembers.length === 0 ? (
-                                <div className="member-avatar">
-                                    Chưa có thành viên
-                                    {/* {(card.assignedTo || card.owner || (Array.isArray(card.members.username) && card.members.username[0]) || "").charAt(0).toUpperCase()} */}
+                            {cardMembers.map((m) => (
+                                <div key={m.id} className="avatar-small" title={m.username}>
+                                    {m.avatar ? <img src={m.avatar} alt={m.username} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : getInitial(m.username)}
                                 </div>
-                            ) : (
-                                assignedMembers.map((a, idx) => (
-                                    <div
-                                        key={a.id}
-                                        className="member-avatar"
-                                        style={{
-                                            marginLeft: idx === 0 ? 0 : -20,
-                                            zIndex: 100 - idx,
-                                        }}
-                                        title={a.member.username}
-                                    >
-                                        {getInitial(a.member.username)}
-                                    </div>
-                                ))
-                            )}
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Description Section */}
+                {/* Description */}
                 <div className="section">
                     <div className="section-header mb-2">
-                        <Icon icon="material-symbols:description" width={20} />
+                        <Icon icon="material-symbols:description" width={24} />
                         Description
                     </div>
                     <div className="description-area">{card.description || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Add a more detailed description</span>}</div>
                 </div>
 
-                {/* Checklist Section */}
+                {/* Checklist */}
                 <div className="section">
                     <div className="section-header">
-                        <Icon icon="material-symbols:checklist" width={20} />
+                        <Icon icon="material-symbols:checklist" width={24} />
                         Checklist
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Progress */}
                     <div className="progress-container">
                         <span className="progress-text">{progress}%</span>
                         <div className="progress-bar-container">
                             <div className="progress-bar" style={{ width: `${progress}%` }} />
                         </div>
                         <button className="btn btn-outline" onClick={() => setHideChecked((s) => !s)}>
-                            {hideChecked ? "Show checked" : "Hide checked"}
+                            <Icon icon={hideChecked ? "material-symbols:visibility" : "material-symbols:visibility-off"} width={24} />
+                            {/* {hideChecked ? "Show checked" : "Hide checked"} */}
                         </button>
                         <button className="btn btn-danger" onClick={handleDeleteChecked}>
-                            <Icon icon="material-symbols:delete-outline" width={16} />
+                            <Icon icon="material-symbols:delete-outline" width={24} />
                             Delete
                         </button>
                     </div>
@@ -824,132 +868,137 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     {/* Task List */}
                     {tasks
                         .filter((t) => (hideChecked ? !t.completed : true))
-                        .map((t) => (
-                            <div key={t.id}>
-                                <div className={`task-item ${t.completed ? "completed" : ""}`}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1 }}>
-                                            <input type="checkbox" className="task-checkbox" checked={!!t.completed} onChange={() => handleToggle(t)} />
-                                            <div style={{ flex: 1 }}>
-                                                <div className={`task-title ${t.completed ? "completed" : ""}`}>{t.title}</div>
-                                                {t.description && <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.25rem" }}>{t.description}</div>}
-                                                {t.dueDate && <div style={{ fontSize: "0.8rem", color: "#f59e0b", marginTop: "0.25rem" }}>Due: {new Date(t.dueDate).toLocaleDateString()}</div>}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                            {/* Task Avatars */}
-                                            <div className="task-avatars">
-                                                {(Array.isArray(t.assignedTo) ? t.assignedTo : []).slice(0, 3).map((a, idx) => {
-                                                    const mem = boardMembers.find((m) => String(m.id || m._id || m.uid || m.name || m.email) === String(a));
-                                                    const label = mem?.username || mem?.name || mem?.displayName || mem?.email || a;
-                                                    const initial = label.charAt(0).toUpperCase();
-                                                    return (
-                                                        <div key={idx} className="task-avatar" title={label}>
-                                                            {initial}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <button
-                                                className="action-btn"
-                                                title="Edit task"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    startEdit(t);
-                                                }}
-                                                style={{ color: "#3b82f6" }}
-                                            >
-                                                <Icon icon="material-symbols:edit-outline" width={20} />
-                                            </button>
-
-                                            <button
-                                                className="action-btn"
-                                                title="Delete task"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(t.id);
-                                                }}
-                                                style={{ color: "#ef4444" }}
-                                            >
-                                                <Icon icon="material-symbols:delete-outline" width={20} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Edit Form */}
-                                {editingTaskId === t.id && (
-                                    <div className="edit-section">
-                                        <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="input-field" style={{ marginBottom: "1rem" }} placeholder="Task title" />
-
-                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
-                                                <button className="btn btn-outline" onClick={() => setShowEditAssignPicker((s) => (s === t.id ? null : t.id))}>
-                                                    <Icon icon="material-symbols:person" width={16} /> Assign
-                                                </button>
-                                                {showEditAssignPicker === t.id && (
-                                                    <div className="dropdown" style={{ top: "105%", left: 0 }}>
-                                                        {(boardMembers || []).map((m) => {
-                                                            const mid = m.id || m._id || m.uid || m.name || m.email;
-                                                            const isSelected = editAssigned.includes(mid);
-                                                            const label = m.username || m.name || m.displayName || m.email || mid;
-                                                            const initial = getInitial(label);
-
-                                                            return (
-                                                                <div
-                                                                    key={mid}
-                                                                    className={`dropdown-item ${isSelected ? "selected" : ""}`}
-                                                                    onClick={() => {
-                                                                        if (isSelected) {
-                                                                            setEditAssigned((prev) => prev.filter((p) => p !== mid));
-                                                                        } else {
-                                                                            setEditAssigned((prev) => [...prev, mid]);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <div className="avatar-small">{initial}</div>
-                                                                    <span style={{ fontSize: "0.875rem" }}>{label}</span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-
-                                                <div style={{ position: "relative" }}>
-                                                    <button className="btn btn-outline" onClick={() => setShowEditDuePicker((s) => !s)}>
-                                                        <Icon icon="material-symbols:schedule" width={16} />
-                                                    </button>
-                                                    {showEditDuePicker && (
-                                                        <div className="dropdown" style={{ top: "105%", left: 0 }}>
-                                                            <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="input-field" />
-                                                        </div>
-                                                    )}
+                        .map((t) => {
+                            const tMembers = taskMembersMap[t.id] || [];
+                            return (
+                                <div key={t.id}>
+                                    <div className={`task-item ${t.completed ? "completed" : ""}`}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1 }}>
+                                                <input type="checkbox" className="task-checkbox" checked={!!t.completed} onChange={() => handleToggle(t)} />
+                                                <div style={{ flex: 1 }}>
+                                                    <div className={`task-title ${t.completed ? "completed" : ""}`}>{t.title}</div>
+                                                    {t.description && <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "0.25rem" }}>{t.description}</div>}
+                                                    {t.dueDate && <div style={{ fontSize: "0.8rem", color: "#f59e0b", marginTop: "0.25rem" }}>Due: {new Date(t.dueDate).toLocaleDateString()}</div>}
                                                 </div>
                                             </div>
 
-                                            <div style={{ display: "flex", gap: "0.5rem" }}>
-                                                <button className="btn btn-primary" onClick={() => saveEdit(t.id)}>
-                                                    <Icon icon="material-symbols:save" width={16} />
-                                                    Save
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                                {/* Task Avatars from API + count */}
+                                                <div className="task-avatars" title={`${tMembers.length} member(s)`}>
+                                                    {tMembers.slice(0, 3).map((u, idx) => {
+                                                        const label = safeLabel(u);
+                                                        return (
+                                                            <div key={u.id || idx} className="task-avatar" title={label}>
+                                                                {u.avatar ? (
+                                                                    <img src={u.avatar} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                                                                ) : (
+                                                                    getInitial(label)
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Action Buttons */}
+                                                <button
+                                                    className="action-btn"
+                                                    title="Edit task"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        startEdit(t);
+                                                    }}
+                                                    style={{ color: "#3b82f6" }}
+                                                >
+                                                    <Icon icon="material-symbols:edit-outline" width={24} />
                                                 </button>
-                                                <button className="btn btn-outline" onClick={cancelEdit}>
-                                                    <Icon icon="material-symbols:close" width={16} />
-                                                    Cancel
+
+                                                <button
+                                                    className="action-btn"
+                                                    title="Delete task"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(t.id);
+                                                    }}
+                                                    style={{ color: "#ef4444" }}
+                                                >
+                                                    <Icon icon="material-symbols:delete-outline" width={24} />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        ))}
 
-                    {/* Add Task Button or Form */}
+                                    {/* Edit Form */}
+                                    {editingTaskId === t.id && (
+                                        <div className="edit-section">
+                                            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="input-field" style={{ marginBottom: "1rem" }} placeholder="Task title" />
+
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
+                                                    <button className="btn btn-outline" onClick={() => setShowEditAssignPicker((s) => (s === t.id ? null : t.id))}>
+                                                        <Icon icon="material-symbols:person" width={24} /> Assign
+                                                    </button>
+
+                                                    {showEditAssignPicker === t.id && (
+                                                        <div className="dropdown" style={{ top: "105%", left: 0 }}>
+                                                            {(boardMembers || []).map((m) => {
+                                                                const mid = m.id || m._id || m.uid || m.name || m.email;
+                                                                const isSelected = editAssigned.includes(mid);
+                                                                const label = m.username || m.name || m.displayName || m.email || mid;
+                                                                const initial = getInitial(label);
+
+                                                                return (
+                                                                    <div
+                                                                        key={mid}
+                                                                        className={`dropdown-item ${isSelected ? "selected" : ""}`}
+                                                                        onClick={() => {
+                                                                            if (isSelected) {
+                                                                                setEditAssigned((prev) => prev.filter((p) => p !== mid));
+                                                                            } else {
+                                                                                setEditAssigned((prev) => [...prev, mid]);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div className="avatar-small">{initial}</div>
+                                                                        <span style={{ fontSize: "0.875rem" }}>{label}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+
+                                                    <div style={{ position: "relative" }}>
+                                                        <button className="btn btn-outline" onClick={() => setShowEditDuePicker((s) => !s)}>
+                                                            <Icon icon="material-symbols:schedule" width={24} />
+                                                        </button>
+                                                        {showEditDuePicker && (
+                                                            <div className="dropdown" style={{ top: "105%", left: 0 }}>
+                                                                <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="input-field" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: "flex", gap: "0.5rem" }}>
+                                                    <button className="btn btn-primary" onClick={() => saveEdit(t.id)}>
+                                                        <Icon icon="material-symbols:save" width={24} />
+                                                        Save
+                                                    </button>
+                                                    <button className="btn btn-outline" onClick={cancelEdit}>
+                                                        <Icon icon="material-symbols:close" width={24} />
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    {/* Add Task */}
                     {!showAddTask ? (
                         <div className="add-task-button" onClick={() => setShowAddTask(true)}>
-                            <Icon icon="material-symbols:add" width={20} />
+                            <Icon icon="material-symbols:add" width={24} />
                             Add an item
                         </div>
                     ) : (
@@ -959,18 +1008,18 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
                                 <div style={{ display: "flex", gap: "0.5rem" }}>
                                     <button className="btn btn-primary" onClick={handleAddTask}>
-                                        <Icon icon="material-symbols:add" width={16} />
+                                        <Icon icon="material-symbols:add" width={24} />
                                         Save
                                     </button>
                                     <button className="btn btn-outline" onClick={handleCancelAddTask}>
-                                        <Icon icon="material-symbols:close" width={16} />
+                                        <Icon icon="material-symbols:close" width={24} />
                                         Cancel
                                     </button>
                                 </div>
 
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
                                     <button className="btn btn-outline" onClick={() => setShowAssignPicker((s) => !s)}>
-                                        <Icon icon="material-symbols:person" width={16} /> Assign
+                                        <Icon icon="material-symbols:person" width={24} /> Assign
                                     </button>
                                     {showAssignPicker && (
                                         <div className="dropdown" style={{ top: "105%", right: 0 }}>
@@ -1002,7 +1051,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                                     <div style={{ position: "relative" }}>
                                         <button className="btn btn-outline" onClick={() => setShowDuePicker((s) => !s)}>
-                                            <Icon icon="material-symbols:schedule" width={16} />
+                                            <Icon icon="material-symbols:schedule" width={24} />
                                         </button>
                                         {showDuePicker && (
                                             <div className="dropdown" style={{ top: "105%", right: 0 }}>

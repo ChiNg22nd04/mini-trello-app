@@ -1,12 +1,13 @@
 const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
 
+const tasksCollection = db.collection("tasks");
+
+// GET /boards/:boardId/cards/:cardId/tasks
 const getTasksByCard = async (req, res) => {
     const { cardId } = req.params;
     try {
-        // tasks are stored under cards/{cardId}/tasks subcollection
-        const taskRef = db.collection(`cards/${cardId}/tasks`);
-        const snapshot = await taskRef.get();
+        const snapshot = await tasksCollection.where("cardId", "==", cardId).get();
         const tasks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         res.json(tasks);
     } catch (err) {
@@ -15,13 +16,15 @@ const getTasksByCard = async (req, res) => {
     }
 };
 
-// POST /cards/:cardId/tasks
+// POST /boards/:boardId/cards/:cardId/tasks
 const createTask = async (req, res) => {
-    const { cardId } = req.params;
+    const { boardId, cardId } = req.params;
     const { title, status = "todo", description = "", completed = false, assignedTo = [] } = req.body;
 
     try {
         const newTask = {
+            boardId,
+            cardId,
             title,
             status,
             description,
@@ -30,10 +33,10 @@ const createTask = async (req, res) => {
             createdAt: Date.now(),
         };
 
-        const taskRef = await db.collection(`cards/${cardId}/tasks`).add(newTask);
-        const createdTask = { id: taskRef.id, ...newTask };
+        const docRef = await tasksCollection.add(newTask);
+        const createdTask = { id: docRef.id, ...newTask };
 
-        getIO().to(cardId).emit("taskCreated", { cardId, task: createdTask });
+        getIO().to(cardId).emit("taskCreated", { cardId, boardId, task: createdTask });
 
         res.status(201).json(createdTask);
     } catch (err) {
@@ -42,13 +45,13 @@ const createTask = async (req, res) => {
     }
 };
 
-// PUT /cards/:cardId/tasks/:taskId
+// PUT /boards/:boardId/cards/:cardId/tasks/:taskId
 const updateTask = async (req, res) => {
-    const { cardId, taskId } = req.params;
+    const { cardId, boardId, taskId } = req.params;
     const updates = req.body || {};
 
     try {
-        const taskDocRef = db.collection(`cards/${cardId}/tasks`).doc(taskId);
+        const taskDocRef = tasksCollection.doc(taskId);
         const taskSnapshot = await taskDocRef.get();
 
         if (!taskSnapshot.exists) {
@@ -60,17 +63,12 @@ const updateTask = async (req, res) => {
         // xử lý assignedTo
         let newAssigned = currentData.assignedTo || [];
         if (updates.addMember) {
-            // thêm 1 user vào task
-            if (!newAssigned.includes(updates.addMember)) {
-                newAssigned.push(updates.addMember);
-            }
+            if (!newAssigned.includes(updates.addMember)) newAssigned.push(updates.addMember);
         }
         if (updates.removeMember) {
-            // bỏ assign
             newAssigned = newAssigned.filter((id) => id !== updates.removeMember);
         }
         if (updates.assignedTo) {
-            // ghi đè nếu gửi thẳng mảng mới
             newAssigned = Array.isArray(updates.assignedTo) ? updates.assignedTo : newAssigned;
         }
 
@@ -86,7 +84,7 @@ const updateTask = async (req, res) => {
         const updated = await taskDocRef.get();
         const updatedTask = { id: updated.id, ...updated.data() };
 
-        getIO().to(cardId).emit("taskUpdated", { cardId, task: updatedTask });
+        getIO().to(cardId).emit("taskUpdated", { cardId, boardId, task: updatedTask });
 
         res.json(updatedTask);
     } catch (err) {
@@ -95,11 +93,11 @@ const updateTask = async (req, res) => {
     }
 };
 
-// DELETE /cards/:cardId/tasks/:taskId
+// DELETE /boards/:boardId/cards/:cardId/tasks/:taskId
 const deleteTask = async (req, res) => {
     const { cardId, taskId } = req.params;
     try {
-        const taskDocRef = db.collection(`cards/${cardId}/tasks`).doc(taskId);
+        const taskDocRef = tasksCollection.doc(taskId);
         await taskDocRef.delete();
 
         getIO().to(cardId).emit("taskDeleted", { cardId, taskId });
@@ -111,10 +109,11 @@ const deleteTask = async (req, res) => {
     }
 };
 
+// GET members of a task
 const getMembersOfTask = async (req, res) => {
-    const { cardId, taskId } = req.params;
+    const { taskId } = req.params;
     try {
-        const taskDocRef = db.collection(`cards/${cardId}/tasks`).doc(taskId);
+        const taskDocRef = tasksCollection.doc(taskId);
         const taskSnapshot = await taskDocRef.get();
 
         if (!taskSnapshot.exists) {
@@ -124,9 +123,7 @@ const getMembersOfTask = async (req, res) => {
         const taskData = taskSnapshot.data();
         const memberIds = taskData.assignedTo || [];
 
-        if (memberIds.length === 0) {
-            return res.status(200).json([]);
-        }
+        if (memberIds.length === 0) return res.status(200).json([]);
 
         const members = [];
         for (const uid of memberIds) {

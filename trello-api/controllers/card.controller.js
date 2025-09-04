@@ -2,6 +2,9 @@ const { db } = require("../firebase");
 const { getIO } = require("../config/socket");
 
 const cardsCollection = db.collection("cards");
+const tasksCollection = db.collection("tasks");
+const usersCollection = db.collection("users");
+
 const ALLOWED_STATUSES = ["todo", "doing", "done"];
 
 const getCards = async (req, res) => {
@@ -171,10 +174,10 @@ const deleteCard = async (req, res) => {
 const getMembersOfCard = async (req, res) => {
     try {
         const cardId = req.params.id;
-
+        console.log("cardId", cardId);
         // 1. Lấy tất cả task thuộc cardId
         const taskSnapshot = await tasksCollection.where("cardId", "==", cardId).get();
-
+        console.log("taskSnapshot", taskSnapshot);
         if (taskSnapshot.empty) {
             return res.status(200).json([]);
         }
@@ -183,6 +186,7 @@ const getMembersOfCard = async (req, res) => {
         const memberIdsSet = new Set();
         taskSnapshot.forEach((doc) => {
             const task = doc.data();
+            console.log("task", task);
             if (task.assignedTo) {
                 if (Array.isArray(task.assignedTo)) {
                     task.assignedTo.forEach((uid) => memberIdsSet.add(uid));
@@ -191,7 +195,7 @@ const getMembersOfCard = async (req, res) => {
                 }
             }
         });
-
+        console.log("memberIdsSet", memberIdsSet);
         if (memberIdsSet.size === 0) {
             return res.status(200).json([]);
         }
