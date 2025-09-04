@@ -5,17 +5,12 @@ import { API_BASE_URL } from "../../../config";
 
 const GithubCallback = () => {
     const navigate = useNavigate();
-
     const handledRef = useRef(false);
 
     useEffect(() => {
-        console.log("GithubCallback");
-
         const getRawQuery = () => {
-            if (window.location.search && window.location.search.length > 1)
-                return window.location.search.slice(1);
-            if (window.location.hash && window.location.hash.includes("?"))
-                return window.location.hash.split("?")[1];
+            if (window.location.search && window.location.search.length > 1) return window.location.search.slice(1);
+            if (window.location.hash && window.location.hash.includes("?")) return window.location.hash.split("?")[1];
             return "";
         };
 
@@ -26,59 +21,33 @@ const GithubCallback = () => {
                 const rawQuery = getRawQuery();
                 const params = new URLSearchParams(rawQuery);
 
-                // First, check token (backend redirected with token)
                 const token = params.get("token");
                 const userParam = params.get("user");
 
-                if (handledRef.current) return; // already processed
+                if (handledRef.current) return;
 
                 if (token) {
                     try {
-                        const user = userParam
-                            ? JSON.parse(decodeURIComponent(userParam))
-                            : null;
-                        console.log("GitHub token from redirect", {
-                            token,
-                            user,
-                        });
+                        const user = userParam ? JSON.parse(decodeURIComponent(userParam)) : null;
                         localStorage.setItem("accessToken", token);
-                        if (user)
-                            localStorage.setItem("user", JSON.stringify(user));
-                        try {
-                            window.dispatchEvent(new Event("userLogin"));
-                        } catch (e) {
-                            console.warn("userLogin dispatch failed", e);
-                        }
+                        if (user) localStorage.setItem("user", JSON.stringify(user));
+                        window.dispatchEvent(new Event("userLogin"));
                         handledRef.current = true;
                         navigate("/boards");
                         return;
                     } catch (err) {
-                        console.error(
-                            "Failed to parse user from redirect",
-                            err
-                        );
-                        // fall through to code handling
+                        console.error("Failed to parse user from redirect", err);
                     }
                 }
 
-                // Fallback: check code and exchange with backend
                 const code = params.get("code");
-                console.log("Github code:", code);
-
                 if (code) {
                     try {
-                        const res = await axios.get(
-                            `${API_BASE_URL}/auth/github/callback?code=${code}`
-                        );
+                        const res = await axios.get(`${API_BASE_URL}/auth/github/callback?code=${code}`);
                         const { token: resToken, user } = res.data;
-                        console.log("GitHub login success", res.data);
                         localStorage.setItem("accessToken", resToken);
                         localStorage.setItem("user", JSON.stringify(user));
-                        try {
-                            window.dispatchEvent(new Event("userLogin"));
-                        } catch (e) {
-                            console.warn("userLogin dispatch failed", e);
-                        }
+                        window.dispatchEvent(new Event("userLogin"));
                         handledRef.current = true;
                         navigate("/boards");
                         return;
@@ -89,14 +58,12 @@ const GithubCallback = () => {
                     }
                 }
 
-                // Retry once to tolerate dev timing issues
                 if (!triedRetry) {
                     triedRetry = true;
                     setTimeout(() => attempt(), 300);
                     return;
                 }
 
-                console.warn("No code or token found in URL after retry");
                 if (!handledRef.current) navigate("/signin");
             };
 
@@ -106,7 +73,43 @@ const GithubCallback = () => {
         fetchGithubUser();
     }, [navigate]);
 
-    return <p className="text-center mt-5">Continue in with GitHub...</p>;
+    // ✅ CSS spinner
+    const spinnerStyle = {
+        width: "50px",
+        height: "50px",
+        border: "6px solid #ddd",
+        borderTop: "6px solid #4e73df",
+        borderRadius: "50%",
+        animation: "spin 1s linear infinite",
+    };
+
+    return (
+        <div
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                minHeight: "100vh",
+                background: "linear-gradient(135deg, #e6f0ff 0%, #ffffff 100%)",
+                // background: "linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%)",
+                color: "#333",
+            }}
+        >
+            <div style={spinnerStyle} />
+            <p style={{ marginTop: "16px", fontWeight: "500" }}>Signing in with GitHub...</p>
+
+            {/* CSS animation keyframes */}
+            <style>
+                {`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                `}
+            </style>
+        </div>
+    );
 };
 
 export default GithubCallback;
