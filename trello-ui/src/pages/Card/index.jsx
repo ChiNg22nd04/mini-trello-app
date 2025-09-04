@@ -177,12 +177,13 @@ const CardPage = () => {
     };
 
     return (
-        <>
+        <div style={{ paddingTop: "calc(60px + 20px)", ...pageStyles }}>
             <Header isShow={false} username={user?.username} style={{ height: headerHeight, zIndex: 1030 }} />
             <div
-                className="d-flex bg-dark text-black"
+                className="d-flex text-white pt-3"
                 style={{
-                    paddingTop: headerHeight,
+                    // marginTop: "calc(60px + 20px)",
+                    // paddingTop: headerHeight,
                     minHeight: "100vh",
                 }}
             >
@@ -193,9 +194,9 @@ const CardPage = () => {
                 <div
                     style={{
                         marginLeft: "20%",
+                        margin: "0 20px 20px 295px",
                         width: "80%",
                         overflowY: "auto",
-                        backgroundColor: "#f5f5f5",
                     }}
                 >
                     <TopSideBar
@@ -205,75 +206,84 @@ const CardPage = () => {
                         boardId={boardId}
                         boardName={board?.name}
                         className="text-black fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
-                        style={{ backgroundColor: "#743153" }}
                     />
-                    {console.log("user", user)}
-                    {console.log("token", token)}
-                    {console.log("board", board)}
-                    {console.log("boardId", boardId)}
 
-                    <DragDropContext onDragEnd={onDragEnd}>
-                        <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>
-                            {STATUSES.map((status) => (
-                                <Droppable droppableId={status} key={status}>
-                                    {(provided) => (
-                                        <div
-                                            ref={provided.innerRef}
-                                            {...provided.droppableProps}
-                                            className="rounded p-3"
-                                            style={{
-                                                minWidth: "280px",
-                                                backgroundColor: "#1e252a",
-                                                flex: "1",
-                                                height: "100%",
-                                            }}
-                                        >
-                                            <p className="text-black mb-3">{STATUS_LABELS[status]}</p>
+                    <div
+                        style={{
+                            overflowY: "auto",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "16px",
+                            backgroundColor: "#fff",
+                        }}
+                    >
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <div className="d-flex gap-3 p-3" style={{ overflowX: "auto" }}>
+                                {STATUSES.map((status) => (
+                                    <Droppable droppableId={status} key={status}>
+                                        {(provided) => (
+                                            <div
+                                                ref={provided.innerRef}
+                                                {...provided.droppableProps}
+                                                className="rounded p-3"
+                                                style={{
+                                                    minWidth: "280px",
+                                                    backgroundColor: "#1e252a",
+                                                    flex: "1",
+                                                    height: "100%",
+                                                }}
+                                            >
+                                                <p className="text-black mb-3">{STATUS_LABELS[status]}</p>
 
-                                            {cardsByStatus[status].map((card, index) => (
-                                                <Draggable key={card.id} draggableId={String(card.id)} index={index}>
-                                                    {(provided) => (
-                                                        <div
-                                                            onClick={() => setSelectedCard(card)}
-                                                            ref={provided.innerRef}
-                                                            {...provided.draggableProps}
-                                                            {...provided.dragHandleProps}
-                                                            className="bg-dark text-black border rounded mb-3 p-2"
-                                                        >
-                                                            <strong>{card.name}</strong>
-                                                            <small className="text-muted">Members: {Array.isArray(card.members) ? card.members.length : 0}</small>
-                                                            <div style={{ display: "flex", alignItems: "center" }}>
-                                                                <Icon style={{ marginRight: 5 }} icon="material-symbols:checklist" width={20} />
-                                                                <small className="text-info d-block">
-                                                                    {taskCounts[card.id]?.done ?? 0}/{taskCounts[card.id]?.total ?? 0}
-                                                                </small>
+                                                {cardsByStatus[status].map((card, index) => (
+                                                    <Draggable key={card.id} draggableId={String(card.id)} index={index}>
+                                                        {(provided) => (
+                                                            <div
+                                                                onClick={() => setSelectedCard(card)}
+                                                                ref={provided.innerRef}
+                                                                {...provided.draggableProps}
+                                                                {...provided.dragHandleProps}
+                                                                className="bg-dark text-black border rounded mb-3 p-2"
+                                                            >
+                                                                <strong>{card.name}</strong>
+                                                                <small className="text-muted">Members: {Array.isArray(card.members) ? card.members.length : 0}</small>
+                                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                                    <Icon style={{ marginRight: 5 }} icon="material-symbols:checklist" width={20} />
+                                                                    <small className="text-info d-block">
+                                                                        {taskCounts[card.id]?.done ?? 0}/{taskCounts[card.id]?.total ?? 0}
+                                                                    </small>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </Draggable>
-                                            ))}
+                                                        )}
+                                                    </Draggable>
+                                                ))}
 
-                                            {provided.placeholder}
-                                            <button className="d-flex justify-content-between mt-2 btn btn-sm text-black text-start border-none mt-2 w-100" onClick={() => handleAddTask()}>
-                                                <div className="d-flex justify-content-between">
-                                                    <Icon width={20} icon="material-symbols:add" />
-                                                    <span>Add a card</span>
-                                                </div>
-                                                <Icon width={20} icon="material-symbols:ink-selection-rounded" />
-                                            </button>
-                                        </div>
-                                    )}
-                                </Droppable>
-                            ))}
-                        </div>
-                    </DragDropContext>
+                                                {provided.placeholder}
+                                                <button className="d-flex justify-content-between mt-2 btn btn-sm text-black text-start border-none mt-2 w-100" onClick={() => handleAddTask()}>
+                                                    <div className="d-flex justify-content-between">
+                                                        <Icon width={20} icon="material-symbols:add" />
+                                                        <span>Add a card</span>
+                                                    </div>
+                                                    <Icon width={20} icon="material-symbols:ink-selection-rounded" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </Droppable>
+                                ))}
+                            </div>
+                        </DragDropContext>
+                    </div>
                 </div>
             </div>
             {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembers} />}
 
             <CardDetail card={selectedCard} onClose={() => setSelectedCard(null)} boardId={boardId} token={token} boardMembers={arrayMembers} onTaskCountsChange={handleTaskCountsChange} />
-        </>
+        </div>
     );
+};
+const pageStyles = {
+    background: "linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%)",
+    minHeight: "100vh",
+    paddingTop: "calc(60px + 20px)",
 };
 
 export default CardPage;
