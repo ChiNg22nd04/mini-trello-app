@@ -285,7 +285,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     justify-content: center;
                     align-items: center;
                     z-index: 1040;
-                    animation: fadeIn 0.3s ease-out;
                 }
 
                 @keyframes fadeIn {
@@ -703,6 +702,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     align-items: center;
                     gap: 0.25rem;
                     padding: 0.25rem 0.5rem;
+                    margin-bottom: 0.15rem;
                     border-radius: 8px;
                     cursor: pointer;
                     transition: all 0.2s ease;
@@ -777,7 +777,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     padding: 0.5rem;
                     border-radius: 8px;
                     cursor: pointer;
-                    transition: all 0.2s ease;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -794,7 +793,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     border-radius: 12px;
                     padding: 1rem;
                     margin-top: 0.5rem;
-                    animation: slideUp 0.3s ease-out;
                 }
 
                 .add-task-section {
@@ -803,7 +801,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     border-radius: 12px;
                     padding: 1rem;
                     margin-top: 1rem;
-                    transition: all 0.3s ease;
                 }
 
                 .add-task-section:hover {
@@ -817,7 +814,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     border-radius: 12px;
                     padding: 1rem;
                     margin-top: 1rem;
-                    transition: all 0.3s ease;
                     cursor: pointer;
                     text-align: center;
                     color: #6b7280;
@@ -830,7 +826,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     color: #374151;
                 }
             `}</style>
-            {/* styles giữ nguyên ... */}
 
             <div className="backdrop" onClick={onClose} />
 
@@ -1001,7 +996,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                             const mid = m.id || m._id || m.uid || m.name || m.email;
                                                             const isSelected = editAssigned.includes(mid);
                                                             const label = m.username || m.name || m.displayName || m.email || mid;
-                                                            const initial = getInitial(label);
+                                                            const avatarUrl = m.avatar || m.photoURL; // link ảnh avatar
 
                                                             return (
                                                                 <div
@@ -1012,8 +1007,17 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                                                         else setEditAssigned((prev) => [...prev, mid]);
                                                                     }}
                                                                 >
-                                                                    <div className="avatar-small">{initial}</div>
-                                                                    <span style={{ fontSize: "0.875rem" }}>{label}</span>
+                                                                    <div className="avatar-small">
+                                                                        {avatarUrl && (
+                                                                            <img
+                                                                                style={{ width: "35px", height: "35px", backgroundColor: "transparent" }}
+                                                                                src={avatarUrl}
+                                                                                alt={label}
+                                                                                className="rounded-full object-cover"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <span style={{ fontSize: "0.875rem", paddingLeft: "0.75rem" }}>{label}</span>
                                                                 </div>
                                                             );
                                                         })}
@@ -1079,24 +1083,30 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                                         <div className="dropdown" style={{ top: "105%", right: 0 }}>
                                             {(boardMembers || []).map((m) => {
                                                 const mid = m.id || m._id || m.uid || m.name || m.email;
-                                                const isSelected = newAssigned.includes(mid);
+                                                const isSelected = editAssigned.includes(mid);
                                                 const label = m.username || m.name || m.displayName || m.email || mid;
-                                                const initial = getInitial(label);
+                                                const avatarUrl = m.avatar || m.photoURL; // link ảnh avatar
 
                                                 return (
                                                     <div
                                                         key={mid}
                                                         className={`dropdown-item ${isSelected ? "selected" : ""}`}
                                                         onClick={() => {
-                                                            if (isSelected) {
-                                                                setNewAssigned((prev) => prev.filter((p) => p !== mid));
-                                                            } else {
-                                                                setNewAssigned((prev) => [...prev, mid]);
-                                                            }
+                                                            if (isSelected) setEditAssigned((prev) => prev.filter((p) => p !== mid));
+                                                            else setEditAssigned((prev) => [...prev, mid]);
                                                         }}
                                                     >
-                                                        <div className="avatar-small">{initial}</div>
-                                                        <span style={{ fontSize: "0.875rem" }}>{label}</span>
+                                                        <div className="avatar-small">
+                                                            {avatarUrl && (
+                                                                <img
+                                                                    style={{ width: "35px", height: "35px", backgroundColor: "transparent" }}
+                                                                    src={avatarUrl}
+                                                                    alt={label}
+                                                                    className="rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <span style={{ fontSize: "0.875rem", paddingLeft: "0.75rem" }}>{label}</span>
                                                     </div>
                                                 );
                                             })}
