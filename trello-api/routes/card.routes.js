@@ -11,4 +11,5 @@ router.get("/user/:userId", authMiddleware, cardController.getCardByUser);
 router.put("/:id", authMiddleware, cardController.updateCard);
 router.delete("/:id", authMiddleware, cardController.deleteCard);
 router.get("/:id/members", authMiddleware, cardController.getMembersOfCard);
+router.get("/status/:status", authMiddleware, cardController.getCardByStatus);
 module.exports = router;

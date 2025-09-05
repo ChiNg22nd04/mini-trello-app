@@ -26,11 +26,10 @@ const Sidebar = ({ members = [], fullHeight = false, title = "Sample Board" }) =
                     overflow-y: auto;
                     position: relative;
                     margin: 0 10px 20px 20px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: rgba(0, 0, 0, 0.05) 0px 2px 8px;
                 }
 
                 .modern-sidebar:hover {
-                    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(16, 185, 129, 0.1);
                 }
 
                 .members-section {

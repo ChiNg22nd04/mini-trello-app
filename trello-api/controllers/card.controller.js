@@ -222,6 +222,39 @@ const getMembersOfCard = async (req, res) => {
     }
 };
 
+const getCardByStatus = async (req, res) => {
+    try {
+        const { boardId, status } = req.params;
+
+        if (!ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({
+                error: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(",")}`,
+            });
+        }
+
+        const snapshot = await cardsCollection.where("boardId", "==", boardId).where("status", "==", status).orderBy("createdAt", "desc").get();
+
+        const cards = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                description: data.description,
+                ownerId: data.ownerId,
+                createdAt: data.createdAt || null,
+                members: data.members || [],
+                status: data.status || "todo",
+                boardId: data.boardId || null,
+            };
+        });
+
+        res.status(200).json(cards);
+    } catch (err) {
+        console.error("Failed to get cards by status:", err);
+        res.status(500).json({ msg: "Error fetching cards by status" });
+    }
+};
+
 module.exports = {
     getCards,
     createCard,
@@ -230,4 +263,5 @@ module.exports = {
     updateCard,
     deleteCard,
     getMembersOfCard,
+    getCardByStatus,
 };

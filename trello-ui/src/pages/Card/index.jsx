@@ -5,7 +5,7 @@ import { Icon } from "@iconify/react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import API_BASE_URL from "../../../config/config";
-
+import MembersBar from "./MembersBar";
 import { Header, TopSideBar } from "../../components";
 import Sidebar from "./Sidebar";
 import CardDetail from "./CardDetail";
@@ -14,12 +14,7 @@ import CreateCardModal from "./CreateCardModal";
 import { useUser } from "../../hooks";
 
 const STATUSES = ["todo", "doing", "done"];
-
-const STATUS_LABELS = {
-    todo: "To Do",
-    doing: "Doing",
-    done: "Done",
-};
+const STATUS_LABELS = { todo: "To Do", doing: "Doing", done: "Done" };
 
 const CardPage = () => {
     const { user, token } = useUser();
@@ -28,91 +23,122 @@ const CardPage = () => {
     const [board, setBoard] = useState(null);
     const [cardsByStatus, setCardsByStatus] = useState({ todo: [], doing: [], done: [] });
     const [selectedCard, setSelectedCard] = useState(null);
-    const [arrayMembers, setArrayMembers] = useState([]);
+    const [arrayMembersForBoard, setArrayMembersForBoard] = useState([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [createForStatus, setCreateForStatus] = useState("todo");
     const [taskCounts, setTaskCounts] = useState({});
+    const [cardMembersMap, setCardMembersMap] = useState({}); // <== NEW
 
     const headerHeight = "60px";
 
-    const fetchCardMembers = async (cardId) => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/cards/${cardId}/members`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return res.data || [];
-        } catch (err) {
-            console.error(`Failed to fetch members for card ${cardId}:`, err);
-            return [];
-        }
-    };
+    /* ---------- API helpers ---------- */
 
-    const fetchData = useCallback(async () => {
-        if (!user || !token || !boardId) return;
-        try {
-            // fetch board
-            const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setBoard(boardRes.data);
+    const auth = { headers: { Authorization: `Bearer ${token}` } };
+    console.log("auth", auth);
 
-            // fetch cards
-            const cardsRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const allCards = Array.isArray(cardsRes.data) ? cardsRes.data : [];
+    const fetchCardMembers = useCallback(
+        async (cardId) => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${cardId}/members`, auth);
+                return Array.isArray(res.data) ? res.data : [];
+            } catch (err) {
+                console.error(`Failed to fetch members for card ${cardId}:`, err);
+                return [];
+            }
+        },
+        [boardId, token]
+    );
 
-            // gắn members cho từng card
-            const cardsWithMembers = await Promise.all(
+    const fetchCardsByStatus = useCallback(
+        async (status) => {
+            console.log("status", status);
+            try {
+                const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/status/${status}`, auth);
+                console.log("res", res.data);
+                return Array.isArray(res.data) ? res.data : [];
+            } catch (err) {
+                console.error(`Failed to get cards by status=${status}:`, err);
+                return [];
+            }
+        },
+        [boardId, token]
+    );
+
+    const hydrateMembers = useCallback(
+        async (grouped) => {
+            // gom toàn bộ cardId của 3 cột
+            const allCards = [...grouped.todo, ...grouped.doing, ...grouped.done];
+            if (allCards.length === 0) return;
+
+            // fetch song song members theo cardId
+            const entries = await Promise.all(
                 allCards.map(async (c) => {
                     const members = await fetchCardMembers(c.id);
-                    return { ...c, members };
+                    return [String(c.id), members];
                 })
             );
 
-            // group theo status
-            const grouped = { todo: [], doing: [], done: [] };
-            cardsWithMembers.forEach((card) => {
-                const status = card.status || "todo";
-                if (!grouped[status]) grouped[status] = [];
-                grouped[status].push(card);
-            });
+            setCardMembersMap((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+        },
+        [fetchCardMembers]
+    );
+
+    const hydrateTaskCounts = useCallback(
+        async (grouped) => {
+            const allCards = [...grouped.todo, ...grouped.doing, ...grouped.done];
+            if (allCards.length === 0) return;
+
+            try {
+                const entries = await Promise.all(
+                    allCards.map(async (c) => {
+                        try {
+                            const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${c.id}/tasks`, auth);
+                            const tasks = Array.isArray(res.data) ? res.data : [];
+                            const done = tasks.filter((t) => t.completed).length;
+                            return [String(c.id), { done, total: tasks.length }];
+                        } catch {
+                            return [String(c.id), { done: 0, total: 0 }];
+                        }
+                    })
+                );
+                setTaskCounts((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+            } catch {
+                // ignore
+            }
+        },
+        [boardId, token]
+    );
+
+    /* ---------- Fetch all data ---------- */
+    const fetchData = useCallback(async () => {
+        if (!user || !token || !boardId) return;
+
+        try {
+            // board
+            const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
+            setBoard(boardRes.data);
+
+            // columns by status (server already filters & sorts)
+            const [todo, doing, done] = await Promise.all(STATUSES.map((s) => fetchCardsByStatus(s)));
+            const grouped = { todo, doing, done };
             setCardsByStatus(grouped);
 
-            // fetch task counts
-            if (allCards.length > 0) {
-                try {
-                    const entries = await Promise.all(
-                        allCards.map(async (c) => {
-                            try {
-                                const res = await axios.get(`${API_BASE_URL}/boards/${boardId}/cards/${c.id}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
-                                const tasks = res.data || [];
-                                const done = tasks.filter((t) => t.completed).length;
-                                return [c.id, { done, total: tasks.length }];
-                            } catch {
-                                return [c.id, { done: 0, total: 0 }];
-                            }
-                        })
-                    );
-                    setTaskCounts((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
-                } catch {
-                    // ignore
-                }
-            }
+            // board members (sidebar)
+            const membersRes = await axios.get(`${API_BASE_URL}/boards/${boardId}/members`, auth);
+            setArrayMembersForBoard(membersRes.data?.members || []);
 
-            // fetch members của board
-            const members = await axios.get(`${API_BASE_URL}/boards/${boardId}/members`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setArrayMembers(members.data.members || []);
+            // hydrate members for cards + task counts
+            await Promise.all([hydrateMembers(grouped), hydrateTaskCounts(grouped)]);
         } catch (err) {
-            console.error("Failed to fetch board or cards:", err);
+            console.error("Failed to fetch data:", err);
         }
-    }, [user, token, boardId]);
+    }, [user, token, boardId, fetchCardsByStatus, hydrateMembers, hydrateTaskCounts]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    /* ---------- DnD move ---------- */
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result;
         if (!destination || source.droppableId === destination.droppableId) return;
@@ -124,18 +150,32 @@ const CardPage = () => {
         if (!movedCard) return;
 
         try {
-            await axios.put(`${API_BASE_URL}/cards/${draggableId}`, { status: destStatus }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.put(`${API_BASE_URL}/cards/${draggableId}`, { status: destStatus }, auth);
 
+            // Cập nhật UI nhanh (optimistic)
             setCardsByStatus((prev) => ({
                 ...prev,
                 [sourceStatus]: prev[sourceStatus].filter((c) => String(c.id) !== String(draggableId)),
-                [destStatus]: [...prev[destStatus], { ...movedCard, status: destStatus }],
+                [destStatus]: [{ ...movedCard, status: destStatus }, ...prev[destStatus]],
             }));
+
+            // Re-fetch 2 cột bị ảnh hưởng để đảm bảo đúng sort và data server
+            const [srcCards, dstCards] = await Promise.all([fetchCardsByStatus(sourceStatus), fetchCardsByStatus(destStatus)]);
+            setCardsByStatus((prev) => ({
+                ...prev,
+                [sourceStatus]: srcCards,
+                [destStatus]: dstCards,
+            }));
+
+            // Hydrate lại members cho 2 cột (nhanh, chỉ fetch các card ở 2 cột)
+            await hydrateMembers({ todo: sourceStatus === "todo" ? srcCards : [], doing: sourceStatus === "doing" ? srcCards : [], done: sourceStatus === "done" ? srcCards : [] });
+            await hydrateMembers({ todo: destStatus === "todo" ? dstCards : [], doing: destStatus === "doing" ? dstCards : [], done: destStatus === "done" ? dstCards : [] });
         } catch (err) {
             console.error("Failed to update card status:", err);
         }
     };
 
+    /* ---------- Handlers ---------- */
     const handleTaskCountsChange = useCallback((cardId, counts) => {
         setTaskCounts((prev) => ({
             ...prev,
@@ -143,14 +183,25 @@ const CardPage = () => {
         }));
     }, []);
 
-    const handleAddTask = () => {
+    const handleAddTask = (status) => {
+        setCreateForStatus(status || "todo");
         setIsCreateOpen(true);
     };
 
-    const handleCreateCard = async ({ name, description, members }) => {
+    const handleCreateCard = async ({ name, description, members, status }) => {
         const createdAt = new Date().toISOString();
         try {
-            await axios.post(`${API_BASE_URL}/boards/${boardId}/cards`, { name, description, createdAt, members }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(
+                `${API_BASE_URL}/boards/${boardId}/cards`,
+                {
+                    name,
+                    description,
+                    createdAt,
+                    members,
+                    status: status || createForStatus || "todo",
+                },
+                auth
+            );
             setIsCreateOpen(false);
             await fetchData();
         } catch (err) {
@@ -164,7 +215,7 @@ const CardPage = () => {
             <Header isShow={false} username={user?.username} avatar={user?.avatar} style={{ height: headerHeight, zIndex: 1030 }} />
             <div className="d-flex text-white pt-3" style={{ minHeight: "100vh" }}>
                 <div style={{ width: "20%" }}>
-                    <Sidebar members={arrayMembers} fullHeight title={board?.name} />
+                    <Sidebar members={arrayMembersForBoard} fullHeight title={board?.name} />
                 </div>
 
                 <div style={{ marginRight: "20px", marginLeft: "10px", width: "80%", overflowY: "auto" }}>
@@ -202,7 +253,6 @@ const CardPage = () => {
                                                     transition: "background-color 0.2s ease",
                                                 }}
                                             >
-                                                {/* Column Header */}
                                                 <p
                                                     style={{
                                                         borderBottom: "3px solid #3ba9ff",
@@ -214,68 +264,47 @@ const CardPage = () => {
                                                     {STATUS_LABELS[status]}
                                                 </p>
 
-                                                {/* Cards */}
-                                                {cardsByStatus[status].map((card, index) => (
-                                                    <Draggable key={card.id} draggableId={String(card.id)} index={index}>
-                                                        {(provided, snapshot) => (
-                                                            <div
-                                                                onClick={() => setSelectedCard(card)}
-                                                                ref={provided.innerRef}
-                                                                {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                className="mb-3 p-3 rounded-3 shadow-sm"
-                                                                style={{
-                                                                    backgroundColor: snapshot.isDragging ? "#d1f7d6" : "#fff",
-                                                                    border: "1px solid #cce5ff",
-                                                                    boxShadow: snapshot.isDragging ? "0 4px 12px rgba(0,0,0,0.15)" : "0 2px 6px rgba(0,0,0,0.05)",
-                                                                    transition: "all 0.2s ease",
-                                                                    ...provided.draggableProps.style,
-                                                                }}
-                                                            >
-                                                                <strong className="text-black">{card.name}</strong>
-                                                                <div className="d-flex justify-content-between mt-2 align-items-center">
-                                                                    {/* Members */}
-                                                                    <div style={{ display: "flex", alignItems: "center" }}>
-                                                                        {card.members?.slice(0, 3).map((m) => (
-                                                                            <img
-                                                                                key={m.id}
-                                                                                src={m.avatar}
-                                                                                alt={m.username}
-                                                                                title={m.username}
-                                                                                style={{
-                                                                                    width: 28,
-                                                                                    height: 28,
-                                                                                    borderRadius: "50%",
-                                                                                    objectFit: "cover",
-                                                                                    marginRight: "-8px",
-                                                                                    border: "2px solid #fff",
-                                                                                }}
-                                                                            />
-                                                                        ))}
-                                                                        {card.members?.length > 3 && (
-                                                                            <span
-                                                                                style={{
-                                                                                    fontSize: "12px",
-                                                                                    marginLeft: "4px",
-                                                                                    color: "#555",
-                                                                                }}
-                                                                            >
-                                                                                +{card.members.length - 3}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    {/* Task count */}
-                                                                    <div style={{ display: "flex", alignItems: "center" }}>
-                                                                        <Icon style={{ marginRight: 5, color: "#28a745" }} icon="material-symbols:checklist" width={20} />
-                                                                        <small className="text-success d-block">
-                                                                            {taskCounts[card.id]?.done ?? 0}/{taskCounts[card.id]?.total ?? 0}
-                                                                        </small>
+                                                {cardsByStatus[status].map((card, index) => {
+                                                    const members = cardMembersMap[String(card.id)] || [];
+
+                                                    return (
+                                                        <Draggable key={card.id} draggableId={String(card.id)} index={index}>
+                                                            {(provided, snapshot) => (
+                                                                <div
+                                                                    onClick={() => setSelectedCard(card)}
+                                                                    ref={provided.innerRef}
+                                                                    {...provided.draggableProps}
+                                                                    {...provided.dragHandleProps}
+                                                                    className="mb-3 p-3 rounded-3 shadow-sm"
+                                                                    style={{
+                                                                        backgroundColor: snapshot.isDragging ? "#d1f7d6" : "#fff",
+                                                                        border: "1px solid #cce5ff",
+                                                                        boxShadow: snapshot.isDragging ? "0 4px 12px rgba(0,0,0,0.15)" : "0 2px 6px rgba(0,0,0,0.05)",
+                                                                        transition: "all 0.2s ease",
+                                                                        ...provided.draggableProps.style,
+                                                                    }}
+                                                                >
+                                                                    <strong className="text-black">{card.name}</strong>
+                                                                    <div className="d-flex justify-content-between mt-2 align-items-center">
+                                                                        {/* Members */}
+                                                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                                                            {/* <MembersBar members={members} /> */}
+                                                                            <MembersBar members={members} size="medium" isShow={false} />
+                                                                        </div>
+
+                                                                        {/* Task count */}
+                                                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                                                            <Icon style={{ marginRight: 5 }} icon="material-symbols:checklist" width={20} />
+                                                                            <small className="text-success d-block">
+                                                                                {taskCounts[card.id]?.done ?? 0}/{taskCounts[card.id]?.total ?? 0}
+                                                                            </small>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                    </Draggable>
-                                                ))}
+                                                            )}
+                                                        </Draggable>
+                                                    );
+                                                })}
                                                 {provided.placeholder}
 
                                                 {/* Add Card Button */}
@@ -287,7 +316,7 @@ const CardPage = () => {
                                                         color: "#28a745",
                                                         transition: "all 0.2s ease",
                                                     }}
-                                                    onClick={() => handleAddTask()}
+                                                    onClick={() => handleAddTask(status)}
                                                     onMouseOver={(e) => (e.currentTarget.style.background = "#d1f7d6")}
                                                     onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
                                                 >
@@ -302,8 +331,10 @@ const CardPage = () => {
                     </div>
                 </div>
             </div>
-            {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembers} />}
-            <CardDetail card={selectedCard} onClose={() => setSelectedCard(null)} boardId={boardId} token={token} boardMembers={arrayMembers} onTaskCountsChange={handleTaskCountsChange} />
+
+            {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembersForBoard} defaultStatus={createForStatus} />}
+
+            <CardDetail card={selectedCard} onClose={() => setSelectedCard(null)} boardId={boardId} token={token} boardMembers={arrayMembersForBoard} onTaskCountsChange={handleTaskCountsChange} />
         </div>
     );
 };

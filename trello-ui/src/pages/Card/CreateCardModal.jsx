@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { X, Plus, User, FileText, Edit3 } from "lucide-react";
 
-const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId }) => {
+const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, defaultStatus = "todo" }) => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [selectedMembers, setSelectedMembers] = useState([]);
+    const [status, setStatus] = useState(defaultStatus);
 
     const handleSubmit = () => {
         if (!name.trim()) return;
@@ -16,6 +17,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId }) 
             boardId,
             ownerId,
             createdAt,
+            status,
         });
     };
 
