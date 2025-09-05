@@ -1,5 +1,5 @@
 const { db, admin } = require("../firebase");
-const { getIO } = require("../config/socket");
+const { emitToBoard, emitToUser } = require("../config/socket");
 const { sendInviteEmail } = require("../services/email.service");
 
 const boardsCollection = db.collection("boards");
@@ -64,7 +64,7 @@ const createBoard = async (req, res) => {
 
         const snapshot = await boardsCollection.where("ownerId", "==", userId).orderBy("order", "desc").limit(1).get();
 
-        const maxOrder = snapshot.empty ? 0 : (snapshot.docs[0].data().order ?? 0) + 1;
+        const maxOrder = +snapshot.empty ? 0 : (snapshot.docs[0].data().order ?? 0) + 1;
 
         const uniqueMembers = Array.from(new Set([...members, userId]));
         const newBoard = {
@@ -78,8 +78,10 @@ const createBoard = async (req, res) => {
         const docRef = await boardsCollection.add(newBoard);
 
         const board = { id: docRef.id, name, description, order: maxOrder };
-        getIO().emit("boardCreated", board);
-
+        emitToBoard(docRef.id, "boards:created", board);
+        uniqueMembers.forEach((uid) => {
+            emitToUser(uid, "boards:created", board);
+        });
         res.status(200).json(board);
     } catch (err) {
         console.error("err", err);
@@ -108,8 +110,11 @@ const updateBoard = async (req, res) => {
 
         await boardRef.update(updatedData);
 
-        getIO().emit("boardUpdated", updatedData);
-
+        const payload = { id: boardId, ...updatedData };
+        emitToBoard(boardId, "boards:updated", payload);
+        (existingData.members || []).forEach((uid) => {
+            emitToUser(uid, "boards:updated", payload);
+        });
         res.status(200).json(updatedData);
     } catch (err) {
         console.error("Error updating board", err);
@@ -127,8 +132,12 @@ const deleteBoard = async (req, res) => {
             return res.status(404).json({ error: "Board not found" });
         }
 
+        const members = Array.isArray(boardDoc.data().members) ? boardDoc.data().members : [];
         await boardRef.delete();
-        getIO().emit("boardDeleted", { id: boardId });
+        emitToBoard(boardId, "boards:deleted", { id: boardId });
+        members.forEach((uid) => {
+            emitToUser(uid, "boards:deleted", { id: boardId });
+        });
         res.status(204).send();
     } catch (err) {
         console.error("Error deleting board", err);
@@ -136,18 +145,22 @@ const deleteBoard = async (req, res) => {
     }
 };
 
+async function findUserIdByEmail(email) {
+    const qs = await usersCollection.where("email", "==", email).limit(1).get();
+    console.log("qs", qs);
+    if (qs.empty) return null;
+    return qs.docs[0].id;
+}
+
 const inviteToBoard = async (req, res) => {
     try {
         const nameUser = req.user.username;
         const boardOwnerId = req.user.id;
         const boardId = req.params.id;
-
         const { emailMember, status = "pending" } = req.body;
 
         const boardDoc = await boardsCollection.doc(boardId).get();
-        if (!boardDoc.exists) {
-            return res.status(404).json({ error: "Board not found" });
-        }
+        if (!boardDoc.exists) return res.status(404).json({ error: "Board not found" });
 
         const boardData = boardDoc.data();
         const boardName = boardData.name;
@@ -165,15 +178,46 @@ const inviteToBoard = async (req, res) => {
             type: "board",
             createdAt: new Date(),
         };
-
         await inviteRef.set(newInvite);
 
+        // Gửi email (không chặn luồng socket)
         const emailResult = await sendInviteEmail(emailMember, boardName, inviteId, boardId, nameUser);
-        getIO().emit("boardInviteSent", newInvite);
+        if (!emailResult.success) console.error("Failed to send invite email:", emailResult.error);
 
-        if (!emailResult.success) {
-            console.error("Failed to send invite email:", emailResult.error);
+        // --- SOCKET ---
+        // a) Thông báo cho inviter (toast: sent)
+        emitToUser(boardOwnerId, "invites:sent", {
+            inviteId,
+            boardId,
+            emailMember,
+            invitedBy: boardOwnerId,
+            status: "pending",
+            type: "board",
+        });
+
+        // b) Thông báo cho invitee (toast: received) nếu đã có tài khoản
+        const targetUserId = await findUserIdByEmail(emailMember);
+        console.log("targetUserId", targetUserId);
+        if (targetUserId) {
+            emitToUser(targetUserId, "invites:received", {
+                inviteId,
+                boardId,
+                boardName,
+                emailMember,
+                invitedBy: boardOwnerId,
+                status: "pending",
+                type: "board",
+            });
         }
+
+        // c) Đồng bộ UI trong room board (không toast)
+        emitToBoard(boardId, "boards:memberInvited", {
+            boardId,
+            inviteId,
+            emailMember,
+            invitedBy: boardOwnerId,
+            status: "pending",
+        });
 
         res.status(201).json(newInvite);
     } catch (err) {
@@ -185,40 +229,43 @@ const inviteToBoard = async (req, res) => {
 const acceptBoardInvite = async (req, res) => {
     try {
         const { inviteId } = req.params;
-        console.log("inviteId", inviteId);
         const memberId = req.user.id;
 
         const inviteSnapshot = await invitesCollection.doc(inviteId).get();
-        if (!inviteSnapshot.exists) {
-            return res.status(404).json({ error: "Invite not found" });
-        }
+        if (!inviteSnapshot.exists) return res.status(404).json({ error: "Invite not found" });
 
         const inviteData = inviteSnapshot.data();
-
         if (inviteData.status !== "pending") {
             return res.status(400).json({ error: "Invite has already been responded to" });
         }
 
-        await invitesCollection.doc(inviteId).update({
-            status: "accepted",
-            memberId,
-        });
+        await invitesCollection.doc(inviteId).update({ status: "accepted", memberId });
 
         const boardRef = boardsCollection.doc(inviteData.boardId);
-        await boardRef.update({
-            members: admin.firestore.FieldValue.arrayUnion(memberId),
-        });
+        await boardRef.update({ members: admin.firestore.FieldValue.arrayUnion(memberId) });
+
         const acceptedInfo = {
             inviteId,
             boardId: inviteData.boardId,
             memberId,
             emailMember: inviteData.emailMember,
             status: "accepted",
+            invitedBy: inviteData.boardOwnerId,
         };
 
-        getIO().emit("boardInviteAccepted", acceptedInfo);
+        // --- SOCKET ---
+        // a) Invitee (toast: join success)
+        emitToUser(memberId, "invites:accepted", acceptedInfo);
 
-        console.log("Board invite accepted:", acceptedInfo);
+        // b) Inviter (toast: someone joined)
+        emitToUser(inviteData.boardOwnerId, "invites:acceptedNotify", acceptedInfo);
+
+        // c) Đồng bộ UI room board (không toast)
+        emitToBoard(inviteData.boardId, "boards:memberJoined", {
+            boardId: inviteData.boardId,
+            memberId,
+        });
+
         res.status(200).json({ success: true });
     } catch (error) {
         console.error("Error accepting board invite:", error);
@@ -252,8 +299,6 @@ const getMembersOfBoard = async (req, res) => {
 
                 let avatar = null;
                 if (userData.avatar) {
-                    avatar = userData.avatar;
-                } else if (userData.avatar) {
                     avatar = userData.avatar;
                 } else {
                     // default: chữ cái đầu tên

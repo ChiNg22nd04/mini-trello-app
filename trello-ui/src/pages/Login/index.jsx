@@ -77,7 +77,7 @@ const LoginPage = () => {
                     background: rgba(249, 250, 251, 0.5);
                     border: 2px solid #e5e7eb;
                     border-radius: 16px;
-                    text-align: center;
+                    text-align: start;
                     font-size: 1rem;
                     font-family: "Courier New", monospace;
 

@@ -4,42 +4,72 @@ import { socket } from "../../config";
 import { toast } from "react-toastify";
 import InvitePopup from "../pages/Board/InvitePopup";
 
-const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = "" }) => {
+const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = "", onRefreshMembers, onRefreshBoard }) => {
     const [showInvite, setShowInvite] = useState(false);
 
     useEffect(() => {
-        const handleInviteSent = (data) => {
-            console.log("boardInviteSent:", data);
-            toast.success(`Invitation sent to ${data.emailMember} successfully!`, {
-                position: "top-right",
-                autoClose: 3000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-            });
+        if (!boardId) return;
+
+        // Join room board để nhận sync event (không toast)
+        socket.emit("boards:join", { boardId });
+
+        // ===== Toast events =====
+        const onInviteSent = (data) => {
+            // Server đã emit theo user, nên ai nhận được nghĩa là đúng vai
+            toast.success(`Invitation sent to ${data.emailMember} successfully!`, { autoClose: 3000 });
+            console.log("[socket] invites:sent", data);
         };
 
-        const handleInviteAccepted = (data) => {
-            console.log("boardInviteAccepted:", data);
-            toast.success(`${data.emailMember} has joined the board!`, {
-                position: "top-right",
-                autoClose: 3000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-            });
+        const onInviteReceived = (data) => {
+            toast.info(`You’ve been invited to board: ${data.boardName || data.boardId}`, { autoClose: 4000 });
+            console.log("[socket] invites:received", data);
         };
 
-        socket.on("boardInviteSent", handleInviteSent);
-        socket.on("boardInviteAccepted", handleInviteAccepted);
+        const onInviteAcceptedSelf = (data) => {
+            // Invitee: joined successfully
+            toast.success("You’ve joined the board successfully!", { autoClose: 3000 });
+            console.log("[socket] invites:accepted", data);
+        };
+
+        const onInviteAcceptedNotify = (data) => {
+            // Inviter: the other party joined
+            toast.success(`${data.emailMember || "A member"} has joined your board!`, { autoClose: 3000 });
+            console.log("[socket] invites:acceptedNotify", data);
+            onRefreshMembers?.(data.boardId);
+            onRefreshBoard?.();
+        };
+
+        // ===== Sync-only events ===== (không toast, có thể refetch members)
+        const onMemberInvited = (data) => {
+            if (data?.boardId === boardId) {
+                // TODO: refetch invites/members if cần
+            }
+        };
+        const onMemberJoined = (data) => {
+            if (data?.boardId === boardId) {
+                // TODO: refetch members list
+                onRefreshMembers?.(boardId);
+                onRefreshBoard?.();
+            }
+        };
+
+        socket.on("invites:sent", onInviteSent);
+        socket.on("invites:received", onInviteReceived);
+        socket.on("invites:accepted", onInviteAcceptedSelf);
+        socket.on("invites:acceptedNotify", onInviteAcceptedNotify);
+        socket.on("boards:memberInvited", onMemberInvited);
+        socket.on("boards:memberJoined", onMemberJoined);
 
         return () => {
-            socket.off("boardInviteSent", handleInviteSent);
-            socket.off("boardInviteAccepted", handleInviteAccepted);
+            socket.off("invites:sent", onInviteSent);
+            socket.off("invites:received", onInviteReceived);
+            socket.off("invites:accepted", onInviteAcceptedSelf);
+            socket.off("invites:acceptedNotify", onInviteAcceptedNotify);
+            socket.off("boards:memberInvited", onMemberInvited);
+            socket.off("boards:memberJoined", onMemberJoined);
+            socket.emit("boards:leave", { boardId });
         };
-    }, []);
+    }, [boardId]);
 
     return (
         <>
@@ -54,7 +84,6 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     justify-content: space-between;
                 }
-
                 .top-sidebar-container::before {
                     content: "";
                     position: absolute;
@@ -65,11 +94,9 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
                     transition: left 0.6s ease;
                 }
-
                 .top-sidebar-container:hover::before {
                     left: 100%;
                 }
-
                 .top-sidebar-content {
                     display: flex;
                     flex: 1;
@@ -78,7 +105,6 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     position: relative;
                     z-index: 1;
                 }
-
                 .board-title {
                     color: #10b981;
                     font-size: 1.25rem;
@@ -91,7 +117,6 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     text-overflow: ellipsis;
                     max-width: calc(100% - 200px);
                 }
-
                 .invite-button {
                     display: flex;
                     align-items: center;
@@ -108,7 +133,6 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     position: relative;
                     overflow: hidden;
                 }
-
                 .invite-button::before {
                     content: "";
                     position: absolute;
@@ -119,101 +143,62 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
                     transition: left 0.5s ease;
                 }
-
                 .invite-button:hover {
                     background: #10b981;
                     border-color: rgba(255, 255, 255, 0.4);
                     transform: translateY(-2px);
                     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(16, 185, 129, 0.3);
                 }
-
                 .invite-button:hover::before {
                     left: 100%;
                 }
-
                 .invite-button:active {
                     transform: translateY(0);
                     transition: transform 0.1s ease;
                 }
-
                 .invite-icon {
                     margin-right: 0.5rem;
                     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
                     transition: transform 0.3s ease;
                 }
-
                 .invite-button:hover .invite-icon {
                     transform: scale(1.1) rotate(5deg);
                 }
-
                 .invite-text {
                     white-space: nowrap;
                     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
                 }
 
-                /* Responsive Design */
                 @media (max-width: 768px) {
                     .top-sidebar-container {
                         padding: 0.75rem 1rem;
                     }
-
                     .board-title {
                         font-size: 1rem;
                         max-width: calc(100% - 120px);
                     }
-
                     .invite-button {
                         padding: 0.5rem 1rem;
                         font-size: 0.8rem;
                     }
-
                     .invite-text {
                         display: none;
                     }
                 }
-
                 @media (max-width: 480px) {
                     .board-title {
                         font-size: 0.9rem;
                         max-width: calc(100% - 80px);
                     }
-
                     .invite-button {
                         padding: 0.5rem;
                     }
-                }
-
-                /* Animation keyframes */
-                @keyframes shimmer {
-                    0% {
-                        transform: translateX(-100%);
-                    }
-                    100% {
-                        transform: translateX(100%);
-                    }
-                }
-
-                .shimmer-effect {
-                    position: relative;
-                    overflow: hidden;
-                }
-
-                .shimmer-effect::after {
-                    content: "";
-                    position: absolute;
-                    top: 0;
-                    left: -100%;
-                    width: 100%;
-                    height: 100%;
-                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-                    animation: shimmer 2s infinite;
                 }
             `}</style>
 
             <div className={`top-sidebar-container ${className}`} style={style}>
                 <div className="top-sidebar-content">
                     <h1 className="board-title">{boardName}</h1>
-
                     <button onClick={() => setShowInvite(true)} className="invite-button" type="button" aria-label="Invite team member">
                         <Icon icon="material-symbols:person-add-rounded" width="20" className="invite-icon" />
                         <span className="invite-text">Invite Member</span>
