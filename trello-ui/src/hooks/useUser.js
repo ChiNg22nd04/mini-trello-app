@@ -49,9 +49,13 @@ const useUser = () => {
         localStorage.removeItem("user");
         localStorage.removeItem("accessToken");
         setUserData({ user: null, token: null, email: null });
+        window.dispatchEvent(new Event("userLogout"));
+        window.location.href = "/";
     };
 
-    return { ...userData, logout };
+    const displayName = userData?.user?.fullName || userData?.user?.name || userData?.user?.username || (userData?.email ? userData.email.split("@")[0] : "User");
+
+    return { ...userData, displayName, logout };
 };
 
 export default useUser;

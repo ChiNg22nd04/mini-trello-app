@@ -1,5 +1,6 @@
 import { Icon } from "@iconify/react";
 import { getInitial } from "../../utils/people";
+import { Avatar } from "../../components";
 
 const SIZE_MAP = {
     small: { avatar: 26, gap: "0" },
@@ -42,7 +43,7 @@ export default function MembersBar({ members = [], size = "medium", isShow = tru
                         }}
                     >
                         {m.avatar ? (
-                            <img
+                            <Avatar
                                 src={m.avatar}
                                 alt={m.username}
                                 style={{

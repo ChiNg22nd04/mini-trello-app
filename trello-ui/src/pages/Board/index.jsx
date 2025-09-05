@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-
 import API_BASE_URL from "../../../config/config";
-
 import { BoardCard, Header, CreateBoardForm } from "../../components";
-
 import { useUser } from "../../hooks";
-import { Icon } from "@iconify/react";
+import { Plus, Grid3X3, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Grid3X3, Users, Star } from "lucide-react";
 
 const BoardPage = () => {
     const navigate = useNavigate();
@@ -28,7 +24,6 @@ const BoardPage = () => {
                 navigate("/signin");
             }
         }, 100);
-
         return () => clearTimeout(timeout);
     }, [user, token, navigate]);
 
@@ -36,9 +31,7 @@ const BoardPage = () => {
         if (!user || !token) return;
         axios
             .get(`${API_BASE_URL}/boards`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => setBoards(res.data))
             .catch(console.error);
@@ -46,27 +39,15 @@ const BoardPage = () => {
 
     const onDragEnd = (result) => {
         const { source: from, destination: to } = result;
-        console.log(from, to);
-        console.log(from.index, to.index);
-
         if (!to) return;
 
         const reordered = Array.from(boards);
         const [moved] = reordered.splice(from.index, 1);
         reordered.splice(to.index, 0, moved);
-
         setBoards(reordered);
 
         reordered.forEach((board, index) => {
-            axios
-                .put(
-                    `${API_BASE_URL}/boards/${board.id}`,
-                    { order: index },
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                )
-                .catch(console.error);
+            axios.put(`${API_BASE_URL}/boards/${board.id}`, { order: index }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
         });
     };
 
@@ -84,7 +65,6 @@ const BoardPage = () => {
     };
 
     const handleClickBoard = (boardId) => {
-        console.log("boardId", boardId);
         navigate(`/boards/${boardId}`);
     };
 
@@ -100,7 +80,6 @@ const BoardPage = () => {
                         background: linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%);
                         position: relative;
                     }
-
                     .content-wrapper {
                         background: #ffffff;
                         border-radius: 16px;
@@ -110,7 +89,6 @@ const BoardPage = () => {
                         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
                         border: 1px solid #e5e7eb;
                     }
-
                     .stats-bar {
                         background: #f8fafc;
                         border: 1px solid #e2e8f0;
@@ -123,7 +101,6 @@ const BoardPage = () => {
                         flex-wrap: wrap;
                         gap: 1rem;
                     }
-
                     .stat-item {
                         display: flex;
                         align-items: center;
@@ -132,12 +109,10 @@ const BoardPage = () => {
                         font-size: 0.875rem;
                         font-weight: 500;
                     }
-
                     .stat-item svg {
                         color: #3399ff;
                         flex-shrink: 0;
                     }
-
                     .stat-number {
                         background: #3399ff;
                         color: #ffffff;
@@ -147,12 +122,6 @@ const BoardPage = () => {
                         font-size: 0.75rem;
                         margin-left: auto;
                     }
-
-                    .welcome-text {
-                        color: #1e293b;
-                        font-weight: 600;
-                    }
-
                     .section-title {
                         color: #1e293b;
                         font-weight: 700;
@@ -164,17 +133,14 @@ const BoardPage = () => {
                         gap: 0.5rem;
                         text-transform: uppercase;
                     }
-
                     .section-title svg {
                         color: #3399ff;
                     }
-
                     .board-grid {
                         display: grid;
                         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                         gap: 1.5rem;
                     }
-
                     .board-card {
                         background: #ffffff;
                         border: 2px solid #e2e8f0;
@@ -185,7 +151,6 @@ const BoardPage = () => {
                         position: relative;
                         overflow: hidden;
                     }
-
                     .board-card::before {
                         content: "";
                         position: absolute;
@@ -198,24 +163,20 @@ const BoardPage = () => {
                         transform-origin: left;
                         transition: transform 0.3s ease;
                     }
-
                     .board-card:hover {
                         transform: translateY(-4px);
                         border-color: #3399ff;
                         box-shadow: 0 8px 25px rgba(51, 153, 255, 0.1);
                     }
-
                     .board-card:hover::before {
                         transform: scaleX(1);
                     }
-
                     .board-card.dragging {
                         transform: rotate(2deg) scale(1.02);
                         box-shadow: 0 15px 35px rgba(51, 153, 255, 0.15);
                         z-index: 1000;
                         border-color: #3399ff;
                     }
-
                     .create-board-card {
                         background: #f8fafc;
                         border: 2px dashed #cbd5e1;
@@ -231,7 +192,6 @@ const BoardPage = () => {
                         color: #64748b;
                         min-height: 160px;
                     }
-
                     .create-board-card:hover {
                         background: #f1f5f9;
                         border-color: #10b981;
@@ -240,7 +200,6 @@ const BoardPage = () => {
                         transform: translateY(-2px);
                         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
                     }
-
                     .create-icon {
                         width: 48px;
                         height: 48px;
@@ -251,55 +210,45 @@ const BoardPage = () => {
                         justify-content: center;
                         transition: all 0.3s ease;
                     }
-
                     .create-board-card:hover .create-icon {
                         transform: scale(1.05);
                         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
                     }
-
                     .fw-bold {
                         font-weight: 600;
                         font-size: 1rem;
                         margin: 0;
                     }
-
                     .small {
                         font-size: 0.875rem;
                     }
-
                     .opacity-75 {
                         opacity: 0.75;
                     }
-
                     @media (max-width: 768px) {
                         .content-wrapper {
                             margin: 10px;
                             margin-top: calc(60px + 10px);
                             padding: 1rem;
                         }
-
                         .board-grid {
                             grid-template-columns: 1fr;
                             gap: 1rem;
                         }
-
                         .stats-bar {
                             flex-direction: column;
                             align-items: flex-start;
                             gap: 1rem;
                         }
-
                         .stat-item {
                             width: 100%;
                             justify-content: space-between;
                         }
                     }
-
                     @media (max-width: 480px) {
                         .board-grid {
                             grid-template-columns: 1fr;
                         }
-
                         .create-board-card {
                             padding: 2rem 1rem;
                             min-height: 140px;
@@ -307,7 +256,8 @@ const BoardPage = () => {
                     }
                 `}</style>
 
-                <Header username={user?.username} avatar={user?.avatar} style={{ height: headerHeight, zIndex: 1030 }} />
+                {/* Header mới tự lấy user từ hook */}
+                <Header style={{ height: headerHeight, zIndex: 1030 }} />
 
                 <div className="board-page">
                     <div className="content-wrapper">

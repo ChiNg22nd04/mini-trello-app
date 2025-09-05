@@ -3,6 +3,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { Avatar } from "../../components";
 
 import API_BASE_URL from "../../../config/config";
 import MembersBar from "./MembersBar";

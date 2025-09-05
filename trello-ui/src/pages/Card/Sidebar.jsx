@@ -1,5 +1,6 @@
 import React from "react";
 import { Icon } from "@iconify/react";
+import { Avatar } from "../../components";
 
 const Sidebar = ({ members = [], fullHeight = false, title = "Sample Board" }) => {
     const mockMembers = members.length > 0 ? members : [{ id: 1000, username: "Guest" }];
@@ -104,7 +105,8 @@ const Sidebar = ({ members = [], fullHeight = false, title = "Sample Board" }) =
                     font-size: 0.875rem;
                     margin-right: 0.75rem;
                     flex-shrink: 0;
-                    border: 2px solid white;
+                    border: 2px solid #fff;
+                    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
                     overflow: hidden;
                 }
 
@@ -167,7 +169,7 @@ const Sidebar = ({ members = [], fullHeight = false, title = "Sample Board" }) =
                                             backgroundColor: member.avatar ? "transparent" : "#3b82f6",
                                         }}
                                     >
-                                        {member.avatar ? <img src={member.avatar} alt={member.username} /> : getInitials(member.username)}
+                                        {member.avatar ? <Avatar src={member.avatar} alt={member.username} /> : getInitials(member.username)}
                                     </div>
                                     <div className="member-info">
                                         <p className="member-name">{formatUsername(member.username)}</p>

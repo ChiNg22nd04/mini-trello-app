@@ -1,17 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { logoTrello } from "../assets/global/index";
+import useUser from "../hooks/useUser";
+import { UserMenu } from "./index";
 
-const Header = ({ username = "Board Management", avatar = "", style = {} }) => {
+const Header = ({ style = {} }) => {
+    const { user, email, displayName, logout } = useUser();
     const [visible, setVisible] = useState(true);
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef(null);
+    const buttonRef = useRef(null);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setVisible(window.scrollY === 0);
-        };
+        const handleScroll = () => setVisible(window.scrollY === 0);
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    useEffect(() => {
+        const onDocClick = (e) => {
+            if (open && menuRef.current && !menuRef.current.contains(e.target) && buttonRef.current && !buttonRef.current.contains(e.target)) {
+                setOpen(false);
+            }
+        };
+        const onEsc = (e) => {
+            if (e.key === "Escape") setOpen(false);
+        };
+        document.addEventListener("click", onDocClick);
+        document.addEventListener("keydown", onEsc);
+        return () => {
+            document.removeEventListener("click", onDocClick);
+            document.removeEventListener("keydown", onEsc);
+        };
+    }, [open]);
+
+    const avatar = user?.avatar;
 
     return (
         <div
@@ -25,7 +48,7 @@ const Header = ({ username = "Board Management", avatar = "", style = {} }) => {
                 height: "65px",
                 border: "1px solid #e5e7eb",
                 backgroundColor: "#fff",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                 zIndex: 1030,
                 borderRadius: "16px",
             }}
@@ -45,35 +68,8 @@ const Header = ({ username = "Board Management", avatar = "", style = {} }) => {
                     onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                 />
 
-                {avatar ? (
-                    <img
-                        src={avatar}
-                        alt="User Avatar"
-                        className="rounded-circle"
-                        style={{
-                            width: 40,
-                            height: 40,
-                            objectFit: "cover",
-                            cursor: "pointer",
-                            border: "2px solid #3399ff",
-                        }}
-                    />
-                ) : (
-                    <div
-                        className="rounded-circle d-flex align-items-center justify-content-center"
-                        style={{
-                            width: 40,
-                            height: 40,
-                            backgroundColor: "#3399ff",
-                            color: "#fff",
-                            fontWeight: "600",
-                            fontSize: "0.9rem",
-                            cursor: "pointer",
-                        }}
-                    >
-                        {username.charAt(0).toUpperCase()}
-                    </div>
-                )}
+                {/* Avatar / Initial button */}
+                <UserMenu avatar={avatar} name={displayName} email={email} onLogout={logout} />
             </div>
         </div>
     );
