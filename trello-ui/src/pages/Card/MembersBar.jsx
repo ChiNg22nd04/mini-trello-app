@@ -28,7 +28,6 @@ export default function MembersBar({ members = [], size = "medium", isShow = tru
                         title={m.username}
                         style={{
                             marginRight: "-5px",
-                            border: " 2px solid #fff",
                             boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.05)",
                             cursor: "pointer",
                             width: avatar,

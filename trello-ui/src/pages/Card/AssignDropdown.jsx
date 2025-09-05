@@ -1,4 +1,5 @@
 import { getInitial, safeLabel } from "../../utils/people";
+import { Avatar } from "../../components";
 
 export default function AssignDropdown({ open, onClose, anchor = "left", members = [], selectedIds = [], onToggle }) {
     if (!open) return null;
@@ -13,13 +14,7 @@ export default function AssignDropdown({ open, onClose, anchor = "left", members
 
                 return (
                     <div key={mid} className={`dropdown-item ${isSelected ? "selected" : ""}`} onClick={() => onToggle(mid, isSelected)}>
-                        <div className="avatar-small">
-                            {avatarUrl ? (
-                                <img style={{ width: 35, height: 35, backgroundColor: "transparent" }} src={avatarUrl} alt={label} className="rounded-full object-cover" />
-                            ) : (
-                                getInitial(label)
-                            )}
-                        </div>
+                        <div className="avatar-small">{avatarUrl ? <Avatar src={avatarUrl} alt={label} size={35} /> : getInitial(label)}</div>
                         <span style={{ fontSize: ".875rem", paddingLeft: ".75rem" }}>{label}</span>
                     </div>
                 );

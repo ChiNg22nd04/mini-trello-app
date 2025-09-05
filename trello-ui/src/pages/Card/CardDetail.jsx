@@ -468,7 +468,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     width: 40px;
                     height: 40px;
                     border-radius: 50%;
-                    background: linear-gradient(135deg, #3b82f6, #1d4ed8); /* nếu ko có ảnh */
                     color: white;
                     display: flex;
                     align-items: center;
@@ -477,8 +476,6 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     font-size: 14px;
 
                     /* border trắng + shadow */
-                    border: 2px solid #fff;
-                    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
                     cursor: pointer;
                     transition: all 0.3s ease;
                 }
