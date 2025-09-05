@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, CheckCircle, KeyRound, AlertCircle, Loader2, ArrowRight } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -213,7 +213,7 @@ const AuthPage = () => {
                     {/* Header */}
                     <div className="text-center mb-4">
                         <div className="icon-container">
-                            <ShieldCheck size={32} color="white" />
+                            <Icon icon="mdi:shield-check" width="32" height="32" color="white" />
                         </div>
                         <h1 className="h2 fw-bold title-gradient mb-3">Verify Email</h1>
                         <p className="text-muted small mb-0" style={{ lineHeight: 1.6 }}>
@@ -235,7 +235,9 @@ const AuthPage = () => {
                             onFocus={() => setFocus(true)}
                             onBlur={() => setFocus(false)}
                         />
-                        <div className={`input-icon ${code.length === 6 ? "complete" : focus ? "focus" : ""}`}>{code.length === 6 ? <CheckCircle size={24} /> : <KeyRound size={24} />}</div>
+                        <div className={`input-icon ${code.length === 6 ? "complete" : focus ? "focus" : ""}`}>
+                            {code.length === 6 ? <Icon icon="mdi:check-circle" width="24" height="24" /> : <Icon icon="mdi:key-round" width="24" height="24" />}
+                        </div>
                     </div>
 
                     {/* Progress indicator */}
@@ -258,7 +260,7 @@ const AuthPage = () => {
 
                     {message && (
                         <div className="alert alert-danger d-flex align-items-center mb-4" role="alert" style={{ borderRadius: "12px" }}>
-                            <AlertCircle size={16} className="me-2" />
+                            <Icon icon="mdi:alert-circle" width="16" height="16" className="me-2" />
                             <small>{message}</small>
                         </div>
                     )}
@@ -274,7 +276,7 @@ const AuthPage = () => {
                             {code.length === 6 ? (
                                 <>
                                     Verify Account
-                                    <ArrowRight size={20} className="ms-2" />
+                                    <Icon icon="mdi:arrow-right" width="20" className="ms-2" />
                                 </>
                             ) : (
                                 `Enter ${6 - code.length} more digits`

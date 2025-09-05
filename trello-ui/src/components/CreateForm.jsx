@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { X, Edit3, FileText, Plus } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const CreateBoardForm = ({ onSubmit, onClose }) => {
     const {
@@ -236,7 +236,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
             <div className="backdrop" onClick={onClose} role="dialog" aria-modal="true">
                 <form className="create-modal" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit(handleFormSubmit)}>
                     <button className="close-btn" type="button" onClick={onClose} aria-label="Close modal">
-                        <X size={20} />
+                        <Icon icon="mdi:close" width="20" height="20" />
                     </button>
 
                     <div className="header">
@@ -246,7 +246,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="board-name">
-                            <Edit3 size={16} className="label-icon" />
+                            <Icon icon="mdi:pencil-outline" width="22" height="22" className="label-icon" />
                             Board Name
                         </label>
                         <input
@@ -264,7 +264,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="board-description">
-                            <FileText size={16} className="label-icon" />
+                            <Icon icon="mdi:file-document-outline" width="22" height="22" className="label-icon" />
                             Description <span style={{ fontWeight: 400, color: "#9ca3af" }}>(optional)</span>
                         </label>
                         <textarea id="board-description" className="form-textarea" placeholder="Describe the purpose of this board..." {...register("description")} />
@@ -272,7 +272,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
 
                     <div className="actions">
                         <button type="submit" className="create-btn" disabled={submitting}>
-                            <Plus size={18} />
+                            <Icon icon="mdi:plus" width="18" height="18" className="btn-icon" />
                             {submitting ? "Creating..." : "Create Board"}
                         </button>
                     </div>

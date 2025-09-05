@@ -5,5 +5,7 @@ import TopSideBar from "./TopSideBar";
 import UserMenu from "./UserMenu";
 import UserMeta from "./UserMeta";
 import Avatar from "./Avatar";
+import DueDropdown from "./DueDropdown";
+import DescriptionBox from "./DescriptionBox";
 
-export { BoardCard, Header, CreateBoardForm, TopSideBar, UserMenu, UserMeta, Avatar };
+export { BoardCard, Header, CreateBoardForm, TopSideBar, UserMenu, UserMeta, Avatar, DueDropdown, DescriptionBox };

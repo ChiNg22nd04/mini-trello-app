@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import useCardTasks from "../../hooks/useCardTask";
 import CardHeader from "./CardHeader";
 import MembersBar from "./MembersBar";
-import DescriptionBox from "./DescriptionBox";
+import DescriptionBox from "../../components/DescriptionBox";
 import Checklist from "../Card/Checklist/index";
 
 const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange }) => {

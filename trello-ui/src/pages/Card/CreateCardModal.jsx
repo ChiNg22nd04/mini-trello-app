@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { X, Plus, User, FileText, Edit3 } from "lucide-react";
+import { Icon } from "@iconify/react";
+import { DescriptionBox } from "../../components";
 
 const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, defaultStatus = "todo" }) => {
     const [name, setName] = useState("");
@@ -255,11 +256,12 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     margin-bottom: 2rem;
                 }
             `}</style>
+            {/* ... CSS giữ nguyên ... */}
 
             <div className="backdrop" onClick={onClose}>
                 <div className="create-modal" onClick={(e) => e.stopPropagation()}>
                     <button className="close-btn" onClick={onClose} aria-label="Close modal">
-                        <X size={20} />
+                        <Icon icon="mdi:close" width="20" height="20" />
                     </button>
 
                     {/* Header */}
@@ -271,7 +273,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     {/* Card Title */}
                     <div className="form-group">
                         <label className="form-label">
-                            <Edit3 size={16} className="label-icon" />
+                            <Icon icon="mdi:pencil-outline" width="22" height="22" className="label-icon" />
                             Card Title
                         </label>
                         <input type="text" className="form-input" placeholder="Enter card title..." value={name} onChange={(e) => setName(e.target.value)} onKeyPress={handleKeyPress} autoFocus />
@@ -280,7 +282,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     {/* Description */}
                     <div className="form-group">
                         <label className="form-label">
-                            <FileText size={16} className="label-icon" />
+                            <Icon icon="mdi:file-document-outline" width="22" height="22" className="label-icon" />
                             Description
                         </label>
                         <textarea className="form-textarea" placeholder="Add a detailed description..." value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -288,7 +290,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
 
                     {/* Create Button */}
                     <button type="button" className="create-btn" disabled={!name.trim()} onClick={handleSubmit}>
-                        <Plus size={18} className="btn-icon" />
+                        <Icon icon="mdi:plus" width="18" height="18" className="btn-icon" />
                         Create Card
                     </button>
                 </div>

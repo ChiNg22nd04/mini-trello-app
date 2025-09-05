@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react";
 import { useState } from "react";
 import AssignDropdown from "../AssignDropdown";
-import DueDropdown from "../DueDropdown";
+import DueDropdown from "../../../components/DueDropdown";
 
 export default function TaskEditRow({ task, defaultTitle, defaultAssignedIds, defaultDue, boardMembers, onSave, onCancel }) {
     const [title, setTitle] = useState(defaultTitle || "");

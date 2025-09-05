@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API_BASE_URL } from "../../../config";
-import { UserPlus, Send, X, Mail, Link, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const InvitePopup = ({ boardId, token, onClose }) => {
     const [email, setEmail] = useState("");
@@ -307,7 +307,7 @@ const InvitePopup = ({ boardId, token, onClose }) => {
             <div className="backdrop" onClick={onClose}>
                 <div className="invite-popup" onClick={(e) => e.stopPropagation()}>
                     <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
+                        <Icon icon="mdi:close" width="20" height="20" />
                     </button>
 
                     {/* Header */}
@@ -319,7 +319,8 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                     {/* Message Alert */}
                     {message && (
                         <div className={`message-alert ${messageType}`}>
-                            {messageType === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                            <Icon icon={messageType === "success" ? "mdi:check-circle" : "mdi:alert-circle"} width="16" height="16" />
+                            {/* {messageType === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />} */}
                             <span>{message}</span>
                         </div>
                     )}
@@ -342,19 +343,23 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                             onKeyPress={handleKeyPress}
                             disabled={isLoading}
                         />
-                        <div className={`input-icon ${focus ? "focus" : ""} ${isValidEmail(email) ? "valid" : ""}`}>{isValidEmail(email) ? <CheckCircle size={22} /> : <Mail size={22} />}</div>
+                        <div className={`input-icon ${focus ? "focus" : ""} ${isValidEmail(email) ? "valid" : ""}`}>
+                            {isValidEmail(email) ? <Icon icon="mdi:check-circle" width="22" height="22" /> : <Icon icon="mdi:mail" width="22" height="22" />}
+                            {/* {isValidEmail(email) ? <CheckCircle size={22} /> : <Icon icon="mdi:mail" width="22" height="22" />} */}
+                        </div>
                     </div>
 
                     {/* Send Button */}
                     <button className="send-btn" onClick={handleInvite} disabled={isLoading || !email.trim()}>
                         {isLoading ? (
                             <>
-                                <Loader2 size={20} className="loading-spinner" />
+                                <Icon icon="mdi:loading" width="20" height="20" className="loading-spinner" />
+                                {/* <Loader2 size={20} className="loading-spinner" /> */}
                                 Sending...
                             </>
                         ) : (
                             <>
-                                <Send size={20} />
+                                <Icon icon="mdi:send" width="20" height="20" />
                                 Send Invitation
                             </>
                         )}

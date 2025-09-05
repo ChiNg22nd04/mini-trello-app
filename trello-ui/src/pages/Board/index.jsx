@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import API_BASE_URL from "../../../config/config";
 import { BoardCard, Header, CreateBoardForm } from "../../components";
 import { useUser } from "../../hooks";
-import { Plus, Grid3X3, Star } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 
 const BoardPage = () => {
@@ -264,19 +264,19 @@ const BoardPage = () => {
                         {/* Stats Bar */}
                         <div className="stats-bar">
                             <div className="stat-item">
-                                <Grid3X3 size={18} />
+                                <Icon icon="mdi:grid" width="18" height="18" />
                                 <span>Total Boards</span>
                                 <span className="stat-number">{boards.length}</span>
                             </div>
 
                             <div className="stat-item">
-                                <Star size={18} />
+                                <Icon icon="mdi:star" width="18" height="18" />
                                 <span>Personal Workspace</span>
                             </div>
                         </div>
 
                         <h6 className="section-title">
-                            <Grid3X3 size={16} />
+                            <Icon icon="mdi:grid" width="16" height="16" />
                             YOUR WORKSPACES
                         </h6>
 
@@ -304,7 +304,7 @@ const BoardPage = () => {
 
                                         <div className="create-board-card" onClick={() => setShowForm(true)}>
                                             <div className="create-icon">
-                                                <Plus size={24} color="white" />
+                                                <Icon icon="mdi:plus" width="24" height="24" color="white" />
                                             </div>
                                             <span className="fw-bold">Create a new board</span>
                                             <span className="small opacity-75">Start organizing your work</span>

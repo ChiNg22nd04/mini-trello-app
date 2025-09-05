@@ -4,7 +4,6 @@ import { logoTrello } from "../../assets/global/index";
 import { API_BASE_URL } from "../../../config";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import { Mail, ArrowRight } from "lucide-react";
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -213,7 +212,7 @@ const LoginPage = () => {
                             onBlur={() => setFocus(false)}
                         />
                         <div className={`input-icon ${isValidEmail(email) && email ? "valid" : focus ? "focus" : ""}`}>
-                            <Mail size={24} />
+                            <Icon icon="mdi:mail" width="24" height="24" />
                         </div>
                     </div>
 
@@ -234,7 +233,7 @@ const LoginPage = () => {
                     >
                         <div className="d-flex align-items-center justify-content-center">
                             Continue
-                            <ArrowRight size={20} className="ms-2" />
+                            <Icon icon="mdi:arrow-right" width="20" className="ms-2" />
                         </div>
                     </button>
 
