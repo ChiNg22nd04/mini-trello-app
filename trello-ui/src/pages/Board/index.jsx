@@ -16,6 +16,7 @@ const BoardPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [confirmState, setConfirmState] = useState({ open: false, ids: [], loading: false });
+    const [hoveredId, setHoveredId] = useState(null);
 
     console.log("BoardPage rendered - user:", user, "token:", token);
     console.log("showForm value:", showForm);
@@ -66,8 +67,7 @@ const BoardPage = () => {
         });
     }, []);
 
-    const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
-    const selectAll = useCallback(() => setSelectedIds(new Set(boards.map((b) => b.id))), [boards]);
+    // Removed clearSelection since selection is handled inline with actions
 
     const openConfirm = useCallback((ids) => setConfirmState({ open: true, ids, loading: false }), []);
     const closeConfirm = useCallback(() => {
@@ -139,41 +139,154 @@ const BoardPage = () => {
                     .actions-bar {
                         display: flex;
                         align-items: center;
-                        gap: 0.5rem;
+                        gap: 0.75rem;
                         margin-bottom: 1rem;
                         flex-wrap: wrap;
+                        padding: 1rem;
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 16px;
+                        transition: all 0.3s ease;
+                        position: relative;
+                        overflow: hidden;
+                        justify-content: flex-end;
+                    }
+                    .actions-group {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        flex-wrap: wrap;
+                    }
+                    .actions-divider {
+                        width: 2px;
+                        height: 24px;
+                        background: #e2e8f0;
+                        border-radius: 1px;
+                        margin: 0 0.5rem;
                     }
                     .btn {
                         border: none;
                         border-radius: 12px;
-                        padding: 0.5rem 0.875rem;
+                        padding: 0.625rem 1rem;
                         font-weight: 600;
-                        font-size: 0.9rem;
+                        font-size: 0.875rem;
                         display: inline-flex;
                         align-items: center;
                         gap: 0.5rem;
                         cursor: pointer;
-                        transition: all 0.2s ease;
+                        transition: all 0.25s ease;
+                        position: relative;
+                        overflow: hidden;
+                        white-space: nowrap;
+                    }
+                    .btn::before {
+                        content: "";
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 0;
+                        height: 0;
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 50%;
+                        transform: translate(-50%, -50%);
+                        transition: all 0.3s ease;
+                    }
+                    .btn:hover::before {
+                        width: 120%;
+                        height: 120%;
                     }
                     .btn:hover {
-                        transform: translateY(-1px);
+                        transform: translateY(-2px);
+                    }
+                    .btn:active {
+                        transform: translateY(0);
                     }
                     .btn-primary {
-                        background: #10b981;
+                        background: linear-gradient(135deg, #10b981, #059669);
                         color: white;
+                        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+                    }
+                    .btn-primary:hover {
+                        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
                     }
                     .btn-secondary {
-                        background: #f1f5f9;
-                        color: #0f172a;
+                        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+                        color: #475569;
+                        border: 1px solid #cbd5e1;
+                    }
+                    .btn-secondary:hover {
+                        background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+                        box-shadow: 0 4px 12px rgba(71, 85, 105, 0.15);
                     }
                     .btn-danger {
-                        background: rgba(239, 68, 68, 0.1);
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.15));
                         color: #dc2626;
+                        border: 1px solid rgba(239, 68, 68, 0.3);
+                    }
+                    .btn-danger:hover {
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.2));
+                        box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+                        border-color: rgba(239, 68, 68, 0.5);
+                    }
+                    .btn-danger.active {
+                    }
+                    @keyframes shake {
+                        0%,
+                        100% {
+                            transform: translateX(0) translateY(-2px);
+                        }
+                        25% {
+                            transform: translateX(-2px) translateY(-2px);
+                        }
+                        75% {
+                            transform: translateX(2px) translateY(-2px);
+                        }
                     }
                     .btn:disabled {
-                        opacity: 0.6;
+                        opacity: 0.5;
                         cursor: not-allowed;
                         transform: none;
+                        box-shadow: none;
+                    }
+                    .btn:disabled:hover {
+                        transform: none;
+                        box-shadow: none;
+                    }
+                    .selection-counter {
+                        background: linear-gradient(135deg, #3399ff, #1d4ed8);
+                        color: white;
+                        border-radius: 20px;
+                        padding: 0.5rem 1rem;
+                        font-weight: 600;
+                        font-size: 0.75rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        animation: ${selectedIds.size > 0 ? "bounce-in 0.3s ease" : "none"};
+                        box-shadow: 0 4px 12px rgba(51, 153, 255, 0.3);
+                    }
+                    @keyframes bounce-in {
+                        0% {
+                            transform: scale(0.8);
+                            opacity: 0;
+                        }
+                        50% {
+                            transform: scale(1.1);
+                        }
+                        100% {
+                            transform: scale(1);
+                            opacity: 1;
+                        }
+                    }
+
+                    @keyframes pulse-scale {
+                        0%,
+                        100% {
+                            transform: scale(1);
+                        }
+                        50% {
+                            transform: scale(1.05);
+                        }
                     }
                     .stats-bar {
                         background: #f8fafc;
@@ -222,10 +335,32 @@ const BoardPage = () => {
                     .section-title svg {
                         color: #3399ff;
                     }
+                    .selection-bar {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 1rem;
+                        padding: 0.75rem 1rem;
+                        margin-bottom: 1rem;
+                        background: rgba(16, 185, 129, 0.06);
+                        border: 1px solid rgba(16, 185, 129, 0.25);
+                        border-radius: 12px;
+                        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
+                    }
+                    .selection-bar .label {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        font-weight: 600;
+                        color: #065f46;
+                    }
                     .board-grid {
                         display: grid;
                         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                         gap: 1.5rem;
+                        transition: all 0.3s ease;
+                    }
+                    .board-grid.delete-mode {
                     }
                     .board-card {
                         background: #ffffff;
@@ -240,6 +375,7 @@ const BoardPage = () => {
                     .board-card.selected {
                         border-color: #10b981;
                         box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+                        background: rgba(16, 185, 129, 0.02);
                     }
                     .board-card::before {
                         content: "";
@@ -273,33 +409,60 @@ const BoardPage = () => {
                         right: 8px;
                         display: flex;
                         gap: 6px;
+                        opacity: 0;
+                        transform: translateY(-10px);
+                        transition: all 0.3s ease;
+                    }
+                    .board-card:hover .card-actions {
+                        opacity: 1;
+                        transform: translateY(0);
                     }
                     .icon-btn {
-                        width: 34px;
-                        height: 34px;
-                        border-radius: 10px;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 12px;
                         display: inline-flex;
                         align-items: center;
                         justify-content: center;
                         border: none;
-                        background: #f1f5f9;
+                        background: rgba(255, 255, 255, 0.95);
                         color: #334155;
                         cursor: pointer;
-                        transition: all 0.2s ease;
+                        transition: all 0.25s ease;
+                        backdrop-filter: blur(8px);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                     }
                     .icon-btn:hover {
-                        transform: translateY(-1px);
+                        transform: translateY(-2px) scale(1.05);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                     }
                     .icon-btn.checkbox.active {
-                        background: rgba(16, 185, 129, 0.1);
-                        color: #047857;
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        color: white;
+                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
                     }
                     .icon-btn.delete {
-                        background: rgba(239, 68, 68, 0.08);
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.15));
                         color: #dc2626;
+                        border: 1px solid rgba(239, 68, 68, 0.2);
                     }
                     .icon-btn.delete:hover {
-                        background: rgba(239, 68, 68, 0.15);
+                        background: linear-gradient(135deg, #ef4444, #dc2626);
+                        color: white;
+                        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+                        animation: shake-small 0.3s ease;
+                    }
+                    @keyframes shake-small {
+                        0%,
+                        100% {
+                            transform: translateY(-2px) scale(1.05) rotate(0deg);
+                        }
+                        25% {
+                            transform: translateY(-2px) scale(1.05) rotate(-2deg);
+                        }
+                        75% {
+                            transform: translateY(-2px) scale(1.05) rotate(2deg);
+                        }
                     }
                     .create-board-card {
                         background: #f8fafc;
@@ -368,6 +531,17 @@ const BoardPage = () => {
                             width: 100%;
                             justify-content: space-between;
                         }
+                        .actions-bar {
+                            flex-direction: column;
+                            align-items: stretch;
+                            gap: 1rem;
+                        }
+                        .actions-group {
+                            justify-content: center;
+                        }
+                        .actions-divider {
+                            display: none;
+                        }
                     }
                     @media (max-width: 480px) {
                         .board-grid {
@@ -388,53 +562,49 @@ const BoardPage = () => {
                         {/* Stats Bar */}
                         <div className="stats-bar">
                             <div className="stat-item">
-                                <Icon icon="mdi:grid" width="18" height="18" />
+                                <Icon icon="mdi:grid" width="28" height="28" />
                                 <span>Total Boards</span>
                                 <span className="stat-number">{boards.length}</span>
                             </div>
 
                             <div className="stat-item">
-                                <Icon icon="mdi:star" width="18" height="18" />
+                                <Icon icon="mdi:star" width="28" height="28" />
                                 <span>Personal Workspace</span>
                             </div>
                         </div>
 
-                        {/* Selection Actions */}
-                        <div className="actions-bar">
-                            <button className="btn btn-secondary" onClick={selectAll} disabled={!boards.length}>
-                                <Icon icon="mdi:select-all" width="18" height="18" />
-                                Select all
-                            </button>
-                            <button className="btn btn-secondary" onClick={clearSelection} disabled={!selectedIds.size}>
-                                <Icon icon="mdi:close" width="18" height="18" />
-                                Clear
-                            </button>
-                            <button className="btn btn-danger" onClick={() => openConfirm(Array.from(selectedIds))} disabled={!selectedIds.size}>
-                                <Icon icon="mdi:delete" width="18" height="18" />
-                                Delete selected ({selectedIds.size || 0})
-                            </button>
-                        </div>
-
                         <h6 className="section-title">
-                            <Icon icon="mdi:grid" width="16" height="16" />
+                            <Icon icon="mdi:folder-multiple" width="22" height="22" />
                             YOUR WORKSPACES
                         </h6>
+                        {selectedIds.size > 0 && (
+                            <div className="selection-bar">
+                                <div className="label">
+                                    <Icon icon="mdi:check-circle" width="22" height="22" />
+                                    {selectedIds.size} selected
+                                </div>
+                                <div className="actions-group">
+                                    <button className="btn btn-danger" onClick={() => openConfirm(Array.from(selectedIds))}>
+                                        <Icon icon="mdi:delete-forever" width="22" height="22" />
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="board-list" direction="horizontal">
                                 {(provided) => (
-                                    <div {...provided.droppableProps} ref={provided.innerRef} className="board-grid">
+                                    <div {...provided.droppableProps} ref={provided.innerRef} className={`board-grid`}>
                                         {boards.map((board, index) => (
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided, snapshot) => (
                                                     <div
                                                         onClick={() => {
-                                                            if (selectedIds.size) {
-                                                                toggleSelect(board.id);
-                                                                return;
-                                                            }
                                                             handleClickBoard(board.id);
                                                         }}
+                                                        onMouseEnter={() => setHoveredId(board.id)}
+                                                        onMouseLeave={() => setHoveredId(null)}
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
@@ -447,13 +617,10 @@ const BoardPage = () => {
                                                                 onClick={() => toggleSelect(board.id)}
                                                             >
                                                                 {selectedIds.has(board.id) ? (
-                                                                    <Icon icon="mdi:check-circle" width="18" height="18" />
+                                                                    <Icon icon="mdi:check-circle" width="22" height="22" />
                                                                 ) : (
-                                                                    <Icon icon="mdi:checkbox-blank-outline" width="18" height="18" />
+                                                                    <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
                                                                 )}
-                                                            </button>
-                                                            <button className="icon-btn delete" title="Delete board" onClick={() => openConfirm([board.id])}>
-                                                                <Icon icon="mdi:delete" width="18" height="18" />
                                                             </button>
                                                         </div>
                                                         <BoardCard title={board.name} description={board.description} />
@@ -479,7 +646,7 @@ const BoardPage = () => {
                 </div>
             </>
         );
-    }, [user, token, boards, selectedIds, onDragEnd, selectAll, clearSelection, toggleSelect, openConfirm, handleClickBoard]);
+    }, [user, token, boards, selectedIds, hoveredId, onDragEnd, toggleSelect, openConfirm, handleClickBoard]);
 
     return (
         <>
@@ -498,6 +665,7 @@ const BoardPage = () => {
                     onConfirm={handleDeleteConfirmed}
                     onCancel={closeConfirm}
                     loading={confirmState.loading}
+                    tone="destructive"
                 />
             )}
         </>
