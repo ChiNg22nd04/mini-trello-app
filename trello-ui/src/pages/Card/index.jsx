@@ -184,6 +184,13 @@ const CardPage = () => {
         }));
     }, []);
 
+    const handleCardMembersUpdate = useCallback((cardId, members) => {
+        setCardMembersMap((prev) => ({
+            ...prev,
+            [String(cardId)]: Array.isArray(members) ? members : [],
+        }));
+    }, []);
+
     const handleAddTask = (status) => {
         setCreateForStatus(status || "todo");
         setIsCreateOpen(true);
@@ -335,7 +342,15 @@ const CardPage = () => {
 
             {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembersForBoard} defaultStatus={createForStatus} />}
 
-            <CardDetail card={selectedCard} onClose={() => setSelectedCard(null)} boardId={boardId} token={token} boardMembers={arrayMembersForBoard} onTaskCountsChange={handleTaskCountsChange} />
+            <CardDetail
+                card={selectedCard}
+                onClose={() => setSelectedCard(null)}
+                boardId={boardId}
+                token={token}
+                boardMembers={arrayMembersForBoard}
+                onTaskCountsChange={handleTaskCountsChange}
+                onCardMembersUpdate={handleCardMembersUpdate}
+            />
         </div>
     );
 };

@@ -6,12 +6,13 @@ import MembersBar from "./MembersBar";
 import DescriptionBox from "../../components/DescriptionBox";
 import Checklist from "../Card/Checklist/index";
 
-const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange }) => {
+const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange, onCardMembersUpdate }) => {
     const { tasks, cardMembers, taskMembersMap, progress, actions } = useCardTasks({
         card,
         boardId,
         token,
         onTaskCountsChange,
+        onCardMembersUpdate,
     });
 
     if (!card) return null;

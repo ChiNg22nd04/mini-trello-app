@@ -2,7 +2,7 @@ import { useEffect, useMemo, useCallback, useState } from "react";
 import axios from "axios";
 import API_BASE_URL from "../../config/config";
 
-export default function useCardTasks({ card, boardId, token, onTaskCountsChange }) {
+export default function useCardTasks({ card, boardId, token, onTaskCountsChange, onCardMembersUpdate }) {
     const [tasks, setTasks] = useState([]);
     const [cardMembers, setCardMembers] = useState([]);
     const [taskMembersMap, setTaskMembersMap] = useState({});
@@ -27,11 +27,14 @@ export default function useCardTasks({ card, boardId, token, onTaskCountsChange 
             const list = res.data || [];
             setCardMembers(list);
             list.forEach((u) => memberCache.set(String(u.id), u));
+            if (typeof onCardMembersUpdate === "function") {
+                onCardMembersUpdate(card.id, list);
+            }
         } catch (e) {
             console.error("fetchCardMembers error", e);
             setCardMembers([]);
         }
-    }, [card?.id, token, boardId, authHeaders, memberCache]);
+    }, [card?.id, token, boardId, authHeaders, memberCache, onCardMembersUpdate]);
 
     const fetchTaskMembers = useCallback(
         async (taskId) => {
