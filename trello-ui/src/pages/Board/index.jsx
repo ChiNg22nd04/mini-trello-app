@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import API_BASE_URL from "../../../config/config";
-import { BoardCard, Header, CreateBoardForm } from "../../components";
+import { BoardCard, Header, CreateBoardForm, ConfirmDialog } from "../../components";
 import { useUser } from "../../hooks";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const BoardPage = () => {
     const navigate = useNavigate();
@@ -13,6 +14,8 @@ const BoardPage = () => {
     const { user, token } = useUser();
     const [boards, setBoards] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [confirmState, setConfirmState] = useState({ open: false, ids: [], loading: false });
 
     console.log("BoardPage rendered - user:", user, "token:", token);
     console.log("showForm value:", showForm);
@@ -37,19 +40,60 @@ const BoardPage = () => {
             .catch(console.error);
     }, [user, token]);
 
-    const onDragEnd = (result) => {
-        const { source: from, destination: to } = result;
-        if (!to) return;
+    const onDragEnd = useCallback(
+        (result) => {
+            const { source: from, destination: to } = result;
+            if (!to) return;
 
-        const reordered = Array.from(boards);
-        const [moved] = reordered.splice(from.index, 1);
-        reordered.splice(to.index, 0, moved);
-        setBoards(reordered);
+            const reordered = Array.from(boards);
+            const [moved] = reordered.splice(from.index, 1);
+            reordered.splice(to.index, 0, moved);
+            setBoards(reordered);
 
-        reordered.forEach((board, index) => {
-            axios.put(`${API_BASE_URL}/boards/${board.id}`, { order: index }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
+            reordered.forEach((board, index) => {
+                axios.put(`${API_BASE_URL}/boards/${board.id}`, { order: index }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
+            });
+        },
+        [boards, token]
+    );
+
+    const toggleSelect = useCallback((id) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
         });
-    };
+    }, []);
+
+    const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+    const selectAll = useCallback(() => setSelectedIds(new Set(boards.map((b) => b.id))), [boards]);
+
+    const openConfirm = useCallback((ids) => setConfirmState({ open: true, ids, loading: false }), []);
+    const closeConfirm = useCallback(() => {
+        if (confirmState.loading) return;
+        setConfirmState({ open: false, ids: [], loading: false });
+    }, [confirmState.loading]);
+
+    const handleDeleteConfirmed = useCallback(async () => {
+        const ids = confirmState.ids;
+        setConfirmState((s) => ({ ...s, loading: true }));
+        try {
+            await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/boards/${id}`, { headers: { Authorization: `Bearer ${token}` } })));
+            setBoards((prev) => prev.filter((b) => !ids.includes(b.id)));
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                ids.forEach((id) => next.delete(id));
+                return next;
+            });
+            toast.success(ids.length > 1 ? `Deleted ${ids.length} boards` : `Board deleted`);
+            closeConfirm();
+        } catch (err) {
+            console.error("Failed to delete boards", err);
+            toast.error("Failed to delete. Please try again.");
+            setConfirmState((s) => ({ ...s, loading: false }));
+        }
+    }, [confirmState.ids, token, closeConfirm]);
 
     const onSubmit = async (data) => {
         try {
@@ -64,9 +108,12 @@ const BoardPage = () => {
         }
     };
 
-    const handleClickBoard = (boardId) => {
-        navigate(`/boards/${boardId}`);
-    };
+    const handleClickBoard = useCallback(
+        (boardId) => {
+            navigate(`/boards/${boardId}`);
+        },
+        [navigate]
+    );
 
     const content = useMemo(() => {
         if (!user || !token) return null;
@@ -88,6 +135,45 @@ const BoardPage = () => {
                         padding: 2rem;
                         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
                         border: 1px solid #e5e7eb;
+                    }
+                    .actions-bar {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        margin-bottom: 1rem;
+                        flex-wrap: wrap;
+                    }
+                    .btn {
+                        border: none;
+                        border-radius: 12px;
+                        padding: 0.5rem 0.875rem;
+                        font-weight: 600;
+                        font-size: 0.9rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .btn:hover {
+                        transform: translateY(-1px);
+                    }
+                    .btn-primary {
+                        background: #10b981;
+                        color: white;
+                    }
+                    .btn-secondary {
+                        background: #f1f5f9;
+                        color: #0f172a;
+                    }
+                    .btn-danger {
+                        background: rgba(239, 68, 68, 0.1);
+                        color: #dc2626;
+                    }
+                    .btn:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
+                        transform: none;
                     }
                     .stats-bar {
                         background: #f8fafc;
@@ -151,6 +237,10 @@ const BoardPage = () => {
                         position: relative;
                         overflow: hidden;
                     }
+                    .board-card.selected {
+                        border-color: #10b981;
+                        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+                    }
                     .board-card::before {
                         content: "";
                         position: absolute;
@@ -176,6 +266,40 @@ const BoardPage = () => {
                         box-shadow: 0 15px 35px rgba(51, 153, 255, 0.15);
                         z-index: 1000;
                         border-color: #3399ff;
+                    }
+                    .card-actions {
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        display: flex;
+                        gap: 6px;
+                    }
+                    .icon-btn {
+                        width: 34px;
+                        height: 34px;
+                        border-radius: 10px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: none;
+                        background: #f1f5f9;
+                        color: #334155;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .icon-btn:hover {
+                        transform: translateY(-1px);
+                    }
+                    .icon-btn.checkbox.active {
+                        background: rgba(16, 185, 129, 0.1);
+                        color: #047857;
+                    }
+                    .icon-btn.delete {
+                        background: rgba(239, 68, 68, 0.08);
+                        color: #dc2626;
+                    }
+                    .icon-btn.delete:hover {
+                        background: rgba(239, 68, 68, 0.15);
                     }
                     .create-board-card {
                         background: #f8fafc;
@@ -275,6 +399,22 @@ const BoardPage = () => {
                             </div>
                         </div>
 
+                        {/* Selection Actions */}
+                        <div className="actions-bar">
+                            <button className="btn btn-secondary" onClick={selectAll} disabled={!boards.length}>
+                                <Icon icon="mdi:select-all" width="18" height="18" />
+                                Select all
+                            </button>
+                            <button className="btn btn-secondary" onClick={clearSelection} disabled={!selectedIds.size}>
+                                <Icon icon="mdi:close" width="18" height="18" />
+                                Clear
+                            </button>
+                            <button className="btn btn-danger" onClick={() => openConfirm(Array.from(selectedIds))} disabled={!selectedIds.size}>
+                                <Icon icon="mdi:delete" width="18" height="18" />
+                                Delete selected ({selectedIds.size || 0})
+                            </button>
+                        </div>
+
                         <h6 className="section-title">
                             <Icon icon="mdi:grid" width="16" height="16" />
                             YOUR WORKSPACES
@@ -288,12 +428,34 @@ const BoardPage = () => {
                                             <Draggable key={board.id} draggableId={String(board.id)} index={index}>
                                                 {(provided, snapshot) => (
                                                     <div
-                                                        onClick={() => handleClickBoard(board.id)}
+                                                        onClick={() => {
+                                                            if (selectedIds.size) {
+                                                                toggleSelect(board.id);
+                                                                return;
+                                                            }
+                                                            handleClickBoard(board.id);
+                                                        }}
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
-                                                        className={`board-card ${snapshot.isDragging ? "dragging" : ""}`}
+                                                        className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
                                                     >
+                                                        <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                                                            <button
+                                                                className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
+                                                                title={selectedIds.has(board.id) ? "Deselect" : "Select"}
+                                                                onClick={() => toggleSelect(board.id)}
+                                                            >
+                                                                {selectedIds.has(board.id) ? (
+                                                                    <Icon icon="mdi:check-circle" width="18" height="18" />
+                                                                ) : (
+                                                                    <Icon icon="mdi:checkbox-blank-outline" width="18" height="18" />
+                                                                )}
+                                                            </button>
+                                                            <button className="icon-btn delete" title="Delete board" onClick={() => openConfirm([board.id])}>
+                                                                <Icon icon="mdi:delete" width="18" height="18" />
+                                                            </button>
+                                                        </div>
                                                         <BoardCard title={board.name} description={board.description} />
                                                     </div>
                                                 )}
@@ -317,12 +479,27 @@ const BoardPage = () => {
                 </div>
             </>
         );
-    }, [user, token, boards]);
+    }, [user, token, boards, selectedIds, onDragEnd, selectAll, clearSelection, toggleSelect, openConfirm, handleClickBoard]);
 
     return (
         <>
             {content}
             {showForm && <CreateBoardForm onSubmit={onSubmit} onClose={() => setShowForm(false)} />}
+            {confirmState.open && (
+                <ConfirmDialog
+                    title={confirmState.ids.length > 1 ? "Delete boards" : "Delete board"}
+                    message={
+                        confirmState.ids.length > 1
+                            ? `Are you sure you want to delete ${confirmState.ids.length} boards? This action cannot be undone.`
+                            : "Are you sure you want to delete this board? This action cannot be undone."
+                    }
+                    confirmText={confirmState.ids.length > 1 ? "Delete boards" : "Delete board"}
+                    cancelText="Cancel"
+                    onConfirm={handleDeleteConfirmed}
+                    onCancel={closeConfirm}
+                    loading={confirmState.loading}
+                />
+            )}
         </>
     );
 };
