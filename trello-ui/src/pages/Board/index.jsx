@@ -356,8 +356,8 @@ const BoardPage = () => {
                     }
                     .board-grid {
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                        gap: 1.5rem;
+                        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                        gap: 1.25rem;
                         transition: all 0.3s ease;
                     }
                     .board-grid.delete-mode {
@@ -366,11 +366,28 @@ const BoardPage = () => {
                         background: #ffffff;
                         border: 2px solid #e2e8f0;
                         border-radius: 12px;
-                        padding: 1.5rem;
+                        padding: 1rem;
                         cursor: pointer;
                         transition: all 0.3s ease;
                         position: relative;
                         overflow: hidden;
+                    }
+                    .board-card > div {
+                        min-height: 96px !important;
+                    }
+                    .board-card h6 {
+                        font-size: 0.95rem;
+                        margin-bottom: 4px !important;
+                        font-weight: 700;
+                        letter-spacing: 0.2px;
+                    }
+                    .board-card p {
+                        font-size: 0.82rem !important;
+                        line-height: 1.35 !important;
+                        display: -webkit-box !important;
+                        -webkit-line-clamp: 2 !important;
+                        -webkit-box-orient: vertical !important;
+                        overflow: hidden !important;
                     }
                     .board-card.selected {
                         border-color: #10b981;
@@ -390,7 +407,7 @@ const BoardPage = () => {
                         transition: transform 0.3s ease;
                     }
                     .board-card:hover {
-                        transform: translateY(-4px);
+                        transform: translateY(-3px);
                         border-color: #3399ff;
                         box-shadow: 0 8px 25px rgba(51, 153, 255, 0.1);
                     }
@@ -405,10 +422,10 @@ const BoardPage = () => {
                     }
                     .card-actions {
                         position: absolute;
-                        top: 8px;
-                        right: 8px;
+                        top: 6px;
+                        right: 6px;
                         display: flex;
-                        gap: 6px;
+                        gap: 4px;
                         opacity: 0;
                         transform: translateY(-10px);
                         transition: all 0.3s ease;
@@ -418,8 +435,8 @@ const BoardPage = () => {
                         transform: translateY(0);
                     }
                     .icon-btn {
-                        width: 36px;
-                        height: 36px;
+                        width: 32px;
+                        height: 32px;
                         border-radius: 12px;
                         display: inline-flex;
                         align-items: center;
@@ -477,7 +494,7 @@ const BoardPage = () => {
                         cursor: pointer;
                         transition: all 0.3s ease;
                         color: #64748b;
-                        min-height: 160px;
+                        min-height: 140px;
                     }
                     .create-board-card:hover {
                         background: #f1f5f9;
