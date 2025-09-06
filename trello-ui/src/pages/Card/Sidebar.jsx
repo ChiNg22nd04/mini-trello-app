@@ -23,7 +23,7 @@ const Sidebar = ({ members = [], fullHeight = false, title = "Sample Board" }) =
                     border: 1px solid #e5e7eb;
                     border-radius: 20px;
                     height: ${fullHeight ? "100%" : "auto"};
-                    min-height: 100vh;
+                    min-height: 85vh;
                     overflow-y: auto;
                     position: relative;
                     margin: 0 10px 20px 20px;

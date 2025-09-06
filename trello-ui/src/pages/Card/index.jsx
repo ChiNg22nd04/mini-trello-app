@@ -223,7 +223,7 @@ const CardPage = () => {
             <Header isShow={false} username={user?.username} avatar={user?.avatar} style={{ height: headerHeight, zIndex: 1030 }} />
             <div className="d-flex text-white pt-3" style={{ minHeight: "100vh" }}>
                 <div style={{ width: "20%" }}>
-                    <Sidebar members={arrayMembersForBoard} fullHeight title={board?.name} />
+                    <Sidebar members={arrayMembersForBoard} title={board?.name} />
                 </div>
 
                 <div style={{ marginRight: "20px", marginLeft: "10px", width: "80%", overflowY: "auto" }}>
@@ -242,6 +242,7 @@ const CardPage = () => {
                             border: "1px solid #e5e7eb",
                             borderRadius: "16px",
                             backgroundColor: "#fff",
+                            minHeight: "72vh",
                         }}
                     >
                         <DragDropContext onDragEnd={onDragEnd}>

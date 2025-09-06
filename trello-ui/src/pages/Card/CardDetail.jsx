@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import useCardTasks from "../../hooks/useCardTask";
 import CardHeader from "./CardHeader";
 import MembersBar from "./MembersBar";
 import DescriptionBox from "../../components/DescriptionBox";
 import Checklist from "../Card/Checklist/index";
+import axios from "axios";
+import API_BASE_URL from "../../../config/config";
 
 const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange, onCardMembersUpdate }) => {
     const { tasks, cardMembers, taskMembersMap, progress, actions } = useCardTasks({
@@ -15,7 +17,29 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         onCardMembersUpdate,
     });
 
-    if (!card) return null;
+    const [currentCard, setCurrentCard] = useState(card || null);
+    useEffect(() => {
+        setCurrentCard(card || null);
+    }, [card]);
+
+    const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
+
+    const handleSaveDescription = useCallback(
+        async (nextDescription) => {
+            if (!currentCard?.id || !boardId || !token) return;
+            try {
+                const res = await axios.put(`${API_BASE_URL}/boards/${boardId}/cards/${currentCard.id}`, { description: nextDescription }, { headers: authHeaders });
+                const updated = res.data || { description: nextDescription };
+                setCurrentCard((prev) => (prev ? { ...prev, description: updated.description } : prev));
+            } catch (err) {
+                console.error("Failed to update description:", err);
+                alert("Failed to save description");
+            }
+        },
+        [authHeaders, boardId, currentCard?.id, token]
+    );
+
+    if (!currentCard) return null;
 
     return (
         <>
@@ -580,12 +604,12 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                 {/* Header row */}
                 <div className="d-flex mb-4" style={{ gap: "1rem", alignItems: "center" }}>
-                    <CardHeader title={card.name || card.title} listName={card.status ? card.status.charAt(0).toUpperCase() + card.status.slice(1) : "To do"} />
+                    <CardHeader title={currentCard.name || currentCard.title} listName={currentCard.status ? currentCard.status.charAt(0).toUpperCase() + currentCard.status.slice(1) : "To do"} />
                     {/* <MembersBar members={cardMembers} /> */}
                     <MembersBar members={cardMembers} size="big" />
                 </div>
 
-                <DescriptionBox description={card.description} />
+                <DescriptionBox description={currentCard.description} onSave={handleSaveDescription} />
 
                 <Checklist tasks={tasks} taskMembersMap={taskMembersMap} boardMembers={boardMembers} progress={progress} actions={actions} />
             </div>
