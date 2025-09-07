@@ -7,6 +7,7 @@ import DescriptionBox from "../../components/DescriptionBox";
 import Checklist from "../Card/Checklist/index";
 import axios from "axios";
 import API_BASE_URL from "../../../config/config";
+import { socket } from "../../../config";
 
 const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange, onCardMembersUpdate }) => {
     const { tasks, cardMembers, taskMembersMap, progress, actions } = useCardTasks({
@@ -16,6 +17,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         onTaskCountsChange,
         onCardMembersUpdate,
     });
+    const fetchTasks = actions?.fetchTasks;
 
     const [currentCard, setCurrentCard] = useState(card || null);
     useEffect(() => {
@@ -38,6 +40,65 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         },
         [authHeaders, boardId, currentCard?.id, token]
     );
+
+    // Realtime sync for this specific card (join card room and listen for updates)
+    useEffect(() => {
+        const cardId = currentCard?.id;
+        if (!boardId || !cardId) return;
+
+        // Join card room for fine-grained task events
+        socket.emit("cards:join", { boardId, cardId });
+
+        const handleReconnect = () => {
+            socket.emit("cards:join", { boardId, cardId });
+        };
+
+        // When this card is updated elsewhere
+        const onCardUpdated = (payload) => {
+            if (!payload || String(payload.boardId) !== String(boardId) || String(payload.id) !== String(cardId)) return;
+            setCurrentCard((prev) => (prev ? { ...prev, ...payload } : prev));
+        };
+
+        // If this card is deleted elsewhere → close detail
+        const onCardDeleted = (payload) => {
+            if (!payload || String(payload.boardId) !== String(boardId) || String(payload.id) !== String(cardId)) return;
+            onClose?.();
+        };
+
+        // Task events for this card → re-fetch tasks/members
+        const refetchTasks = () => {
+            fetchTasks?.();
+        };
+        const onTaskCreated = (evt) => {
+            if (!evt || String(evt.boardId) !== String(boardId) || String(evt.cardId) !== String(cardId)) return;
+            refetchTasks();
+        };
+        const onTaskUpdated = (evt) => {
+            if (!evt || String(evt.boardId) !== String(boardId) || String(evt.cardId) !== String(cardId)) return;
+            refetchTasks();
+        };
+        const onTaskDeleted = (evt) => {
+            if (!evt || String(evt.boardId) !== String(boardId) || String(evt.cardId) !== String(cardId)) return;
+            refetchTasks();
+        };
+
+        socket.on("connect", handleReconnect);
+        socket.on("cards:updated", onCardUpdated);
+        socket.on("cards:deleted", onCardDeleted);
+        socket.on("tasks:created", onTaskCreated);
+        socket.on("tasks:updated", onTaskUpdated);
+        socket.on("tasks:deleted", onTaskDeleted);
+
+        return () => {
+            socket.off("connect", handleReconnect);
+            socket.off("cards:updated", onCardUpdated);
+            socket.off("cards:deleted", onCardDeleted);
+            socket.off("tasks:created", onTaskCreated);
+            socket.off("tasks:updated", onTaskUpdated);
+            socket.off("tasks:deleted", onTaskDeleted);
+            socket.emit("cards:leave", { boardId, cardId });
+        };
+    }, [boardId, currentCard?.id, fetchTasks, onClose]);
 
     if (!currentCard) return null;
 
