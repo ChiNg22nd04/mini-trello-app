@@ -1,5 +1,5 @@
 const { db } = require("../firebase");
-const { getIO } = require("../config/socket");
+const { getIO, emitToBoard } = require("../config/socket");
 
 const cardsCollection = db.collection("cards");
 const tasksCollection = db.collection("tasks");
@@ -59,7 +59,19 @@ const createCard = async (req, res) => {
             status: newCard.status,
         };
 
+        // Legacy global event (kept for backward compatibility)
         getIO().emit("cardCreated", createdCard);
+
+        // Scoped, consistent events
+        emitToBoard(boardId, "cards:created", { boardId, card: createdCard });
+        emitToBoard(boardId, "activity", {
+            scope: "card",
+            action: "created",
+            boardId,
+            cardId: docRef.id,
+            actorId: ownerId,
+            message: `Thẻ "${name}" đã được tạo`,
+        });
         console.log("Card created successfully");
 
         res.status(201).json(createdCard);
@@ -150,8 +162,19 @@ const updateCard = async (req, res) => {
 
         await cardRef.update(updatedData);
 
-        const payload = { id: cardId, ...updatedData };
+        const payload = { id: cardId, boardId, ...updatedData };
+        // Legacy global event
         getIO().emit("cardUpdated", payload);
+        // Scoped, consistent events
+        emitToBoard(boardId, "cards:updated", payload);
+        emitToBoard(boardId, "activity", {
+            scope: "card",
+            action: "updated",
+            boardId,
+            cardId,
+            actorId: ownerId,
+            message: `Thẻ "${payload.name || ""}" đã được cập nhật`,
+        });
         res.status(200).json(payload);
     } catch (err) {
         console.error("Failed to update card:", err);
@@ -162,8 +185,19 @@ const updateCard = async (req, res) => {
 const deleteCard = async (req, res) => {
     try {
         const cardId = req.params.id;
+        const boardId = req.params.boardId;
         await cardsCollection.doc(cardId).delete();
+        // Legacy global event
         getIO().emit("cardDeleted", cardId);
+        // Scoped, consistent events
+        emitToBoard(boardId, "cards:deleted", { boardId, id: cardId });
+        emitToBoard(boardId, "activity", {
+            scope: "card",
+            action: "deleted",
+            boardId,
+            cardId,
+            message: `Một thẻ đã bị xoá`,
+        });
         res.status(204).send();
     } catch (err) {
         console.error("Failed to delete card:", err);

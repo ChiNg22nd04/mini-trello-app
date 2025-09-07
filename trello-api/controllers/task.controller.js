@@ -1,5 +1,5 @@
 const { db } = require("../firebase");
-const { getIO } = require("../config/socket");
+const { getIO, emitToCard, emitToBoard } = require("../config/socket");
 
 const tasksCollection = db.collection("tasks");
 
@@ -36,7 +36,18 @@ const createTask = async (req, res) => {
         const docRef = await tasksCollection.add(newTask);
         const createdTask = { id: docRef.id, ...newTask };
 
+        // Legacy room emit (string room previously mismatched)
         getIO().to(cardId).emit("taskCreated", { cardId, boardId, task: createdTask });
+        // Consistent scoped emits
+        emitToCard(boardId, cardId, "tasks:created", { boardId, cardId, task: createdTask });
+        emitToBoard(boardId, "activity", {
+            scope: "task",
+            action: "created",
+            boardId,
+            cardId,
+            taskId: createdTask.id,
+            message: `Nhiệm vụ "${title}" đã được tạo`,
+        });
 
         res.status(201).json(createdTask);
     } catch (err) {
@@ -84,7 +95,18 @@ const updateTask = async (req, res) => {
         const updated = await taskDocRef.get();
         const updatedTask = { id: updated.id, ...updated.data() };
 
+        // Legacy room emit
         getIO().to(cardId).emit("taskUpdated", { cardId, boardId, task: updatedTask });
+        // Consistent scoped emits
+        emitToCard(boardId, cardId, "tasks:updated", { boardId, cardId, task: updatedTask });
+        emitToBoard(boardId, "activity", {
+            scope: "task",
+            action: "updated",
+            boardId,
+            cardId,
+            taskId,
+            message: `Một nhiệm vụ đã được cập nhật`,
+        });
 
         res.json(updatedTask);
     } catch (err) {
@@ -100,7 +122,18 @@ const deleteTask = async (req, res) => {
         const taskDocRef = tasksCollection.doc(taskId);
         await taskDocRef.delete();
 
+        // Legacy room emit
         getIO().to(cardId).emit("taskDeleted", { cardId, taskId });
+        // Consistent scoped emits
+        emitToCard(req.params.boardId, cardId, "tasks:deleted", { boardId: req.params.boardId, cardId, taskId });
+        emitToBoard(req.params.boardId, "activity", {
+            scope: "task",
+            action: "deleted",
+            boardId: req.params.boardId,
+            cardId,
+            taskId,
+            message: `Một nhiệm vụ đã bị xoá`,
+        });
 
         res.json({ id: taskId });
     } catch (err) {

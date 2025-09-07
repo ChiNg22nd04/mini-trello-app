@@ -79,6 +79,13 @@ const createBoard = async (req, res) => {
 
         const board = { id: docRef.id, name, description, order: maxOrder };
         emitToBoard(docRef.id, "boards:created", board);
+        emitToBoard(docRef.id, "activity", {
+            scope: "board",
+            action: "created",
+            boardId: docRef.id,
+            actorId: userId,
+            message: `Bảng "${name}" đã được tạo`,
+        });
         uniqueMembers.forEach((uid) => {
             emitToUser(uid, "boards:created", board);
         });
@@ -112,6 +119,13 @@ const updateBoard = async (req, res) => {
 
         const payload = { id: boardId, ...updatedData };
         emitToBoard(boardId, "boards:updated", payload);
+        emitToBoard(boardId, "activity", {
+            scope: "board",
+            action: "updated",
+            boardId,
+            actorId: req.user.id,
+            message: `Bảng đã được cập nhật`,
+        });
         (existingData.members || []).forEach((uid) => {
             emitToUser(uid, "boards:updated", payload);
         });
@@ -135,6 +149,12 @@ const deleteBoard = async (req, res) => {
         const members = Array.isArray(boardDoc.data().members) ? boardDoc.data().members : [];
         await boardRef.delete();
         emitToBoard(boardId, "boards:deleted", { id: boardId });
+        emitToBoard(boardId, "activity", {
+            scope: "board",
+            action: "deleted",
+            boardId,
+            message: `Bảng đã bị xoá`,
+        });
         members.forEach((uid) => {
             emitToUser(uid, "boards:deleted", { id: boardId });
         });

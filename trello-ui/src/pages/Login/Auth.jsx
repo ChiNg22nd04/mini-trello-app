@@ -11,7 +11,7 @@ const AuthPage = () => {
     const [code, setCode] = useState("");
     const [message, setMessage] = useState("");
     const [focus, setFocus] = useState(false);
-    const [isHover, setHover] = useState(false);
+    // const [isHover, setHover] = useState(false);
     // const [isResending, setIsResending] = useState(false);
 
     useEffect(() => {
@@ -37,6 +37,9 @@ const AuthPage = () => {
             if (res.data && res.data.token) {
                 localStorage.setItem("accessToken", res.data.token);
                 localStorage.setItem("user", JSON.stringify(res.data.user));
+                if (typeof socket.setAuthToken === "function") {
+                    socket.setAuthToken(res.data.token);
+                }
                 navigate("/boards");
             } else {
                 setMessage("Something went wrong. Please try again.");

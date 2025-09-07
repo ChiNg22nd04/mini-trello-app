@@ -10,6 +10,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
         reset,
         formState: { errors, isSubmitting },
         setFocus,
+        watch,
     } = useForm({ defaultValues: { name: "", description: "" } });
 
     const [internalSubmitting, setInternalSubmitting] = useState(false);
@@ -39,6 +40,8 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
             handleSubmit(handleFormSubmit)();
         }
     };
+
+    const watchedName = watch("name", "");
 
     const submitting = isSubmitting || internalSubmitting;
 
@@ -299,7 +302,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     </div>
 
                     <div className="actions">
-                        <Button style={{ width: "100%" }} name="Create Card" icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!name.trim()} onClick={handleSubmit} />
+                        <Button type="submit" style={{ width: "100%" }} name="Create Board" icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!watchedName?.trim() || submitting} />
                     </div>
                 </form>
             </div>
