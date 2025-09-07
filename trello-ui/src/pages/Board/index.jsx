@@ -130,7 +130,7 @@ const BoardPage = () => {
                     .content-wrapper {
                         background: #ffffff;
                         border-radius: 16px;
-                        margin: 0 20px 20px 20px;
+                        margin: 1rem 20px 20px 20px;
                         min-height: calc(100vh - 100px);
                         padding: 2rem;
                         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
