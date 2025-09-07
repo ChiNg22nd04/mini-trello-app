@@ -17,6 +17,10 @@ const getBoards = async (req, res) => {
                 id: doc.id,
                 name: board.name,
                 description: board.description,
+                ownerId: board.ownerId,
+                members: board.members || [],
+                order: board.order ?? 0,
+                createdAt: board.createdAt || null,
             };
         });
 
@@ -44,7 +48,7 @@ const getBoardById = async (req, res) => {
             id: boardDoc.id,
             name: data.name,
             description: data.description,
-            members: data.members,
+            members: data.members || [],
             ownerId: data.ownerId,
             createdAt: data.createdAt,
             order: data.order,

@@ -17,7 +17,7 @@ const BoardPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [confirmState, setConfirmState] = useState({ open: false, ids: [], loading: false });
-    const [hoveredId, setHoveredId] = useState(null);
+    // const [hoveredId, setHoveredId] = useState(null);
 
     console.log("BoardPage rendered - user:", user, "token:", token);
     console.log("showForm value:", showForm);
@@ -58,22 +58,7 @@ const BoardPage = () => {
         };
     }, [fetchBoards]);
 
-    const onDragEnd = useCallback(
-        (result) => {
-            const { source: from, destination: to } = result;
-            if (!to) return;
-
-            const reordered = Array.from(boards);
-            const [moved] = reordered.splice(from.index, 1);
-            reordered.splice(to.index, 0, moved);
-            setBoards(reordered);
-
-            reordered.forEach((board, index) => {
-                axios.put(`${API_BASE_URL}/boards/${board.id}`, { order: index }, { headers: { Authorization: `Bearer ${token}` } }).catch(console.error);
-            });
-        },
-        [boards, token]
-    );
+    // Drag reordering is disabled on grouped view
 
     const toggleSelect = useCallback((id) => {
         setSelectedIds((prev) => {
@@ -131,6 +116,24 @@ const BoardPage = () => {
         },
         [navigate]
     );
+
+    const privateBoards = useMemo(() => {
+        if (!user) return [];
+        return boards.filter((b) => {
+            const members = Array.isArray(b.members) ? b.members : [];
+            const otherMembersCount = members.filter((m) => m !== user.id).length;
+            return b.ownerId === user.id && otherMembersCount === 0;
+        });
+    }, [boards, user]);
+
+    const sharedBoards = useMemo(() => {
+        if (!user) return [];
+        return boards.filter((b) => {
+            const members = Array.isArray(b.members) ? b.members : [];
+            const otherMembersCount = members.filter((m) => m !== user.id).length;
+            return !(b.ownerId === user.id && otherMembersCount === 0);
+        });
+    }, [boards, user]);
 
     const content = useMemo(() => {
         if (!user || !token) return null;
@@ -446,6 +449,7 @@ const BoardPage = () => {
                         opacity: 0;
                         transform: translateY(-10px);
                         transition: all 0.3s ease;
+                        z-index: 5;
                     }
                     .board-card:hover .card-actions {
                         opacity: 1;
@@ -600,83 +604,170 @@ const BoardPage = () => {
                                 <span>Total Boards</span>
                                 <span className="stat-number">{boards.length}</span>
                             </div>
-
                             <div className="stat-item">
-                                <Icon icon="mdi:star" width="28" height="28" />
-                                <span>Personal Workspace</span>
+                                <Icon icon="mdi:account" width="28" height="28" />
+                                <span>Private</span>
+                                <span className="stat-number">{privateBoards.length}</span>
+                            </div>
+                            <div className="stat-item">
+                                <Icon icon="mdi:account-multiple" width="28" height="28" />
+                                <span>Shared</span>
+                                <span className="stat-number">{sharedBoards.length}</span>
                             </div>
                         </div>
-
-                        <h6 className="section-title">
-                            <Icon icon="mdi:folder-multiple" width="22" height="22" />
-                            YOUR WORKSPACES
-                        </h6>
-                        {selectedIds.size > 0 && (
-                            <div className="selection-bar">
-                                <div className="label">
-                                    <Icon icon="mdi:check-circle" width="22" height="22" />
-                                    {selectedIds.size} selected
-                                </div>
-                                <div className="actions-group">
-                                    <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
-                                </div>
-                            </div>
-                        )}
-
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable droppableId="board-list" direction="horizontal">
-                                {(provided) => (
-                                    <div {...provided.droppableProps} ref={provided.innerRef} className={`board-grid`}>
-                                        {boards.map((board, index) => (
-                                            <Draggable key={board.id} draggableId={String(board.id)} index={index}>
-                                                {(provided, snapshot) => (
-                                                    <div
-                                                        onClick={() => {
-                                                            handleClickBoard(board.id);
-                                                        }}
-                                                        onMouseEnter={() => setHoveredId(board.id)}
-                                                        onMouseLeave={() => setHoveredId(null)}
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
-                                                    >
-                                                        <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                                                            <button
-                                                                className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
-                                                                title={selectedIds.has(board.id) ? "Deselect" : "Select"}
-                                                                onClick={() => toggleSelect(board.id)}
-                                                            >
-                                                                {selectedIds.has(board.id) ? (
-                                                                    <Icon icon="mdi:check-circle" width="22" height="22" />
-                                                                ) : (
-                                                                    <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                        <BoardCard title={board.name} description={board.description} />
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        ))}
-
-                                        {provided.placeholder}
-
-                                        <div className="create-board-card" onClick={() => setShowForm(true)}>
-                                            <Button icon="mdi:plus" variant="greenModern" iconSize={24} size="md" onClick={() => setShowForm(true)} />
-
-                                            <span className="fw-bold">Create a new board</span>
-                                            <span className="small opacity-75">Start organizing your work</span>
-                                        </div>
+                        <div>
+                            <h6 className="section-title">
+                                <Icon icon="mdi:folder-multiple" width="22" height="22" />
+                                PRIVATE WORKSPACES
+                            </h6>
+                            {selectedIds.size > 0 && (
+                                <div className="selection-bar">
+                                    <div className="label">
+                                        <Icon icon="mdi:check-circle" width="22" height="22" />
+                                        {selectedIds.size} selected
                                     </div>
-                                )}
-                            </Droppable>
-                        </DragDropContext>
+                                    <div className="actions-group">
+                                        <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
+                                    </div>
+                                </div>
+                            )}
+
+                            <DragDropContext onDragEnd={() => {}}>
+                                <Droppable droppableId="board-list" direction="horizontal">
+                                    {(provided) => (
+                                        <div {...provided.droppableProps} ref={provided.innerRef} className={`board-grid`}>
+                                            {privateBoards.map((board, index) => (
+                                                <Draggable key={board.id} draggableId={String(board.id)} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <div
+                                                            onClick={() => {
+                                                                handleClickBoard(board.id);
+                                                            }}
+                                                            onMouseEnter={() => {}}
+                                                            onMouseLeave={() => {}}
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
+                                                        >
+                                                            <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
+                                                                    title={selectedIds.has(board.id) ? "Deselect" : "Select"}
+                                                                    onClick={() => toggleSelect(board.id)}
+                                                                >
+                                                                    {selectedIds.has(board.id) ? (
+                                                                        <Icon icon="mdi:check-circle" width="22" height="22" />
+                                                                    ) : (
+                                                                        <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            <BoardCard
+                                                                title={board.name}
+                                                                description={board.description}
+                                                                createdAt={board.createdAt}
+                                                                membersCount={(Array.isArray(board.members) && board.members.length) || 0}
+                                                                badge="Private"
+                                                                badgeColor="#10b981"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+
+                                            {provided.placeholder}
+
+                                            <div className="create-board-card" onClick={() => setShowForm(true)}>
+                                                <Button icon="mdi:plus" variant="greenModern" iconSize={24} size="md" onClick={() => setShowForm(true)} />
+
+                                                <span className="fw-bold">Create a new board</span>
+                                                <span className="small opacity-75">Start organizing your work</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
+                        </div>
+                        <div>
+                            <h6 className="section-title">
+                                <Icon icon="mdi:folder-multiple" width="22" height="22" />
+                                SHARED WORKSPACES
+                            </h6>
+                            {selectedIds.size > 0 && (
+                                <div className="selection-bar">
+                                    <div className="label">
+                                        <Icon icon="mdi:check-circle" width="22" height="22" />
+                                        {selectedIds.size} selected
+                                    </div>
+                                    <div className="actions-group">
+                                        <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
+                                    </div>
+                                </div>
+                            )}
+
+                            <DragDropContext onDragEnd={() => {}}>
+                                <Droppable droppableId="board-list" direction="horizontal">
+                                    {(provided) => (
+                                        <div {...provided.droppableProps} ref={provided.innerRef} className={`board-grid`}>
+                                            {sharedBoards.map((board, index) => (
+                                                <Draggable key={board.id} draggableId={String(board.id)} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <div
+                                                            onClick={() => {
+                                                                handleClickBoard(board.id);
+                                                            }}
+                                                            onMouseEnter={() => {}}
+                                                            onMouseLeave={() => {}}
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
+                                                        >
+                                                            <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
+                                                                    title={selectedIds.has(board.id) ? "Deselect" : "Select"}
+                                                                    onClick={() => toggleSelect(board.id)}
+                                                                >
+                                                                    {selectedIds.has(board.id) ? (
+                                                                        <Icon icon="mdi:check-circle" width="22" height="22" />
+                                                                    ) : (
+                                                                        <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            <BoardCard
+                                                                title={board.name}
+                                                                description={board.description}
+                                                                createdAt={board.createdAt}
+                                                                membersCount={(Array.isArray(board.members) && board.members.length) || 0}
+                                                                badge="Shared"
+                                                                badgeColor="#3b82f6"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+
+                                            {provided.placeholder}
+
+                                            <div className="create-board-card" onClick={() => setShowForm(true)}>
+                                                <Button icon="mdi:plus" variant="greenModern" iconSize={24} size="md" onClick={() => setShowForm(true)} />
+
+                                                <span className="fw-bold">Create a new board</span>
+                                                <span className="small opacity-75">Start organizing your work</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
+                        </div>
                     </div>
                 </div>
             </>
         );
-    }, [user, token, boards, selectedIds, hoveredId, onDragEnd, toggleSelect, openConfirm, handleClickBoard]);
+    }, [user, token, boards, selectedIds, toggleSelect, openConfirm, handleClickBoard, privateBoards, sharedBoards]);
 
     return (
         <>

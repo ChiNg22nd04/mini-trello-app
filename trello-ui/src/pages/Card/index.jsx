@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -7,10 +7,9 @@ import { Avatar } from "../../components";
 
 import API_BASE_URL from "../../../config/config";
 import MembersBar from "./MembersBar";
-import { Header, TopSideBar } from "../../components";
+import { Header, TopSideBar, CreateForm } from "../../components";
 import Sidebar from "./Sidebar";
 import CardDetail from "./CardDetail";
-import CreateCardModal from "./CreateCardModal";
 
 import { useUser } from "../../hooks";
 import { socket } from "../../../config";
@@ -37,7 +36,7 @@ const CardPage = () => {
 
     /* ---------- API helpers ---------- */
 
-    const auth = { headers: { Authorization: `Bearer ${token}` } };
+    const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
     console.log("auth", auth);
 
     const fetchCardMembers = useCallback(
@@ -50,7 +49,7 @@ const CardPage = () => {
                 return [];
             }
         },
-        [boardId, token]
+        [boardId, auth]
     );
 
     const fetchCardsByStatus = useCallback(
@@ -65,7 +64,7 @@ const CardPage = () => {
                 return [];
             }
         },
-        [boardId, token]
+        [boardId, auth]
     );
 
     const hydrateMembers = useCallback(
@@ -110,7 +109,7 @@ const CardPage = () => {
                 // ignore
             }
         },
-        [boardId, token]
+        [boardId, auth]
     );
 
     /* ---------- Fetch all data ---------- */
@@ -136,7 +135,7 @@ const CardPage = () => {
         } catch (err) {
             console.error("Failed to fetch data:", err);
         }
-    }, [user, token, boardId, fetchCardsByStatus, hydrateMembers, hydrateTaskCounts]);
+    }, [user, token, boardId, auth, fetchCardsByStatus, hydrateMembers, hydrateTaskCounts]);
 
     useEffect(() => {
         fetchData();
@@ -154,7 +153,7 @@ const CardPage = () => {
                 console.error("Failed to refresh board members:", err);
             }
         },
-        [boardId, token]
+        [boardId, auth]
     );
 
     const refreshBoard = useCallback(async () => {
@@ -165,7 +164,7 @@ const CardPage = () => {
         } catch (err) {
             console.error("Failed to refresh board:", err);
         }
-    }, [boardId, token]);
+    }, [boardId, auth]);
 
     // Socket: join board room and listen to card/task events to auto refresh
     useEffect(() => {
@@ -479,7 +478,18 @@ const CardPage = () => {
                 </div>
             </div>
 
-            {isCreateOpen && <CreateCardModal onClose={() => setIsCreateOpen(false)} onCreate={handleCreateCard} members={arrayMembersForBoard} defaultStatus={createForStatus} />}
+            {isCreateOpen && (
+                <CreateForm
+                    onClose={() => setIsCreateOpen(false)}
+                    onSubmit={(data) => handleCreateCard({ ...data, members: [], status: createForStatus })}
+                    title="Create New Card"
+                    nameLabel="Card Title"
+                    namePlaceholder="Enter card title..."
+                    descriptionLabel="Description"
+                    submitLabel="Create Card"
+                    initialValues={{ name: "", description: "" }}
+                />
+            )}
 
             <CardDetail
                 card={selectedCard}

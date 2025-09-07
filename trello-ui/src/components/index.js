@@ -10,4 +10,4 @@ import DueDropdown from "./DueDropdown";
 import DescriptionBox from "./DescriptionBox";
 import Button from "./Button";
 
-export { BoardCard, Header, CreateBoardForm, ConfirmDialog, TopSideBar, UserMenu, UserMeta, Avatar, DueDropdown, DescriptionBox, Button };
+export { BoardCard, Header, CreateBoardForm, ConfirmDialog, TopSideBar, UserMenu, UserMeta, Avatar, DueDropdown, DescriptionBox, Button, CreateBoardForm as CreateForm };

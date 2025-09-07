@@ -3,7 +3,16 @@ import { useForm } from "react-hook-form";
 import { Icon } from "@iconify/react";
 import { Button } from "./index";
 
-const CreateBoardForm = ({ onSubmit, onClose }) => {
+const CreateModal = ({
+    onSubmit,
+    onClose,
+    title = "Create New Board",
+    nameLabel = "Board Name",
+    namePlaceholder = "Enter board name...",
+    descriptionLabel = "Description",
+    submitLabel = "Create Board",
+    initialValues = { name: "", description: "" },
+}) => {
     const {
         register,
         handleSubmit,
@@ -11,7 +20,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
         formState: { errors, isSubmitting },
         setFocus,
         watch,
-    } = useForm({ defaultValues: { name: "", description: "" } });
+    } = useForm({ defaultValues: initialValues });
 
     const [internalSubmitting, setInternalSubmitting] = useState(false);
 
@@ -271,38 +280,38 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     </button>
 
                     <div className="header">
-                        <h2 className="title-gradient">Create New Board</h2>
-                        <p className="subtitle">Set up a board to group and manage your cards</p>
+                        <h2 className="title-gradient">{title}</h2>
+                        <p className="subtitle">Set up essential information below</p>
                     </div>
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="board-name">
                             <Icon icon="mdi:pencil-outline" width="22" height="22" className="label-icon" />
-                            Board Name
+                            {nameLabel}
                         </label>
                         <input
                             id="board-name"
                             type="text"
                             className="form-input"
-                            placeholder="Enter board name..."
+                            placeholder={namePlaceholder}
                             {...register("name", { required: true, minLength: 2 })}
                             onKeyPress={handleKeyPress}
                             aria-invalid={!!errors.name}
                             autoFocus
                         />
-                        {errors.name && <span className="error">Board name is required (min 2 characters)</span>}
+                        {errors.name && <span className="error">{nameLabel} is required (min 2 characters)</span>}
                     </div>
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="board-description">
                             <Icon icon="mdi:file-document-outline" width="22" height="22" className="label-icon" />
-                            Description <span style={{ fontWeight: 400, color: "#9ca3af" }}>(optional)</span>
+                            {descriptionLabel} <span style={{ fontWeight: 400, color: "#9ca3af" }}>(optional)</span>
                         </label>
-                        <textarea id="board-description" className="form-textarea" placeholder="Describe the purpose of this board..." {...register("description")} />
+                        <textarea id="board-description" className="form-textarea" placeholder={`Describe the ${descriptionLabel.toLowerCase()}...`} {...register("description")} />
                     </div>
 
                     <div className="actions">
-                        <Button type="submit" style={{ width: "100%" }} name="Create Board" icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!watchedName?.trim() || submitting} />
+                        <Button type="submit" style={{ width: "100%" }} name={submitLabel} icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!watchedName?.trim() || submitting} />
                     </div>
                 </form>
             </div>
@@ -310,4 +319,4 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
     );
 };
 
-export default CreateBoardForm;
+export default CreateModal;
