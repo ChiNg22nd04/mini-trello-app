@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { logoTrello } from "../assets/global/index";
 import useUser from "../hooks/useUser";
-import { UserMenu } from "./index";
-import Button from "./Button"; // Import component Button
+import { UserMenu, Button } from "./index";
 
 const Header = ({ style = {} }) => {
     const { user, email, displayName, logout } = useUser();

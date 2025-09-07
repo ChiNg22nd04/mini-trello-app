@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import API_BASE_URL from "../../../config/config";
-import { BoardCard, Header, CreateBoardForm, ConfirmDialog } from "../../components";
+import { BoardCard, Header, CreateBoardForm, ConfirmDialog, Button } from "../../components";
 import { useUser } from "../../hooks";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
@@ -601,10 +601,7 @@ const BoardPage = () => {
                                     {selectedIds.size} selected
                                 </div>
                                 <div className="actions-group">
-                                    <button className="btn btn-danger" onClick={() => openConfirm(Array.from(selectedIds))}>
-                                        <Icon icon="mdi:delete-forever" width="22" height="22" />
-                                        Delete
-                                    </button>
+                                    <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
                                 </div>
                             </div>
                         )}
@@ -649,9 +646,8 @@ const BoardPage = () => {
                                         {provided.placeholder}
 
                                         <div className="create-board-card" onClick={() => setShowForm(true)}>
-                                            <div className="create-icon">
-                                                <Icon icon="mdi:plus" width="24" height="24" color="white" />
-                                            </div>
+                                            <Button icon="mdi:plus" variant="greenModern" iconSize={24} size="md" onClick={() => setShowForm(true)} />
+
                                             <span className="fw-bold">Create a new board</span>
                                             <span className="small opacity-75">Start organizing your work</span>
                                         </div>

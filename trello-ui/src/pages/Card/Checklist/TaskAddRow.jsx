@@ -1,7 +1,6 @@
-import { Icon } from "@iconify/react";
 import { useState } from "react";
 import AssignDropdown from "../AssignDropdown";
-import DueDropdown from "../../../components/DueDropdown";
+import { Button, DueDropdown } from "../../../components";
 
 export default function TaskAddRow({ boardMembers, onAdd, onCancel }) {
     const [title, setTitle] = useState("");
@@ -19,29 +18,20 @@ export default function TaskAddRow({ boardMembers, onAdd, onCancel }) {
             <input value={title} onChange={(e) => setTitle(e.target.value)} className="input-field" placeholder="Add an item" style={{ marginBottom: "1rem" }} />
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-                <div style={{ display: "flex", gap: ".5rem" }}>
-                    <button className="btn btn-primary" onClick={() => onAdd({ title, assignedIds, dueDate })} disabled={!title.trim()}>
-                        <Icon icon="material-symbols:add" width={24} />
-                        Save
-                    </button>
-                    <button className="btn btn-outline" onClick={onCancel}>
-                        <Icon icon="material-symbols:close" width={24} />
-                        Cancel
-                    </button>
-                </div>
-
                 <div style={{ display: "flex", alignItems: "center", gap: ".5rem", position: "relative" }}>
-                    <button className="btn btn-outline" onClick={() => setShowAssign((s) => !s)}>
-                        <Icon icon="material-symbols:person" width={24} /> Assign
-                    </button>
+                    <Button icon="material-symbols:person" variant="blueModern" iconSize={24} size="md" onClick={() => setShowAssign((s) => !s)} />
+
                     <AssignDropdown open={showAssign} members={boardMembers} selectedIds={assignedIds} onToggle={toggleAssign} anchor="right" />
 
                     <div style={{ position: "relative" }}>
-                        <button className="btn btn-outline" onClick={() => setShowDue((s) => !s)}>
-                            <Icon icon="material-symbols:schedule" width={24} />
-                        </button>
+                        <Button icon="material-symbols:schedule" variant="greenModern" iconSize={24} size="md" onClick={() => setShowDue((s) => !s)} />
+
                         <DueDropdown open={showDue} value={dueDate} onChange={setDueDate} anchor="right" />
                     </div>
+                </div>
+                <div style={{ display: "flex", gap: ".5rem" }}>
+                    <Button name="Save" icon="material-symbols:save" variant="primary" iconSize={24} size="md" onClick={() => onAdd({ title, assignedIds, dueDate })} disabled={!title.trim()} />
+                    <Button name="Cancel" icon="material-symbols:close" variant="redModern" iconSize={24} size="md" onClick={onCancel} />
                 </div>
             </div>
         </div>

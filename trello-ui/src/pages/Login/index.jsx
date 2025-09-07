@@ -4,6 +4,7 @@ import { logoTrello } from "../../assets/global/index";
 import { API_BASE_URL } from "../../../config";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
+import { Button } from "../../components";
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -224,7 +225,8 @@ const LoginPage = () => {
                     )}
 
                     {/* Continue Button */}
-                    <button
+                    <Button name="Login with your email" color="#3399ff" style={{ width: "100%" }} variant="primary" iconSize={20} size="md" onClick={handleSubmit} disabled={!isValidEmail(email)} />
+                    {/* <button
                         onClick={handleSubmit}
                         disabled={!isValidEmail(email)}
                         className="btn continue-btn w-100 text-white"
@@ -235,7 +237,7 @@ const LoginPage = () => {
                             Continue
                             <Icon icon="mdi:arrow-right" width="20" className="ms-2" />
                         </div>
-                    </button>
+                    </button> */}
 
                     {/* Divider */}
                     <div className="divider mt-3 mb-3">
@@ -243,15 +245,7 @@ const LoginPage = () => {
                     </div>
 
                     {/* GitHub Button */}
-                    <button
-                        onClick={handleGithubLogin}
-                        className="btn github-btn w-100 text-white d-flex align-items-center justify-content-center gap-2"
-                        onMouseEnter={() => setHoverDark(true)}
-                        onMouseLeave={() => setHoverDark(false)}
-                    >
-                        <Icon icon="mdi:github" width="20" />
-                        GitHub
-                    </button>
+                    <Button name="GitHub" icon="mdi:github" color="#24292e" style={{ width: "100%" }} variant="outline" iconSize={20} size="md" onClick={handleGithubLogin} />
 
                     {/* Terms */}
                     <div className="text-center mt-4">

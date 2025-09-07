@@ -40,6 +40,14 @@ const Button = ({
             border: "1px solid rgba(0, 128, 0, 0.1)",
             shadowColor: "rgba(0, 128, 0, 0.2)",
         },
+        redModern: {
+            background: "#fee2e2",
+            color: "#b91c1c",
+            hoverBg: "#b91c1c",
+            hoverColor: "#fff",
+            border: "1px solid #fecaca",
+            shadowColor: "rgba(255, 0, 0, 0.2)",
+        },
         outline: {
             background: "transparent",
             color: color,

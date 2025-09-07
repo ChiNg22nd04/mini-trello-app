@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
-import { DescriptionBox } from "../../components";
+import { DescriptionBox, Button } from "../../components";
 
 const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, defaultStatus = "todo" }) => {
     const [name, setName] = useState("");
@@ -93,6 +93,8 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     animation: slideUp 0.3s ease-out;
                     overflow: hidden;
                     max-height: 90vh;
+                    overflow-y: auto;
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
                 }
 
                 .create-modal::before {
@@ -105,6 +107,26 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 50%, rgba(4, 120, 87, 0.1) 100%);
                     animation: pulse-custom 4s ease-in-out infinite;
                     z-index: -1;
+                }
+
+                /* Custom Scrollbar Styles - giống CardDetail */
+                .create-modal::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+
+                .create-modal::-webkit-scrollbar-track {
+                    background: rgba(241, 245, 249, 0.3);
+                    border-radius: 10px;
+                }
+
+                .create-modal::-webkit-scrollbar-thumb {
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
+                    scrollbar-width: thin;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    background-clip: content-box;
+                    transition: all 0.3s ease;
                 }
 
                 .close-btn {
@@ -261,7 +283,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
             <div className="backdrop" onClick={onClose}>
                 <div className="create-modal" onClick={(e) => e.stopPropagation()}>
                     <button className="close-btn" onClick={onClose} aria-label="Close modal">
-                        <Icon icon="mdi:close" width="20" height="20" />
+                        <Icon icon="mdi:close" width="22" height="22" />
                     </button>
 
                     {/* Header */}
@@ -289,10 +311,7 @@ const CreateCardModal = ({ onClose, onCreate, members = [], boardId, ownerId, de
                     </div>
 
                     {/* Create Button */}
-                    <button type="button" className="create-btn" disabled={!name.trim()} onClick={handleSubmit}>
-                        <Icon icon="mdi:plus" width="18" height="18" className="btn-icon" />
-                        Create Card
-                    </button>
+                    <Button style={{ width: "100%" }} name="Create Card" icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!name.trim()} onClick={handleSubmit} />
                 </div>
             </div>
         </>

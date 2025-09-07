@@ -1,4 +1,5 @@
 import { Icon } from "@iconify/react";
+import { Button } from "./index";
 
 const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmText = "Confirm", cancelText = "Cancel", onConfirm, onCancel, loading = false, tone = "neutral" }) => {
     return (
@@ -61,14 +62,15 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                 }
                 .dialog-header {
                     display: flex;
-                    align-items: flex-start;
+                    align-items: center;
+                    flex-direction: column;
                     gap: 12px;
                     margin-bottom: 12px;
                 }
                 .dialog-icon {
                     flex-shrink: 0;
-                    width: 32px;
-                    height: 32px;
+                    width: 40px;
+                    height: 40px;
                     border-radius: 9999px;
                     display: inline-flex;
                     align-items: center;
@@ -79,7 +81,6 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                     color: #2563eb;
                 }
                 .dialog-icon.destructive {
-                    background: #fef2f2;
                     color: #dc2626;
                 }
                 .dialog-title {
@@ -87,6 +88,7 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                     color: #111827;
                     font-size: 1rem;
                     line-height: 1.4;
+                    text-align: center;
                     margin: 0;
                 }
                 .dialog-message {
@@ -99,7 +101,7 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                     display: flex;
                     gap: 0.75rem;
                     margin-top: 1rem;
-                    justify-content: flex-end;
+                    justify-content: space-between;
                 }
                 .btn {
                     border: none;
@@ -160,7 +162,7 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                 <div className="dialog" onClick={(e) => e.stopPropagation()}>
                     <div className="dialog-header">
                         <div className={`dialog-icon ${tone}`}>
-                            <Icon icon={tone === "destructive" ? "mdi:alert" : "mdi:information-outline"} width="20" height="20" />
+                            <Icon icon={"mdi:alert-circle"} width="50" height="50" />
                         </div>
                         <div>
                             <h3 className="dialog-title">{title}</h3>
@@ -169,22 +171,16 @@ const ConfirmDialog = ({ title = "Confirm", message = "Are you sure?", confirmTe
                     </div>
 
                     <div className="actions">
-                        <button className="btn btn-cancel" onClick={onCancel} disabled={loading}>
-                            {cancelText}
-                        </button>
-                        <button className={`btn btn-confirm ${tone}`} onClick={onConfirm} disabled={loading}>
-                            {loading ? (
-                                <>
-                                    <Icon icon="mdi:loading" width="18" height="18" className="loading-spinner" />
-                                    Processing...
-                                </>
-                            ) : (
-                                <>
-                                    <Icon icon={tone === "destructive" ? "mdi:delete" : "mdi:check-circle"} width="18" height="18" />
-                                    {confirmText}
-                                </>
-                            )}
-                        </button>
+                        <Button name={cancelText} icon="mdi:close" variant="primary" iconSize={22} size="md" onClick={onCancel} disabled={loading} />
+                        <Button
+                            name={confirmText}
+                            icon={tone === "destructive" ? "mdi:delete" : "mdi:check-circle"}
+                            variant={tone === "destructive" ? "redModern" : "primary"}
+                            iconSize={22}
+                            size="md"
+                            onClick={onConfirm}
+                            disabled={loading}
+                        />
                     </div>
                 </div>
             </div>

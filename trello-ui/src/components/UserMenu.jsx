@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { UserMeta, Avatar } from "./index";
-
+import { UserMeta, Avatar, Button } from "./index";
 // Component chứa avatar + dropdown + nút Logout
 // Có thể truyền children để hiển thị thêm trong menu nếu cần.
 const UserMenu = ({ avatar, name = "User", email = "-", onLogout = () => {}, children }) => {
@@ -91,7 +90,18 @@ const UserMenu = ({ avatar, name = "User", email = "-", onLogout = () => {}, chi
 
                     {/* Actions */}
                     <div style={{ paddingTop: 8 }}>
-                        <button
+                        <Button
+                            name="Logout"
+                            variant="redModern"
+                            color="#b91c1c"
+                            size="md"
+                            style={{ width: "100%" }}
+                            onClick={() => {
+                                setOpen(false);
+                                onLogout?.();
+                            }}
+                        />
+                        {/* <button
                             onClick={() => {
                                 setOpen(false);
                                 onLogout?.();
@@ -108,7 +118,7 @@ const UserMenu = ({ avatar, name = "User", email = "-", onLogout = () => {}, chi
                             }}
                         >
                             Logout
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             )}

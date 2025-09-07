@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Icon } from "@iconify/react";
+import { Button } from "./index";
 
 const CreateBoardForm = ({ onSubmit, onClose }) => {
     const {
@@ -54,6 +55,9 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     align-items: center;
                     z-index: 2000;
                     animation: fadeIn 0.3s ease-out;
+                    overflow-y: auto;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
                 }
                 @keyframes fadeIn {
                     from {
@@ -98,6 +102,9 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     animation: slideUp 0.3s ease-out;
                     overflow: hidden;
                     max-height: 90vh;
+                    overflow-y: auto;
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
+                    scrollbar-width: thin;
                 }
                 .create-modal::before {
                     content: "";
@@ -110,6 +117,27 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     animation: pulse-custom 4s ease-in-out infinite;
                     z-index: -1;
                 }
+
+                /* Custom Scrollbar Styles - giống CardDetail */
+                .create-modal::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+
+                .create-modal::-webkit-scrollbar-track {
+                    background: rgba(241, 245, 249, 0.3);
+                    border-radius: 10px;
+                }
+
+                .create-modal::-webkit-scrollbar-thumb {
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
+                    scrollbar-width: thin;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    background-clip: content-box;
+                    transition: all 0.3s ease;
+                }
+
                 .close-btn {
                     position: absolute;
                     top: 1rem;
@@ -271,10 +299,7 @@ const CreateBoardForm = ({ onSubmit, onClose }) => {
                     </div>
 
                     <div className="actions">
-                        <button type="submit" className="create-btn" disabled={submitting}>
-                            <Icon icon="mdi:plus" width="18" height="18" className="btn-icon" />
-                            {submitting ? "Creating..." : "Create Board"}
-                        </button>
+                        <Button style={{ width: "100%" }} name="Create Card" icon="mdi:plus" variant="primary" iconSize={18} size="md" disabled={!name.trim()} onClick={handleSubmit} />
                     </div>
                 </form>
             </div>

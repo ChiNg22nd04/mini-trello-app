@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Icon } from "@iconify/react";
+import { Button } from "./index";
 
 export default function DescriptionBox({ description = "", onSave }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -38,23 +39,15 @@ export default function DescriptionBox({ description = "", onSave }) {
                     <Icon icon="material-symbols:description" width={24} />
                     Description
                 </div>
-                {!isEditing && (
-                    <button className="btn btn-outline" onClick={handleEdit}>
-                        <Icon icon="material-symbols:edit" width={18} /> Edit
-                    </button>
-                )}
+                {!isEditing && <Button name="Edit" icon="material-symbols:edit" variant="outline" iconSize={18} size="md" onClick={handleEdit} />}
             </div>
 
             {isEditing ? (
                 <div>
                     <textarea className="input-field" rows={4} placeholder="Add a more detailed description" value={value} onChange={(e) => setValue(e.target.value)} />
-                    <div className="mt-2 d-flex" style={{ gap: ".5rem" }}>
-                        <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
-                            {isSaving ? "Saving..." : "Save"}
-                        </button>
-                        <button className="btn btn-outline" onClick={handleCancel} disabled={isSaving}>
-                            Cancel
-                        </button>
+                    <div className="mt-2 d-flex justify-content-end" style={{ gap: ".5rem" }}>
+                        <Button name="Save" icon="material-symbols:save" variant="primary" iconSize={24} size="md" onClick={handleSave} disabled={isSaving} />
+                        <Button name="Cancel" icon="material-symbols:close" variant="redModern" iconSize={24} size="md" onClick={handleCancel} disabled={isSaving} />
                     </div>
                 </div>
             ) : (

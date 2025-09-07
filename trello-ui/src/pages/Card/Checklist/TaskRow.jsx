@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
-import { safeLabel, getInitial } from "../../../utils/people";
 import MembersBar from "../MembersBar";
+import { Button } from "../../../components";
 
 export default function TaskRow({ task, members, onToggle, onEdit, onDelete, hideChecked }) {
     const hidden = hideChecked && task.completed;
@@ -24,13 +24,9 @@ export default function TaskRow({ task, members, onToggle, onEdit, onDelete, hid
                             <MembersBar members={members} size="small" isShow={false} />
                         </div>
 
-                        <button className="action-btn" title="Edit task" onClick={onEdit} style={{ color: "#3b82f6" }}>
-                            <Icon icon="material-symbols:edit-outline" width={24} />
-                        </button>
+                        <Button icon="material-symbols:edit-outline" variant="blueModern" iconSize={24} size="md" onClick={onEdit} />
 
-                        <button className="action-btn" title="Delete task" onClick={onDelete} style={{ color: "#ef4444" }}>
-                            <Icon icon="material-symbols:delete-outline" width={24} />
-                        </button>
+                        <Button icon="material-symbols:delete-outline" variant="redModern" iconSize={24} size="md" onClick={onDelete} />
                     </div>
                 </div>
             </div>

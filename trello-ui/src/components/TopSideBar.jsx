@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { socket } from "../../config";
 import { toast } from "react-toastify";
 import InvitePopup from "../pages/Board/InvitePopup";
+import { Button } from "./index";
 
 const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = "", onRefreshMembers, onRefreshBoard }) => {
     const [showInvite, setShowInvite] = useState(false);
@@ -199,10 +200,7 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
             <div className={`top-sidebar-container ${className}`} style={style}>
                 <div className="top-sidebar-content">
                     <h1 className="board-title">{boardName}</h1>
-                    <button onClick={() => setShowInvite(true)} className="invite-button" type="button" aria-label="Invite team member">
-                        <Icon icon="material-symbols:person-add-rounded" width="20" className="invite-icon" />
-                        <span className="invite-text">Invite Member</span>
-                    </button>
+                    <Button name="Invite Member" icon="material-symbols:person-add-rounded" variant="primary" iconSize={22} size="md" onClick={() => setShowInvite(true)} />
                 </div>
             </div>
 

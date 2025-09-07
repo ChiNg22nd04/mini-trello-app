@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API_BASE_URL } from "../../../config";
 import { Icon } from "@iconify/react";
+import { Button } from "../../components";
 
 const InvitePopup = ({ boardId, token, onClose }) => {
     const [email, setEmail] = useState("");
@@ -320,7 +321,6 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                     {message && (
                         <div className={`message-alert ${messageType}`}>
                             <Icon icon={messageType === "success" ? "mdi:check-circle" : "mdi:alert-circle"} width="16" height="16" />
-                            {/* {messageType === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />} */}
                             <span>{message}</span>
                         </div>
                     )}
@@ -345,25 +345,10 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                         />
                         <div className={`input-icon ${focus ? "focus" : ""} ${isValidEmail(email) ? "valid" : ""}`}>
                             {isValidEmail(email) ? <Icon icon="mdi:check-circle" width="22" height="22" /> : <Icon icon="mdi:mail" width="22" height="22" />}
-                            {/* {isValidEmail(email) ? <CheckCircle size={22} /> : <Icon icon="mdi:mail" width="22" height="22" />} */}
                         </div>
                     </div>
 
-                    {/* Send Button */}
-                    <button className="send-btn" onClick={handleInvite} disabled={isLoading || !email.trim()}>
-                        {isLoading ? (
-                            <>
-                                <Icon icon="mdi:loading" width="20" height="20" className="loading-spinner" />
-                                {/* <Loader2 size={20} className="loading-spinner" /> */}
-                                Sending...
-                            </>
-                        ) : (
-                            <>
-                                <Icon icon="mdi:send" width="20" height="20" />
-                                Send Invitation
-                            </>
-                        )}
-                    </button>
+                    <Button style={{ width: "100%" }} name="Send Invitation" icon="mdi:send" variant="primary" iconSize={20} size="md" onClick={handleInvite} disabled={isLoading || !email.trim()} />
                 </div>
             </div>
         </>

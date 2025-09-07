@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { socket, API_BASE_URL } from "../../../config";
+import { Button } from "../../components";
 
 const AuthPage = () => {
     const navigate = useNavigate();
@@ -265,29 +266,20 @@ const AuthPage = () => {
                         </div>
                     )}
 
-                    <button
+                    <Button
+                        name={code.length === 6 ? "Verify Account" : `Enter ${6 - code.length} more digits`}
+                        color="#047857"
+                        className="mb-3"
+                        style={{ width: "100%" }}
+                        variant="primary"
+                        iconSize={20}
+                        size="md"
                         onClick={handleSubmit}
                         disabled={code.length !== 6}
-                        className="btn btn-success submit-btn w-100 text-white mb-3"
-                        onMouseEnter={() => code.length === 6 && setHover(true)}
-                        onMouseLeave={() => setHover(false)}
-                    >
-                        <div className="d-flex align-items-center justify-content-center">
-                            {code.length === 6 ? (
-                                <>
-                                    Verify Account
-                                    <Icon icon="mdi:arrow-right" width="20" className="ms-2" />
-                                </>
-                            ) : (
-                                `Enter ${6 - code.length} more digits`
-                            )}
-                        </div>
-                    </button>
+                    />
 
                     <div className="text-center mb-4">
-                        <button onClick={() => navigate("/")} className="back-btn">
-                            ← Back to login
-                        </button>
+                        <Button name="Back to login" icon="mdi:arrow-left" color="#6b7280" variant="outline" iconSize={20} size="md" onClick={() => navigate("/")} />
                     </div>
 
                     <div className="text-center">

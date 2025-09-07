@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import TaskRow from "./TaskRow";
 import TaskEditRow from "./TaskEditRow";
 import TaskAddRow from "./TaskAddRow";
+import { Button } from "../../../components";
 
 export default function Checklist({
     tasks,
@@ -31,20 +32,20 @@ export default function Checklist({
                 <div className="progress-bar-container">
                     <div className="progress-bar" style={{ width: `${progress}%` }} />
                 </div>
-                <button
-                    className={`btn btn-outline eye-btn ${hideChecked ? "active" : ""} ${eyePulse ? "pulse" : ""}`}
+                <Button
+                    name={hideChecked ? "Hide Checked" : "Show Checked"}
+                    icon={hideChecked ? "material-symbols:visibility" : "material-symbols:visibility-off"}
+                    variant="greenModern"
+                    iconSize={24}
+                    size="md"
                     onClick={() => {
                         setHideChecked((s) => !s);
                         setEyePulse(true);
                         setTimeout(() => setEyePulse(false), 320);
                     }}
-                >
-                    <Icon icon={hideChecked ? "material-symbols:visibility" : "material-symbols:visibility-off"} width={24} />
-                </button>
-                <button className="btn btn-danger" onClick={actions.deleteChecked}>
-                    <Icon icon="material-symbols:delete-outline" width={24} />
-                    Delete
-                </button>
+                />
+
+                <Button name="Delete" icon="material-symbols:delete-outline" variant="redModern" iconSize={24} size="md" onClick={actions.deleteChecked} />
             </div>
 
             {/* Task list */}
