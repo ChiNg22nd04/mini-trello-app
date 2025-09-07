@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Avatar } from "../../components";
@@ -22,6 +22,7 @@ const STATUS_LABELS = { todo: "To Do", doing: "Doing", done: "Done" };
 const CardPage = () => {
     const { user, token } = useUser();
     const { id: boardId } = useParams();
+    const navigate = useNavigate();
 
     const [board, setBoard] = useState(null);
     const [cardsByStatus, setCardsByStatus] = useState({ todo: [], doing: [], done: [] });
@@ -233,6 +234,17 @@ const CardPage = () => {
             refreshBoard();
         };
 
+        // Board deleted → leave room, toast is handled globally in App.jsx, then redirect
+        const onBoardDeleted = (payload) => {
+            if (!payload?.id || String(payload.id) !== String(boardId)) return;
+            try {
+                socket.emit("boards:leave", { boardId });
+            } catch (err) {
+                console.error("Failed to emit boards:leave", err);
+            }
+            setTimeout(() => navigate("/boards"), 600);
+        };
+
         socket.on("connect", handleConnect);
         socket.on("boards:join:denied", handleJoinDenied);
         socket.on("cards:created", onCardsCreated);
@@ -244,6 +256,7 @@ const CardPage = () => {
         socket.on("boards:memberJoined", onMemberJoined);
         socket.on("boards:memberInvited", onMemberInvited);
         socket.on("invites:acceptedNotify", onInviteAcceptedNotify);
+        socket.on("boards:deleted", onBoardDeleted);
 
         return () => {
             socket.off("connect", handleConnect);
@@ -257,9 +270,10 @@ const CardPage = () => {
             socket.off("boards:memberJoined", onMemberJoined);
             socket.off("boards:memberInvited", onMemberInvited);
             socket.off("invites:acceptedNotify", onInviteAcceptedNotify);
+            socket.off("boards:deleted", onBoardDeleted);
             socket.emit("boards:leave", { boardId });
         };
-    }, [boardId, fetchData, refreshMembers, refreshBoard]);
+    }, [boardId, fetchData, refreshMembers, refreshBoard, navigate]);
 
     /* ---------- DnD move ---------- */
     const onDragEnd = async (result) => {
