@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import API_BASE_URL from "../../../config/config";
+import { socket } from "../../../config";
 import { BoardCard, Header, CreateBoardForm, ConfirmDialog, Button } from "../../components";
 import { useUser } from "../../hooks";
 import { Icon } from "@iconify/react";
@@ -31,15 +32,31 @@ const BoardPage = () => {
         return () => clearTimeout(timeout);
     }, [user, token, navigate]);
 
-    useEffect(() => {
+    const fetchBoards = useCallback(() => {
         if (!user || !token) return;
         axios
-            .get(`${API_BASE_URL}/boards`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
+            .get(`${API_BASE_URL}/boards`, { headers: { Authorization: `Bearer ${token}` } })
             .then((res) => setBoards(res.data))
             .catch(console.error);
     }, [user, token]);
+
+    useEffect(() => {
+        fetchBoards();
+    }, [fetchBoards]);
+
+    useEffect(() => {
+        const onBoardChanged = () => {
+            fetchBoards();
+        };
+        socket.on("boards:created", onBoardChanged);
+        socket.on("boards:updated", onBoardChanged);
+        socket.on("boards:deleted", onBoardChanged);
+        return () => {
+            socket.off("boards:created", onBoardChanged);
+            socket.off("boards:updated", onBoardChanged);
+            socket.off("boards:deleted", onBoardChanged);
+        };
+    }, [fetchBoards]);
 
     const onDragEnd = useCallback(
         (result) => {

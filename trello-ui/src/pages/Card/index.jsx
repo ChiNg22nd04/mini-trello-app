@@ -13,6 +13,8 @@ import CardDetail from "./CardDetail";
 import CreateCardModal from "./CreateCardModal";
 
 import { useUser } from "../../hooks";
+import { socket } from "../../../config";
+import { toast } from "react-toastify";
 
 const STATUSES = ["todo", "doing", "done"];
 const STATUS_LABELS = { todo: "To Do", doing: "Doing", done: "Done" };
@@ -138,6 +140,64 @@ const CardPage = () => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Socket: join board room and listen to card/task events to auto refresh
+    useEffect(() => {
+        if (!boardId) return;
+        socket.emit("boards:join", { boardId });
+
+        const refresh = () => fetchData();
+        const onCardsCreated = ({ card }) => {
+            toast.success(`${card?.name || "Card"} created by ${"actorName" in (arguments[0] || {}) ? arguments[0].actorName : "someone"}`);
+            refresh();
+        };
+        const onCardsUpdated = (payload) => {
+            const actor = payload?.actorName || "someone";
+            toast.info(`Card updated by ${actor}`);
+            refresh();
+        };
+        const onCardsDeleted = (payload) => {
+            const actor = payload?.actorName || "someone";
+            toast.warn(`Card deleted by ${actor}`);
+            refresh();
+        };
+
+        const showTaskToast = (evt) => {
+            const actor = evt?.actorName || "someone";
+            const assignees = Array.isArray(evt?.assignedUsers) && evt.assignedUsers.length ? ` → Assigned: ${evt.assignedUsers.map((u) => u.username).join(", ")}` : "";
+            toast.info(`Task change by ${actor}${assignees}`);
+        };
+
+        const onTasksCreated = (evt) => {
+            showTaskToast(evt);
+            refresh();
+        };
+        const onTasksUpdated = (evt) => {
+            showTaskToast(evt);
+            refresh();
+        };
+        const onTasksDeleted = (evt) => {
+            showTaskToast(evt);
+            refresh();
+        };
+
+        socket.on("cards:created", onCardsCreated);
+        socket.on("cards:updated", onCardsUpdated);
+        socket.on("cards:deleted", onCardsDeleted);
+        socket.on("tasks:created", onTasksCreated);
+        socket.on("tasks:updated", onTasksUpdated);
+        socket.on("tasks:deleted", onTasksDeleted);
+
+        return () => {
+            socket.off("cards:created", onCardsCreated);
+            socket.off("cards:updated", onCardsUpdated);
+            socket.off("cards:deleted", onCardsDeleted);
+            socket.off("tasks:created", onTasksCreated);
+            socket.off("tasks:updated", onTasksUpdated);
+            socket.off("tasks:deleted", onTasksDeleted);
+            socket.emit("boards:leave", { boardId });
+        };
+    }, [boardId, fetchData]);
 
     /* ---------- DnD move ---------- */
     const onDragEnd = async (result) => {

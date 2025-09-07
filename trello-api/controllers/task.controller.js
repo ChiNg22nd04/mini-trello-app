@@ -36,17 +36,34 @@ const createTask = async (req, res) => {
         const docRef = await tasksCollection.add(newTask);
         const createdTask = { id: docRef.id, ...newTask };
 
+        // Resolve assigned users info for richer payloads/toasts
+        let assignedUsers = [];
+        if (createdTask.assignedTo && createdTask.assignedTo.length) {
+            try {
+                for (const uid of createdTask.assignedTo) {
+                    const u = await db.collection("users").doc(uid).get();
+                    if (u.exists) {
+                        const ud = u.data();
+                        assignedUsers.push({ id: u.id, username: ud.username, avatar: ud.avatar || null });
+                    }
+                }
+            } catch (_) {}
+        }
+
         // Legacy room emit (string room previously mismatched)
-        getIO().to(cardId).emit("taskCreated", { cardId, boardId, task: createdTask });
+        getIO().to(cardId).emit("taskCreated", { cardId, boardId, task: createdTask, actorId: req.user?.id, actorName: req.user?.username, assignedUsers });
         // Consistent scoped emits
-        emitToCard(boardId, cardId, "tasks:created", { boardId, cardId, task: createdTask });
+        const createdPayload = { boardId, cardId, task: createdTask, actorId: req.user?.id, actorName: req.user?.username, assignedUsers };
+        emitToCard(boardId, cardId, "tasks:created", createdPayload);
+        // Also broadcast to the board room for broader listeners
+        emitToBoard(boardId, "tasks:created", createdPayload);
         emitToBoard(boardId, "activity", {
             scope: "task",
             action: "created",
             boardId,
             cardId,
             taskId: createdTask.id,
-            message: `Nhiệm vụ "${title}" đã được tạo`,
+            message: `Task "${title}" has been created`,
         });
 
         res.status(201).json(createdTask);
@@ -95,17 +112,34 @@ const updateTask = async (req, res) => {
         const updated = await taskDocRef.get();
         const updatedTask = { id: updated.id, ...updated.data() };
 
+        // Resolve assigned users info for richer payloads/toasts
+        let assignedUsers = [];
+        if (updatedTask.assignedTo && updatedTask.assignedTo.length) {
+            try {
+                for (const uid of updatedTask.assignedTo) {
+                    const u = await db.collection("users").doc(uid).get();
+                    if (u.exists) {
+                        const ud = u.data();
+                        assignedUsers.push({ id: u.id, username: ud.username, avatar: ud.avatar || null });
+                    }
+                }
+            } catch (_) {}
+        }
+
         // Legacy room emit
-        getIO().to(cardId).emit("taskUpdated", { cardId, boardId, task: updatedTask });
+        getIO().to(cardId).emit("taskUpdated", { cardId, boardId, task: updatedTask, actorId: req.user?.id, actorName: req.user?.username, assignedUsers });
         // Consistent scoped emits
-        emitToCard(boardId, cardId, "tasks:updated", { boardId, cardId, task: updatedTask });
+        const updatedPayload = { boardId, cardId, task: updatedTask, actorId: req.user?.id, actorName: req.user?.username, assignedUsers };
+        emitToCard(boardId, cardId, "tasks:updated", updatedPayload);
+        // Also broadcast to the board room
+        emitToBoard(boardId, "tasks:updated", updatedPayload);
         emitToBoard(boardId, "activity", {
             scope: "task",
             action: "updated",
             boardId,
             cardId,
             taskId,
-            message: `Một nhiệm vụ đã được cập nhật`,
+            message: `A task has been updated`,
         });
 
         res.json(updatedTask);
@@ -120,19 +154,38 @@ const deleteTask = async (req, res) => {
     const { cardId, taskId } = req.params;
     try {
         const taskDocRef = tasksCollection.doc(taskId);
+        const snapshot = await taskDocRef.get();
+        const existed = snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
         await taskDocRef.delete();
 
+        // Resolve assigned users of deleted task
+        let assignedUsers = [];
+        if (existed?.assignedTo && existed.assignedTo.length) {
+            try {
+                for (const uid of existed.assignedTo) {
+                    const u = await db.collection("users").doc(uid).get();
+                    if (u.exists) {
+                        const ud = u.data();
+                        assignedUsers.push({ id: u.id, username: ud.username, avatar: ud.avatar || null });
+                    }
+                }
+            } catch (_) {}
+        }
+
         // Legacy room emit
-        getIO().to(cardId).emit("taskDeleted", { cardId, taskId });
+        getIO().to(cardId).emit("taskDeleted", { cardId, taskId, actorId: req.user?.id, actorName: req.user?.username, assignedUsers });
         // Consistent scoped emits
-        emitToCard(req.params.boardId, cardId, "tasks:deleted", { boardId: req.params.boardId, cardId, taskId });
+        const deletedPayload = { boardId: req.params.boardId, cardId, taskId, actorId: req.user?.id, actorName: req.user?.username, assignedUsers };
+        emitToCard(req.params.boardId, cardId, "tasks:deleted", deletedPayload);
+        // Also broadcast to the board room
+        emitToBoard(req.params.boardId, "tasks:deleted", deletedPayload);
         emitToBoard(req.params.boardId, "activity", {
             scope: "task",
             action: "deleted",
             boardId: req.params.boardId,
             cardId,
             taskId,
-            message: `Một nhiệm vụ đã bị xoá`,
+            message: `A task has been deleted`,
         });
 
         res.json({ id: taskId });

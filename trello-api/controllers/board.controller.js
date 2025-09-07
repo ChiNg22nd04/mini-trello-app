@@ -78,16 +78,18 @@ const createBoard = async (req, res) => {
         const docRef = await boardsCollection.add(newBoard);
 
         const board = { id: docRef.id, name, description, order: maxOrder };
-        emitToBoard(docRef.id, "boards:created", board);
+        const actorId = userId;
+        const actorName = req.user?.username;
+        emitToBoard(docRef.id, "boards:created", { ...board, actorId, actorName });
         emitToBoard(docRef.id, "activity", {
             scope: "board",
             action: "created",
             boardId: docRef.id,
             actorId: userId,
-            message: `Bảng "${name}" đã được tạo`,
+            message: `Board "${name}" has been created`,
         });
         uniqueMembers.forEach((uid) => {
-            emitToUser(uid, "boards:created", board);
+            emitToUser(uid, "boards:created", { ...board, actorId, actorName });
         });
         res.status(200).json(board);
     } catch (err) {
@@ -118,16 +120,18 @@ const updateBoard = async (req, res) => {
         await boardRef.update(updatedData);
 
         const payload = { id: boardId, ...updatedData };
-        emitToBoard(boardId, "boards:updated", payload);
+        const actorId = req.user?.id;
+        const actorName = req.user?.username;
+        emitToBoard(boardId, "boards:updated", { ...payload, actorId, actorName });
         emitToBoard(boardId, "activity", {
             scope: "board",
             action: "updated",
             boardId,
             actorId: req.user.id,
-            message: `Bảng đã được cập nhật`,
+            message: `Board has been updated`,
         });
         (existingData.members || []).forEach((uid) => {
-            emitToUser(uid, "boards:updated", payload);
+            emitToUser(uid, "boards:updated", { ...payload, actorId, actorName });
         });
         res.status(200).json(updatedData);
     } catch (err) {
@@ -148,15 +152,17 @@ const deleteBoard = async (req, res) => {
 
         const members = Array.isArray(boardDoc.data().members) ? boardDoc.data().members : [];
         await boardRef.delete();
-        emitToBoard(boardId, "boards:deleted", { id: boardId });
+        const actorId = req.user?.id;
+        const actorName = req.user?.username;
+        emitToBoard(boardId, "boards:deleted", { id: boardId, actorId, actorName });
         emitToBoard(boardId, "activity", {
             scope: "board",
             action: "deleted",
             boardId,
-            message: `Bảng đã bị xoá`,
+            message: `Board has been deleted`,
         });
         members.forEach((uid) => {
-            emitToUser(uid, "boards:deleted", { id: boardId });
+            emitToUser(uid, "boards:deleted", { id: boardId, actorId, actorName });
         });
         res.status(204).send();
     } catch (err) {

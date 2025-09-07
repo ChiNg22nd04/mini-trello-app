@@ -63,14 +63,14 @@ const createCard = async (req, res) => {
         getIO().emit("cardCreated", createdCard);
 
         // Scoped, consistent events
-        emitToBoard(boardId, "cards:created", { boardId, card: createdCard });
+        emitToBoard(boardId, "cards:created", { boardId, card: createdCard, actorId: ownerId, actorName: req.user?.username });
         emitToBoard(boardId, "activity", {
             scope: "card",
             action: "created",
             boardId,
             cardId: docRef.id,
             actorId: ownerId,
-            message: `Thẻ "${name}" đã được tạo`,
+            message: `Card "${name}" has been created`,
         });
         console.log("Card created successfully");
 
@@ -166,14 +166,14 @@ const updateCard = async (req, res) => {
         // Legacy global event
         getIO().emit("cardUpdated", payload);
         // Scoped, consistent events
-        emitToBoard(boardId, "cards:updated", payload);
+        emitToBoard(boardId, "cards:updated", { ...payload, actorId: ownerId, actorName: req.user?.username });
         emitToBoard(boardId, "activity", {
             scope: "card",
             action: "updated",
             boardId,
             cardId,
             actorId: ownerId,
-            message: `Thẻ "${payload.name || ""}" đã được cập nhật`,
+            message: `Card "${payload.name || ""}" has been updated`,
         });
         res.status(200).json(payload);
     } catch (err) {
@@ -190,13 +190,13 @@ const deleteCard = async (req, res) => {
         // Legacy global event
         getIO().emit("cardDeleted", cardId);
         // Scoped, consistent events
-        emitToBoard(boardId, "cards:deleted", { boardId, id: cardId });
+        emitToBoard(boardId, "cards:deleted", { boardId, id: cardId, actorId: req.user?.id, actorName: req.user?.username });
         emitToBoard(boardId, "activity", {
             scope: "card",
             action: "deleted",
             boardId,
             cardId,
-            message: `Một thẻ đã bị xoá`,
+            message: `A card has been deleted`,
         });
         res.status(204).send();
     } catch (err) {

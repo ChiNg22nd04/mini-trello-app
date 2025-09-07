@@ -15,21 +15,24 @@ import "./App.css";
 
 function App() {
     useEffect(() => {
-        const onActivity = (payload) => {
-            const text = payload?.message || "Có cập nhật mới";
-            toast.info(text, { autoClose: 3000 });
+        const onBoardCreated = (data) => {
+            const actor = data?.actorName || "someone";
+            toast.success(`Board "${data?.name || ""}" created by ${actor}`, { autoClose: 3000 });
         };
-        const onBoardCreated = (data) => toast.success(`Bảng "${data?.name || ""}" đã được tạo`, { autoClose: 3000 });
-        const onBoardUpdated = () => toast.info("Bảng đã được cập nhật", { autoClose: 3000 });
-        const onBoardDeleted = () => toast.warn("Bảng đã bị xoá", { autoClose: 3000 });
+        const onBoardUpdated = (data) => {
+            const actor = data?.actorName || "someone";
+            toast.info(`Board updated by ${actor}`, { autoClose: 3000 });
+        };
+        const onBoardDeleted = (data) => {
+            const actor = data?.actorName || "someone";
+            toast.warn(`Board deleted by ${actor}`, { autoClose: 3000 });
+        };
 
-        socket.on("activity", onActivity);
         socket.on("boards:created", onBoardCreated);
         socket.on("boards:updated", onBoardUpdated);
         socket.on("boards:deleted", onBoardDeleted);
 
         return () => {
-            socket.off("activity", onActivity);
             socket.off("boards:created", onBoardCreated);
             socket.off("boards:updated", onBoardUpdated);
             socket.off("boards:deleted", onBoardDeleted);
