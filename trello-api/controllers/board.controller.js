@@ -357,6 +357,42 @@ const getMembersOfBoard = async (req, res) => {
     }
 };
 
+const leaveBoard = async (req, res) => {
+    try {
+        const boardId = req.params.id;
+        const userId = req.user.id;
+
+        const boardRef = boardsCollection.doc(boardId);
+        const boardDoc = await boardRef.get();
+        if (!boardDoc.exists) return res.status(404).json({ error: "Board not found" });
+
+        const data = boardDoc.data();
+        const members = Array.isArray(data.members) ? data.members : [];
+        if (data.ownerId === userId) {
+            return res.status(400).json({ error: "Owner cannot leave their own board" });
+        }
+        if (!members.includes(userId)) {
+            return res.status(400).json({ error: "You are not a member of this board" });
+        }
+
+        await boardRef.update({ members: admin.firestore.FieldValue.arrayRemove(userId) });
+
+        const actorId = req.user?.id;
+        const actorName = req.user?.username;
+
+        // Notify board room and users
+        emitToBoard(boardId, "boards:memberLeft", { boardId, memberId: userId, actorId, actorName });
+        members.forEach((uid) => {
+            emitToUser(uid, "boards:updated", { id: boardId, actorId, actorName });
+        });
+
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("leaveBoard error:", err);
+        return res.status(500).json({ error: "Failed to leave board" });
+    }
+};
+
 module.exports = {
     getBoards,
     createBoard,
@@ -366,4 +402,5 @@ module.exports = {
     inviteToBoard,
     acceptBoardInvite,
     getMembersOfBoard,
+    leaveBoard,
 };

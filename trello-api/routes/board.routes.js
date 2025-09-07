@@ -13,5 +13,6 @@ router.delete("/:id", boardController.deleteBoard);
 router.post("/:id/invite", boardController.inviteToBoard);
 router.post("/:id/invite/:inviteId/accept", boardController.acceptBoardInvite);
 router.get("/:id/members", boardController.getMembersOfBoard);
+router.post("/:id/leave", boardController.leaveBoard);
 
 module.exports = router;

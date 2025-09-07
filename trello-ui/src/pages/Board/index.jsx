@@ -17,6 +17,7 @@ const BoardPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [confirmState, setConfirmState] = useState({ open: false, ids: [], loading: false });
+    const [leaveState, setLeaveState] = useState({ open: false, id: null, loading: false });
     // const [hoveredId, setHoveredId] = useState(null);
 
     console.log("BoardPage rendered - user:", user, "token:", token);
@@ -60,14 +61,24 @@ const BoardPage = () => {
 
     // Drag reordering is disabled on grouped view
 
-    const toggleSelect = useCallback((id) => {
-        setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }, []);
+    const toggleSelect = useCallback(
+        (board) => {
+            if (!user || !board) return;
+            const isOwner = board.ownerId === user.id;
+            if (!isOwner) {
+                toast.warn("You can only select boards you own");
+                return;
+            }
+            const id = board.id;
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+            });
+        },
+        [user]
+    );
 
     // Removed clearSelection since selection is handled inline with actions
 
@@ -78,24 +89,60 @@ const BoardPage = () => {
     }, [confirmState.loading]);
 
     const handleDeleteConfirmed = useCallback(async () => {
-        const ids = confirmState.ids;
+        const ownedIds = confirmState.ids.filter((id) => {
+            const b = boards.find((x) => x.id === id);
+            return b && user && b.ownerId === user.id;
+        });
+        if (ownedIds.length === 0) {
+            toast.warn("You can only delete boards you own");
+            setConfirmState((s) => ({ ...s, loading: false }));
+            closeConfirm();
+            return;
+        }
         setConfirmState((s) => ({ ...s, loading: true }));
         try {
-            await Promise.all(ids.map((id) => axios.delete(`${API_BASE_URL}/boards/${id}`, { headers: { Authorization: `Bearer ${token}` } })));
-            setBoards((prev) => prev.filter((b) => !ids.includes(b.id)));
+            await Promise.all(ownedIds.map((id) => axios.delete(`${API_BASE_URL}/boards/${id}`, { headers: { Authorization: `Bearer ${token}` } })));
+            setBoards((prev) => prev.filter((b) => !ownedIds.includes(b.id)));
             setSelectedIds((prev) => {
                 const next = new Set(prev);
-                ids.forEach((id) => next.delete(id));
+                ownedIds.forEach((id) => next.delete(id));
                 return next;
             });
-            toast.success(ids.length > 1 ? `Deleted ${ids.length} boards` : `Board deleted`);
+            toast.success(ownedIds.length > 1 ? `Deleted ${ownedIds.length} boards` : `Board deleted`);
             closeConfirm();
         } catch (err) {
             console.error("Failed to delete boards", err);
             toast.error("Failed to delete. Please try again.");
             setConfirmState((s) => ({ ...s, loading: false }));
         }
-    }, [confirmState.ids, token, closeConfirm]);
+    }, [boards, user, confirmState.ids, token, closeConfirm]);
+
+    const openLeave = useCallback((id) => setLeaveState({ open: true, id, loading: false }), []);
+    const closeLeave = useCallback(() => {
+        if (leaveState.loading) return;
+        setLeaveState({ open: false, id: null, loading: false });
+    }, [leaveState.loading]);
+
+    const handleLeaveConfirmed = useCallback(async () => {
+        const id = leaveState.id;
+        if (!id) return;
+        setLeaveState((s) => ({ ...s, loading: true }));
+        try {
+            await axios.post(`${API_BASE_URL}/boards/${id}/leave`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            setBoards((prev) => prev.filter((b) => b.id !== id));
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+            toast.success("You left the board");
+            closeLeave();
+        } catch (err) {
+            console.error("Failed to leave board", err);
+            toast.error("Failed to leave. Please try again.");
+            setLeaveState((s) => ({ ...s, loading: false }));
+        }
+    }, [leaveState.id, token, closeLeave]);
 
     const onSubmit = async (data) => {
         try {
@@ -144,17 +191,22 @@ const BoardPage = () => {
                     .board-page {
                         padding-top: calc(60px + 20px);
                         min-height: 100vh;
-                        background: linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%);
                         position: relative;
+                        padding-bottom: 20px;
+                    }
+                    .part-page {
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                        border: 1px solid #e5e7eb;
+                        border-radius: 16px;
+                        padding: 2rem;
+                        margin-bottom: 1rem;
+                        background: linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%);
                     }
                     .content-wrapper {
                         background: #ffffff;
                         border-radius: 16px;
                         margin: 1rem 20px 20px 20px;
                         min-height: calc(100vh - 100px);
-                        padding: 2rem;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-                        border: 1px solid #e5e7eb;
                     }
                     .actions-bar {
                         display: flex;
@@ -479,6 +531,37 @@ const BoardPage = () => {
                         color: white;
                         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
                     }
+                    .icon-btn.menu {
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #334155;
+                        border: 1px solid #e2e8f0;
+                    }
+                    .popover {
+                        position: absolute;
+                        top: 40px;
+                        right: 6px;
+                        background: white;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                        padding: 8px;
+                        z-index: 20;
+                        min-width: 160px;
+                    }
+                    .popover button {
+                        width: 100%;
+                        background: transparent;
+                        border: none;
+                        text-align: left;
+                        padding: 8px 10px;
+                        border-radius: 8px;
+                        color: #334155;
+                        font-weight: 600;
+                        cursor: pointer;
+                    }
+                    .popover button:hover {
+                        background: #f1f5f9;
+                    }
                     .icon-btn.delete {
                         background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.15));
                         color: #dc2626;
@@ -597,28 +680,11 @@ const BoardPage = () => {
 
                 <div className="board-page">
                     <div className="content-wrapper">
-                        {/* Stats Bar */}
-                        <div className="stats-bar">
-                            <div className="stat-item">
-                                <Icon icon="mdi:grid" width="28" height="28" />
-                                <span>Total Boards</span>
-                                <span className="stat-number">{boards.length}</span>
-                            </div>
-                            <div className="stat-item">
-                                <Icon icon="mdi:account" width="28" height="28" />
-                                <span>Private</span>
-                                <span className="stat-number">{privateBoards.length}</span>
-                            </div>
-                            <div className="stat-item">
-                                <Icon icon="mdi:account-multiple" width="28" height="28" />
-                                <span>Shared</span>
-                                <span className="stat-number">{sharedBoards.length}</span>
-                            </div>
-                        </div>
-                        <div>
+                        <div className="part-page">
                             <h6 className="section-title">
-                                <Icon icon="mdi:folder-multiple" width="22" height="22" />
+                                <Icon icon="mdi:lock" width="22" height="22" />
                                 PRIVATE WORKSPACES
+                                <span className="stat-number">{privateBoards.length}</span>
                             </h6>
                             {selectedIds.size > 0 && (
                                 <div className="selection-bar">
@@ -628,6 +694,7 @@ const BoardPage = () => {
                                     </div>
                                     <div className="actions-group">
                                         <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
+                                        <span className="small opacity-75">Only your boards will be deleted</span>
                                     </div>
                                 </div>
                             )}
@@ -651,17 +718,23 @@ const BoardPage = () => {
                                                             className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
                                                         >
                                                             <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                                                                <button
-                                                                    className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
-                                                                    title={selectedIds.has(board.id) ? "Deselect" : "Select"}
-                                                                    onClick={() => toggleSelect(board.id)}
-                                                                >
-                                                                    {selectedIds.has(board.id) ? (
-                                                                        <Icon icon="mdi:check-circle" width="22" height="22" />
-                                                                    ) : (
-                                                                        <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
-                                                                    )}
-                                                                </button>
+                                                                {user && board.ownerId === user.id ? (
+                                                                    <button
+                                                                        className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
+                                                                        title={selectedIds.has(board.id) ? "Deselect" : "Select"}
+                                                                        onClick={() => toggleSelect(board)}
+                                                                    >
+                                                                        {selectedIds.has(board.id) ? (
+                                                                            <Icon icon="mdi:check-circle" width="22" height="22" />
+                                                                        ) : (
+                                                                            <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
+                                                                        )}
+                                                                    </button>
+                                                                ) : (
+                                                                    <button className="icon-btn menu" title="More" onClick={() => openLeave(board.id)}>
+                                                                        <Icon icon="mdi:dots-vertical" width="22" height="22" />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                             <BoardCard
                                                                 title={board.name}
@@ -689,10 +762,11 @@ const BoardPage = () => {
                                 </Droppable>
                             </DragDropContext>
                         </div>
-                        <div>
+                        <div className="part-page">
                             <h6 className="section-title">
-                                <Icon icon="mdi:folder-multiple" width="22" height="22" />
+                                <Icon icon="mdi:share" width="22" height="22" />
                                 SHARED WORKSPACES
+                                <span className="stat-number">{sharedBoards.length}</span>
                             </h6>
                             {selectedIds.size > 0 && (
                                 <div className="selection-bar">
@@ -702,6 +776,7 @@ const BoardPage = () => {
                                     </div>
                                     <div className="actions-group">
                                         <Button name="Delete" icon="mdi:delete-forever" variant="redModern" iconSize={22} size="md" onClick={() => openConfirm(Array.from(selectedIds))} />
+                                        <span className="small opacity-75">Only your boards will be deleted</span>
                                     </div>
                                 </div>
                             )}
@@ -725,17 +800,23 @@ const BoardPage = () => {
                                                             className={`board-card ${snapshot.isDragging ? "dragging" : ""} ${selectedIds.has(board.id) ? "selected" : ""}`}
                                                         >
                                                             <div className="card-actions" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                                                                <button
-                                                                    className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
-                                                                    title={selectedIds.has(board.id) ? "Deselect" : "Select"}
-                                                                    onClick={() => toggleSelect(board.id)}
-                                                                >
-                                                                    {selectedIds.has(board.id) ? (
-                                                                        <Icon icon="mdi:check-circle" width="22" height="22" />
-                                                                    ) : (
-                                                                        <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
-                                                                    )}
-                                                                </button>
+                                                                {user && board.ownerId === user.id ? (
+                                                                    <button
+                                                                        className={`icon-btn checkbox ${selectedIds.has(board.id) ? "active" : ""}`}
+                                                                        title={selectedIds.has(board.id) ? "Deselect" : "Select"}
+                                                                        onClick={() => toggleSelect(board)}
+                                                                    >
+                                                                        {selectedIds.has(board.id) ? (
+                                                                            <Icon icon="mdi:check-circle" width="22" height="22" />
+                                                                        ) : (
+                                                                            <Icon icon="mdi:checkbox-blank-outline" width="22" height="22" />
+                                                                        )}
+                                                                    </button>
+                                                                ) : (
+                                                                    <button className="icon-btn menu" title="More" onClick={() => openLeave(board.id)}>
+                                                                        <Icon icon="mdi:dots-vertical" width="22" height="22" />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                             <BoardCard
                                                                 title={board.name}
@@ -767,7 +848,7 @@ const BoardPage = () => {
                 </div>
             </>
         );
-    }, [user, token, boards, selectedIds, toggleSelect, openConfirm, handleClickBoard, privateBoards, sharedBoards]);
+    }, [user, token, selectedIds, toggleSelect, openConfirm, openLeave, handleClickBoard, privateBoards, sharedBoards]);
 
     return (
         <>
@@ -786,6 +867,18 @@ const BoardPage = () => {
                     onConfirm={handleDeleteConfirmed}
                     onCancel={closeConfirm}
                     loading={confirmState.loading}
+                    tone="destructive"
+                />
+            )}
+            {leaveState.open && (
+                <ConfirmDialog
+                    title="Leave board"
+                    message="Are you sure you want to leave this board? You will lose access."
+                    confirmText="Leave board"
+                    cancelText="Cancel"
+                    onConfirm={handleLeaveConfirmed}
+                    onCancel={closeLeave}
+                    loading={leaveState.loading}
                     tone="destructive"
                 />
             )}
