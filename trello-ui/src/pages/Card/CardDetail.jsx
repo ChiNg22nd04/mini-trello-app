@@ -267,6 +267,8 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     align-items: center;
                     gap: 1rem;
                     margin-bottom: 1.5rem;
+                    position: relative;
+                    z-index: 2;
                 }
 
                 .progress-bar-container {

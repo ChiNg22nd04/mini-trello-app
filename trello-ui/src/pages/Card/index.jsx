@@ -141,14 +141,49 @@ const CardPage = () => {
         fetchData();
     }, [fetchData]);
 
+    // Lightweight refreshers for members/board to use from TopSideBar + socket events
+    const refreshMembers = useCallback(
+        async (targetBoardId) => {
+            try {
+                const id = targetBoardId || boardId;
+                if (!id) return;
+                const membersRes = await axios.get(`${API_BASE_URL}/boards/${id}/members`, auth);
+                setArrayMembersForBoard(membersRes.data?.members || []);
+            } catch (err) {
+                console.error("Failed to refresh board members:", err);
+            }
+        },
+        [boardId, token]
+    );
+
+    const refreshBoard = useCallback(async () => {
+        try {
+            if (!boardId) return;
+            const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
+            setBoard(boardRes.data);
+        } catch (err) {
+            console.error("Failed to refresh board:", err);
+        }
+    }, [boardId, token]);
+
     // Socket: join board room and listen to card/task events to auto refresh
     useEffect(() => {
         if (!boardId) return;
         socket.emit("boards:join", { boardId });
 
+        const handleConnect = () => {
+            // Re-join the board room after reconnects
+            socket.emit("boards:join", { boardId });
+        };
+        const handleJoinDenied = () => {
+            toast.error("Cannot join board room. Retrying...");
+            // retry join shortly (token race or membership just updated)
+            setTimeout(() => socket.emit("boards:join", { boardId }), 800);
+        };
+
         const refresh = () => fetchData();
-        const onCardsCreated = ({ card }) => {
-            toast.success(`${card?.name || "Card"} created by ${"actorName" in (arguments[0] || {}) ? arguments[0].actorName : "someone"}`);
+        const onCardsCreated = ({ card, actorName }) => {
+            toast.success(`${card?.name || "Card"} created by ${actorName || "someone"}`);
             refresh();
         };
         const onCardsUpdated = (payload) => {
@@ -181,23 +216,50 @@ const CardPage = () => {
             refresh();
         };
 
+        // Membership events → refresh members/board
+        const onMemberJoined = (evt) => {
+            if (!evt?.boardId || String(evt.boardId) !== String(boardId)) return;
+            refreshMembers(evt.boardId);
+            refreshBoard();
+        };
+        const onMemberInvited = (evt) => {
+            if (!evt?.boardId || String(evt.boardId) !== String(boardId)) return;
+            refreshMembers(evt.boardId);
+        };
+        // Inviter-specific notify (user room event)
+        const onInviteAcceptedNotify = (evt) => {
+            if (!evt?.boardId || String(evt.boardId) !== String(boardId)) return;
+            refreshMembers(evt.boardId);
+            refreshBoard();
+        };
+
+        socket.on("connect", handleConnect);
+        socket.on("boards:join:denied", handleJoinDenied);
         socket.on("cards:created", onCardsCreated);
         socket.on("cards:updated", onCardsUpdated);
         socket.on("cards:deleted", onCardsDeleted);
         socket.on("tasks:created", onTasksCreated);
         socket.on("tasks:updated", onTasksUpdated);
         socket.on("tasks:deleted", onTasksDeleted);
+        socket.on("boards:memberJoined", onMemberJoined);
+        socket.on("boards:memberInvited", onMemberInvited);
+        socket.on("invites:acceptedNotify", onInviteAcceptedNotify);
 
         return () => {
+            socket.off("connect", handleConnect);
+            socket.off("boards:join:denied", handleJoinDenied);
             socket.off("cards:created", onCardsCreated);
             socket.off("cards:updated", onCardsUpdated);
             socket.off("cards:deleted", onCardsDeleted);
             socket.off("tasks:created", onTasksCreated);
             socket.off("tasks:updated", onTasksUpdated);
             socket.off("tasks:deleted", onTasksDeleted);
+            socket.off("boards:memberJoined", onMemberJoined);
+            socket.off("boards:memberInvited", onMemberInvited);
+            socket.off("invites:acceptedNotify", onInviteAcceptedNotify);
             socket.emit("boards:leave", { boardId });
         };
-    }, [boardId, fetchData]);
+    }, [boardId, fetchData, refreshMembers, refreshBoard]);
 
     /* ---------- DnD move ---------- */
     const onDragEnd = async (result) => {
@@ -211,7 +273,7 @@ const CardPage = () => {
         if (!movedCard) return;
 
         try {
-            await axios.put(`${API_BASE_URL}/cards/${draggableId}`, { status: destStatus }, auth);
+            await axios.put(`${API_BASE_URL}/boards/${boardId}/cards/${draggableId}`, { status: destStatus }, auth);
 
             // Cập nhật UI nhanh (optimistic)
             setCardsByStatus((prev) => ({
@@ -293,6 +355,8 @@ const CardPage = () => {
                         token={token}
                         boardId={boardId}
                         boardName={board?.name}
+                        onRefreshMembers={refreshMembers}
+                        onRefreshBoard={refreshBoard}
                         className="text-black fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
                     />
 
