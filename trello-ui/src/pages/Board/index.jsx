@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
 import API_BASE_URL from "../../../config/config";
 import { socket } from "../../../config";
 import { BoardCard, Header, CreateBoardForm, ConfirmDialog, Button } from "../../components";

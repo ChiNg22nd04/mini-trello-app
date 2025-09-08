@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Avatar } from "../../components";
 
 import API_BASE_URL from "../../../config/config";
