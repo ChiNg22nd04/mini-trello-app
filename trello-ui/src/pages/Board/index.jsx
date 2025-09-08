@@ -190,6 +190,7 @@ const BoardPage = () => {
             <>
                 <style jsx>{`
                     .board-page {
+                        background: linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%);
                         padding-top: calc(60px + 20px);
                         min-height: 100vh;
                         position: relative;
@@ -201,7 +202,7 @@ const BoardPage = () => {
                         border-radius: 16px;
                         padding: 2rem;
                         margin-bottom: 1rem;
-                        background: linear-gradient(135deg, #f0f6ff 0%, #ffffff 100%);
+                        background: #fff;
                     }
                     .content-wrapper {
                         background: #ffffff;

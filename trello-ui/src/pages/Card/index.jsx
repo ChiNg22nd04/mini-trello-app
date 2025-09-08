@@ -7,7 +7,7 @@ import { Avatar } from "../../components";
 
 import API_BASE_URL from "../../../config/config";
 import MembersBar from "./MembersBar";
-import { Header, TopSideBar, CreateForm } from "../../components";
+import { Header, TopSideBar, CreateForm, ConfirmDialog } from "../../components";
 import Sidebar from "./Sidebar";
 import CardDetail from "./CardDetail";
 
@@ -31,6 +31,7 @@ const CardPage = () => {
     const [createForStatus, setCreateForStatus] = useState("todo");
     const [taskCounts, setTaskCounts] = useState({});
     const [cardMembersMap, setCardMembersMap] = useState({}); // <== NEW
+    const [deleteState, setDeleteState] = useState({ open: false, card: null, status: null, loading: false });
 
     const headerHeight = "60px";
 
@@ -353,6 +354,48 @@ const CardPage = () => {
         }
     };
 
+    const openDeleteCard = useCallback((card, status) => {
+        setDeleteState({ open: true, card, status, loading: false });
+    }, []);
+
+    const closeDeleteCard = useCallback(() => {
+        setDeleteState((s) => ({ ...s, open: false, card: null, status: null, loading: false }));
+    }, []);
+
+    const handleDeleteCardConfirmed = useCallback(async () => {
+        const target = deleteState.card;
+        const status = deleteState.status;
+        if (!target || !status) return;
+        setDeleteState((s) => ({ ...s, loading: true }));
+        try {
+            await axios.delete(`${API_BASE_URL}/boards/${boardId}/cards/${target.id}`, auth);
+
+            setCardsByStatus((prev) => ({
+                ...prev,
+                [status]: prev[status].filter((c) => String(c.id) !== String(target.id)),
+            }));
+
+            setTaskCounts((prev) => {
+                const { [target.id]: _removed, ...rest } = prev;
+                return rest;
+            });
+            setCardMembersMap((prev) => {
+                const { [String(target.id)]: _removed, ...rest } = prev;
+                return rest;
+            });
+
+            if (selectedCard && String(selectedCard.id) === String(target.id)) {
+                setSelectedCard(null);
+            }
+            toast.success("Card deleted");
+            closeDeleteCard();
+        } catch (err) {
+            console.error("Failed to delete card:", err);
+            toast.error("Failed to delete card");
+            setDeleteState((s) => ({ ...s, loading: false }));
+        }
+    }, [deleteState.card, deleteState.status, boardId, auth, selectedCard, closeDeleteCard]);
+
     return (
         <div style={{ paddingTop: "calc(60px + 20px)", ...pageStyles }}>
             <Header isShow={false} username={user?.username} avatar={user?.avatar} style={{ height: headerHeight, zIndex: 1030 }} />
@@ -430,7 +473,20 @@ const CardPage = () => {
                                                                         ...provided.draggableProps.style,
                                                                     }}
                                                                 >
-                                                                    <strong className="text-black">{card.name}</strong>
+                                                                    <div className="d-flex justify-content-between align-items-start">
+                                                                        <strong className="text-black">{card.name}</strong>
+                                                                        <button
+                                                                            title="More"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openDeleteCard(card, status);
+                                                                            }}
+                                                                            className=""
+                                                                            style={{ border: "none", background: "transparent", color: "#64748b", borderRadius: 6 }}
+                                                                        >
+                                                                            <Icon icon="mdi:dots-vertical" width={20} height={20} />
+                                                                        </button>
+                                                                    </div>
                                                                     <div className="d-flex justify-content-between mt-2 align-items-center">
                                                                         {/* Members */}
                                                                         <div style={{ display: "flex", alignItems: "center" }}>
@@ -500,6 +556,19 @@ const CardPage = () => {
                 onTaskCountsChange={handleTaskCountsChange}
                 onCardMembersUpdate={handleCardMembersUpdate}
             />
+
+            {deleteState.open && (
+                <ConfirmDialog
+                    title="Delete card"
+                    message="Are you sure you want to delete this card? This action cannot be undone."
+                    confirmText="Delete"
+                    cancelText="Cancel"
+                    onConfirm={handleDeleteCardConfirmed}
+                    onCancel={closeDeleteCard}
+                    loading={deleteState.loading}
+                    tone="destructive"
+                />
+            )}
         </div>
     );
 };
