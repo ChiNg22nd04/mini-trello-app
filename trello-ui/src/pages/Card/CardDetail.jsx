@@ -4,6 +4,7 @@ import useCardTasks from "../../hooks/useCardTask";
 import CardHeader from "./CardHeader";
 import MembersBar from "./MembersBar";
 import DescriptionBox from "../../components/DescriptionBox";
+import { Button } from "../../components";
 import Checklist from "../Card/Checklist/index";
 import axios from "axios";
 import API_BASE_URL from "../../../config/config";
@@ -23,6 +24,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     // Activities state
     const [activities, setActivities] = useState([]);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
+    const [hideActivities, setHideActivities] = useState(false);
     useEffect(() => {
         setCurrentCard(card || null);
     }, [card]);
@@ -34,7 +36,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         try {
             setActivitiesLoading(true);
             const params = new URLSearchParams();
-            params.set("limit", "50");
+            params.set("limit", hideActivities ? "500" : "50");
             if (!currentCard?.id) return setActivities([]);
             const url = `${API_BASE_URL}/boards/${boardId}/cards/${currentCard.id}/activities?${params.toString()}`;
             const res = await axios.get(url, { headers: authHeaders });
@@ -45,7 +47,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         } finally {
             setActivitiesLoading(false);
         }
-    }, [authHeaders, boardId, currentCard?.id, token]);
+    }, [authHeaders, boardId, currentCard?.id, token, hideActivities]);
 
     const handleSaveDescription = useCallback(
         async (nextDescription) => {
@@ -728,10 +730,25 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                 {/* Activity Section */}
                 <div className="section">
-                    <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                        <Icon icon="material-symbols:activity-history" width={22} /> Activity
+                    <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: "0.75rem" }}>
+                        <div className="section-header">
+                            <Icon icon="material-symbols:activity-history" width={22} /> Activity
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                name={hideActivities ? "Show activities" : "Hide activities"}
+                                icon={hideActivities ? "material-symbols:visibility" : "material-symbols:visibility-off"}
+                                iconSize={18}
+                                onClick={() => setHideActivities((v) => !v)}
+                                style={{ padding: "0 10px" }}
+                            />
+                        </div>
                     </div>
-                    {activitiesLoading ? (
+                    {hideActivities ? (
+                        <div className="text-muted">Activities are hidden.</div>
+                    ) : activitiesLoading ? (
                         <div className="text-muted">Loading activities...</div>
                     ) : activities.length === 0 ? (
                         <div className="text-muted">No activities.</div>
