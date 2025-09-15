@@ -2,6 +2,7 @@ const { db } = require("../firebase");
 const { getIO, emitToBoard } = require("../config/socket");
 
 const cardsCollection = db.collection("cards");
+const boardsCollection = db.collection("boards");
 const tasksCollection = db.collection("tasks");
 const usersCollection = db.collection("users");
 
@@ -35,6 +36,17 @@ const createCard = async (req, res) => {
 
         if (status && !ALLOWED_STATUSES.includes(status)) {
             return res.status(400).json({ error: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(",")}` });
+        }
+
+        // Disallow creating card if board is closed
+        try {
+            const boardDoc = await boardsCollection.doc(boardId).get();
+            if (!boardDoc.exists) return res.status(404).json({ error: "Board not found" });
+            const bdata = boardDoc.data();
+            if (bdata?.closed) return res.status(403).json({ error: "Board is closed" });
+        } catch (e) {
+            console.error("Board check failed when creating card", e);
+            return res.status(500).json({ msg: "Error creating card" });
         }
 
         const newCard = {

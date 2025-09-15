@@ -15,6 +15,8 @@ router.post("/:id/invite", boardController.inviteToBoard);
 router.post("/:id/invite/:inviteId/accept", boardController.acceptBoardInvite);
 router.get("/:id/members", boardController.getMembersOfBoard);
 router.post("/:id/leave", boardController.leaveBoard);
+router.post("/:id/close", boardController.closeBoard);
+router.post("/:id/reopen", boardController.reopenBoard);
 // Activities
 router.get("/:id/activities", activityController.getActivities);
 

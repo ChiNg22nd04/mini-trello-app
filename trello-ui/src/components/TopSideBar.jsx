@@ -1,12 +1,21 @@
-import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { socket } from "../../config";
 import { toast } from "react-toastify";
 import InvitePopup from "../pages/Board/InvitePopup";
-import { Button } from "./index";
+import BoardSettingsPopup from "../pages/Board/BoardSettingsPopup";
+import { Button, ConfirmDialog } from "./index";
+import axios from "axios";
+import API_BASE_URL from "../../config/config";
 
-const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = "", onRefreshMembers, onRefreshBoard }) => {
+const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}, className = "", onRefreshMembers, onRefreshBoard, isClosed = false, isOwner = false, onLocalClosedChange }) => {
     const [showInvite, setShowInvite] = useState(false);
+    const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
+    const [closing, setClosing] = useState(false);
+    const [leaving, setLeaving] = useState(false);
+    const [reopening, setReopening] = useState(false);
+    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
         if (!boardId) return;
@@ -60,6 +69,20 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
         socket.on("invites:acceptedNotify", onInviteAcceptedNotify);
         socket.on("boards:memberInvited", onMemberInvited);
         socket.on("boards:memberJoined", onMemberJoined);
+        const onClosed = (payload) => {
+            if (String(payload?.id) !== String(boardId)) return;
+            toast.warn("Board has been closed");
+            onLocalClosedChange?.(true);
+            onRefreshBoard?.();
+        };
+        const onReopened = (payload) => {
+            if (String(payload?.id) !== String(boardId)) return;
+            toast.success("Board reopened");
+            onLocalClosedChange?.(false);
+            onRefreshBoard?.();
+        };
+        socket.on("boards:closed", onClosed);
+        socket.on("boards:reopened", onReopened);
 
         return () => {
             socket.off("invites:sent", onInviteSent);
@@ -68,9 +91,67 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
             socket.off("invites:acceptedNotify", onInviteAcceptedNotify);
             socket.off("boards:memberInvited", onMemberInvited);
             socket.off("boards:memberJoined", onMemberJoined);
+            socket.off("boards:closed", onClosed);
+            socket.off("boards:reopened", onReopened);
             socket.emit("boards:leave", { boardId });
         };
     }, [boardId]);
+
+    useEffect(() => {
+        const onDocClick = () => {
+            // close menu on outside click
+            setShowMenu(false);
+        };
+        if (showMenu) {
+            document.addEventListener("click", onDocClick);
+        }
+        return () => document.removeEventListener("click", onDocClick);
+    }, [showMenu]);
+
+    const handleLeave = useCallback(async () => {
+        try {
+            setLeaving(true);
+            await axios.post(`${API_BASE_URL}/boards/${boardId}/leave`, {}, auth);
+            toast.success("You left the board");
+            onRefreshMembers?.(boardId);
+            onRefreshBoard?.();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to leave board");
+        } finally {
+            setLeaving(false);
+        }
+    }, [boardId, auth, onRefreshBoard, onRefreshMembers]);
+
+    const handleCloseBoard = useCallback(async () => {
+        try {
+            setClosing(true);
+            await axios.post(`${API_BASE_URL}/boards/${boardId}/close`, {}, auth);
+            toast.warn("Board closed");
+            onLocalClosedChange?.(true);
+            onRefreshBoard?.();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to close board");
+        } finally {
+            setClosing(false);
+        }
+    }, [boardId, auth, onLocalClosedChange, onRefreshBoard]);
+
+    const handleReopenBoard = useCallback(async () => {
+        try {
+            setReopening(true);
+            await axios.post(`${API_BASE_URL}/boards/${boardId}/reopen`, {}, auth);
+            toast.success("Board reopened");
+            onLocalClosedChange?.(false);
+            onRefreshBoard?.();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to reopen board");
+        } finally {
+            setReopening(false);
+        }
+    }, [boardId, auth, onLocalClosedChange, onRefreshBoard]);
 
     return (
         <>
@@ -81,7 +162,7 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                     border: 1px solid #10b981;
                     padding: 1rem 2rem;
                     position: relative;
-                    overflow: hidden;
+                    overflow: visible;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     justify-content: space-between;
                 }
@@ -199,12 +280,134 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
 
             <div className={`top-sidebar-container ${className}`} style={style}>
                 <div className="top-sidebar-content">
-                    <h1 className="board-title">{boardName}</h1>
-                    <Button name="Invite Member" icon="material-symbols:person-add-rounded" variant="primary" iconSize={22} size="md" onClick={() => setShowInvite(true)} />
+                    <h1 className="board-title">
+                        {boardName}
+                        {isClosed ? " (Closed)" : ""}
+                    </h1>
+                    <div style={{ position: "relative", display: "flex", gap: 8, alignItems: "center" }}>
+                        <Button
+                            icon="mdi:dots-vertical"
+                            variant="outline"
+                            iconSize={22}
+                            size="md"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMenu((s) => !s);
+                            }}
+                        />
+
+                        {showMenu && (
+                            <div
+                                className="popover"
+                                style={{
+                                    position: "absolute",
+                                    top: 44,
+                                    right: 0,
+                                    background: "#fff",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: 12,
+                                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                                    padding: 8,
+                                    zIndex: 50,
+                                    minWidth: 200,
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Button
+                                    name="Board settings"
+                                    icon="material-symbols:settings"
+                                    variant="outline"
+                                    iconSize={20}
+                                    size="md"
+                                    style={{ width: "100%", justifyContent: "flex-start" }}
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        setShowSettings(true);
+                                    }}
+                                />
+
+                                {!isOwner && (
+                                    <Button
+                                        name="Leave board"
+                                        icon="material-symbols:logout-rounded"
+                                        variant="outline"
+                                        iconSize={20}
+                                        size="md"
+                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                        onClick={async () => {
+                                            setShowMenu(false);
+                                            await handleLeave();
+                                        }}
+                                        disabled={leaving}
+                                    />
+                                )}
+
+                                {isOwner && !isClosed && (
+                                    <Button
+                                        name="Close board"
+                                        icon="material-symbols:lock-outline"
+                                        variant="redModern"
+                                        iconSize={20}
+                                        size="md"
+                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                        onClick={() => {
+                                            setShowMenu(false);
+                                            setShowCloseConfirm(true);
+                                        }}
+                                        disabled={closing}
+                                    />
+                                )}
+
+                                {isOwner && isClosed && (
+                                    <Button
+                                        name="Reopen board"
+                                        icon="material-symbols:lock-open-outline"
+                                        variant="greenModern"
+                                        iconSize={20}
+                                        size="md"
+                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                        onClick={async () => {
+                                            setShowMenu(false);
+                                            await handleReopenBoard();
+                                        }}
+                                        disabled={reopening}
+                                    />
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {showInvite && <InvitePopup boardId={boardId} token={token} onClose={() => setShowInvite(false)} />}
+            {showSettings && (
+                <BoardSettingsPopup
+                    boardId={boardId}
+                    token={token}
+                    initialName={boardName}
+                    // description is provided from parent; if needed extend props to pass it
+                    initialDescription={""}
+                    isOwner={isOwner}
+                    isClosed={isClosed}
+                    onSaved={onRefreshBoard}
+                    onClose={() => setShowSettings(false)}
+                />
+            )}
+            {showCloseConfirm && (
+                <ConfirmDialog
+                    title="Close board"
+                    message="Are you sure you want to close this board? You won't be able to add new cards or tasks until it is reopened."
+                    confirmText="Close board"
+                    cancelText="Cancel"
+                    onConfirm={async () => {
+                        await handleCloseBoard();
+                        setShowCloseConfirm(false);
+                    }}
+                    onCancel={() => setShowCloseConfirm(false)}
+                    loading={closing}
+                    tone="destructive"
+                />
+            )}
         </>
     );
 };

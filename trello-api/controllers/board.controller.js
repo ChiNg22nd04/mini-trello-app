@@ -21,6 +21,7 @@ const getBoards = async (req, res) => {
                 members: board.members || [],
                 order: board.order ?? 0,
                 createdAt: board.createdAt || null,
+                closed: !!board.closed,
             };
         });
 
@@ -52,6 +53,7 @@ const getBoardById = async (req, res) => {
             ownerId: data.ownerId,
             createdAt: data.createdAt,
             order: data.order,
+            closed: !!data.closed,
         };
 
         res.status(200).json(board);
@@ -78,6 +80,7 @@ const createBoard = async (req, res) => {
             members: uniqueMembers,
             createdAt: new Date(),
             order: maxOrder,
+            closed: false,
         };
         const docRef = await boardsCollection.add(newBoard);
 
@@ -397,6 +400,84 @@ const leaveBoard = async (req, res) => {
     }
 };
 
+const closeBoard = async (req, res) => {
+    try {
+        const boardId = req.params.id;
+        const userId = req.user.id;
+
+        const boardRef = boardsCollection.doc(boardId);
+        const boardDoc = await boardRef.get();
+        if (!boardDoc.exists) return res.status(404).json({ error: "Board not found" });
+
+        const data = boardDoc.data();
+        if (data.ownerId !== userId) {
+            return res.status(403).json({ error: "Only owner can close the board" });
+        }
+        if (data.closed === true) {
+            return res.status(200).json({ closed: true });
+        }
+
+        await boardRef.update({ closed: true });
+
+        const actorId = req.user?.id;
+        const actorName = req.user?.username;
+        emitToBoard(boardId, "boards:closed", { id: boardId, closed: true, actorId, actorName });
+        emitToBoard(boardId, "activity", {
+            scope: "board",
+            action: "closed",
+            boardId,
+            actorId,
+            actorName,
+            message: `${req.user?.username || "Someone"} closed the board`,
+        });
+        (data.members || []).forEach((uid) => emitToUser(uid, "boards:updated", { id: boardId, closed: true, actorId, actorName }));
+
+        return res.status(200).json({ closed: true });
+    } catch (err) {
+        console.error("closeBoard error:", err);
+        return res.status(500).json({ error: "Failed to close board" });
+    }
+};
+
+const reopenBoard = async (req, res) => {
+    try {
+        const boardId = req.params.id;
+        const userId = req.user.id;
+
+        const boardRef = boardsCollection.doc(boardId);
+        const boardDoc = await boardRef.get();
+        if (!boardDoc.exists) return res.status(404).json({ error: "Board not found" });
+
+        const data = boardDoc.data();
+        if (data.ownerId !== userId) {
+            return res.status(403).json({ error: "Only owner can reopen the board" });
+        }
+        if (!data.closed) {
+            return res.status(200).json({ closed: false });
+        }
+
+        await boardRef.update({ closed: false });
+
+        const actorId = req.user?.id;
+        const actorName = req.user?.username;
+        emitToBoard(boardId, "boards:reopened", { id: boardId, closed: false, actorId, actorName });
+        emitToBoard(boardId, "activity", {
+            scope: "board",
+            action: "reopened",
+            boardId,
+            actorId,
+            actorName,
+            message: `${req.user?.username || "Someone"} reopened the board`,
+        });
+        (data.members || []).forEach((uid) => emitToUser(uid, "boards:updated", { id: boardId, closed: false, actorId, actorName }));
+
+        return res.status(200).json({ closed: false });
+    } catch (err) {
+        console.error("reopenBoard error:", err);
+        return res.status(500).json({ error: "Failed to reopen board" });
+    }
+};
+
 module.exports = {
     getBoards,
     createBoard,
@@ -407,4 +488,6 @@ module.exports = {
     acceptBoardInvite,
     getMembersOfBoard,
     leaveBoard,
+    closeBoard,
+    reopenBoard,
 };

@@ -2,6 +2,7 @@ const { db } = require("../firebase");
 const { getIO, emitToCard, emitToBoard } = require("../config/socket");
 
 const tasksCollection = db.collection("tasks");
+const boardsCollection = db.collection("boards");
 
 // GET /boards/:boardId/cards/:cardId/tasks
 const getTasksByCard = async (req, res) => {
@@ -22,6 +23,17 @@ const createTask = async (req, res) => {
     const { title, status = "todo", description = "", completed = false, assignedTo = [] } = req.body;
 
     try {
+        // Disallow creating task if board is closed
+        try {
+            const boardDoc = await boardsCollection.doc(boardId).get();
+            if (!boardDoc.exists) return res.status(404).json({ msg: "Board not found" });
+            const bdata = boardDoc.data();
+            if (bdata?.closed) return res.status(403).json({ msg: "Board is closed" });
+        } catch (e) {
+            console.error("Board check failed when creating task", e);
+            return res.status(500).json({ msg: "Error creating task" });
+        }
+
         const newTask = {
             boardId,
             cardId,

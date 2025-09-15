@@ -11,6 +11,7 @@ export default function Checklist({
     boardMembers,
     progress,
     actions, // { toggleTask, deleteTask, deleteChecked, addTask, saveTask }
+    isBoardClosed = false,
 }) {
     const [hideChecked, setHideChecked] = useState(false);
     const [eyePulse, setEyePulse] = useState(false);
@@ -87,9 +88,9 @@ export default function Checklist({
 
             {/* Add task */}
             {!showAdd ? (
-                <div className="add-task-button" onClick={() => setShowAdd(true)}>
+                <div className="add-task-button" onClick={() => !isBoardClosed && setShowAdd(true)} style={{ opacity: isBoardClosed ? 0.6 : 1, cursor: isBoardClosed ? "not-allowed" : "pointer" }}>
                     <Icon icon="material-symbols:add" width={24} />
-                    Add an item
+                    {isBoardClosed ? "Board closed" : "Add an item"}
                 </div>
             ) : (
                 <TaskAddRow
@@ -99,6 +100,7 @@ export default function Checklist({
                         if (created) setShowAdd(false);
                     }}
                     onCancel={() => setShowAdd(false)}
+                    disabled={isBoardClosed}
                 />
             )}
         </div>

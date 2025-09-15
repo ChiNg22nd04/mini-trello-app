@@ -32,6 +32,7 @@ const CardPage = () => {
     const [taskCounts, setTaskCounts] = useState({});
     const [cardMembersMap, setCardMembersMap] = useState({}); // <== NEW
     const [deleteState, setDeleteState] = useState({ open: false, card: null, status: null, loading: false });
+    const [isClosed, setIsClosed] = useState(false);
 
     const headerHeight = "60px";
 
@@ -121,6 +122,7 @@ const CardPage = () => {
             // board
             const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
             setBoard(boardRes.data);
+            setIsClosed(!!boardRes.data?.closed);
 
             // columns by status (server already filters & sorts)
             const [todo, doing, done] = await Promise.all(STATUSES.map((s) => fetchCardsByStatus(s)));
@@ -162,6 +164,7 @@ const CardPage = () => {
             if (!boardId) return;
             const boardRes = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
             setBoard(boardRes.data);
+            setIsClosed(!!boardRes.data?.closed);
         } catch (err) {
             console.error("Failed to refresh board:", err);
         }
@@ -227,6 +230,16 @@ const CardPage = () => {
             if (!evt?.boardId || String(evt.boardId) !== String(boardId)) return;
             refreshMembers(evt.boardId);
         };
+        const onBoardClosed = (evt) => {
+            if (!evt?.id || String(evt.id) !== String(boardId)) return;
+            setIsClosed(true);
+            refreshBoard();
+        };
+        const onBoardReopened = (evt) => {
+            if (!evt?.id || String(evt.id) !== String(boardId)) return;
+            setIsClosed(false);
+            refreshBoard();
+        };
         // Inviter-specific notify (user room event)
         const onInviteAcceptedNotify = (evt) => {
             if (!evt?.boardId || String(evt.boardId) !== String(boardId)) return;
@@ -257,6 +270,8 @@ const CardPage = () => {
         socket.on("boards:memberInvited", onMemberInvited);
         socket.on("invites:acceptedNotify", onInviteAcceptedNotify);
         socket.on("boards:deleted", onBoardDeleted);
+        socket.on("boards:closed", onBoardClosed);
+        socket.on("boards:reopened", onBoardReopened);
 
         return () => {
             socket.off("connect", handleConnect);
@@ -271,12 +286,15 @@ const CardPage = () => {
             socket.off("boards:memberInvited", onMemberInvited);
             socket.off("invites:acceptedNotify", onInviteAcceptedNotify);
             socket.off("boards:deleted", onBoardDeleted);
+            socket.off("boards:closed", onBoardClosed);
+            socket.off("boards:reopened", onBoardReopened);
             socket.emit("boards:leave", { boardId });
         };
     }, [boardId, fetchData, refreshMembers, refreshBoard, navigate]);
 
     /* ---------- DnD move ---------- */
     const onDragEnd = async (result) => {
+        if (isClosed) return;
         const { source, destination, draggableId } = result;
         if (!destination || source.droppableId === destination.droppableId) return;
 
@@ -328,6 +346,10 @@ const CardPage = () => {
     }, []);
 
     const handleAddTask = (status) => {
+        if (isClosed) {
+            toast.warn("Board is closed");
+            return;
+        }
         setCreateForStatus(status || "todo");
         setIsCreateOpen(true);
     };
@@ -413,6 +435,9 @@ const CardPage = () => {
                         boardName={board?.name}
                         onRefreshMembers={refreshMembers}
                         onRefreshBoard={refreshBoard}
+                        isClosed={isClosed}
+                        isOwner={user?.id && board?.ownerId && String(user.id) === String(board.ownerId)}
+                        onLocalClosedChange={setIsClosed}
                         className="text-black fw-normal p-2 mb-4 fs-5 ps-4 pe-4 d-flex justify-content-between align-items-center"
                     />
 
@@ -521,8 +546,9 @@ const CardPage = () => {
                                                     onClick={() => handleAddTask(status)}
                                                     onMouseOver={(e) => (e.currentTarget.style.background = "#d1f7d6")}
                                                     onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                                                    disabled={isClosed}
                                                 >
-                                                    <Icon width={20} icon="material-symbols:add" /> Add a card
+                                                    <Icon width={20} icon="material-symbols:add" /> {isClosed ? "Board closed" : "Add a card"}
                                                 </button>
                                             </div>
                                         )}
@@ -555,6 +581,7 @@ const CardPage = () => {
                 boardMembers={arrayMembersForBoard}
                 onTaskCountsChange={handleTaskCountsChange}
                 onCardMembersUpdate={handleCardMembersUpdate}
+                isBoardClosed={isClosed}
             />
 
             {deleteState.open && (

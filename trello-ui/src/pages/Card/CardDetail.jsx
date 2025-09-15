@@ -10,7 +10,7 @@ import axios from "axios";
 import API_BASE_URL from "../../../config/config";
 import { socket } from "../../../config";
 
-const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange, onCardMembersUpdate }) => {
+const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCountsChange, onCardMembersUpdate, isBoardClosed = false }) => {
     const { tasks, cardMembers, taskMembersMap, progress, actions } = useCardTasks({
         card,
         boardId,
@@ -726,7 +726,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
 
                 <DescriptionBox description={currentCard.description} onSave={handleSaveDescription} />
 
-                <Checklist tasks={tasks} taskMembersMap={taskMembersMap} boardMembers={boardMembers} progress={progress} actions={actions} />
+                <Checklist tasks={tasks} taskMembersMap={taskMembersMap} boardMembers={boardMembers} progress={progress} actions={actions} isBoardClosed={isBoardClosed} />
 
                 {/* Activity Section */}
                 <div className="section">
