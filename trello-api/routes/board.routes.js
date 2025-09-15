@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth.middleware.js");
 const { boardController } = require("../controllers");
+const activityController = require("../controllers/activity.controller");
 
 router.use(authMiddleware);
 
@@ -14,5 +15,7 @@ router.post("/:id/invite", boardController.inviteToBoard);
 router.post("/:id/invite/:inviteId/accept", boardController.acceptBoardInvite);
 router.get("/:id/members", boardController.getMembersOfBoard);
 router.post("/:id/leave", boardController.leaveBoard);
+// Activities
+router.get("/:id/activities", activityController.getActivities);
 
 module.exports = router;

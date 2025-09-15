@@ -90,7 +90,8 @@ const createBoard = async (req, res) => {
             action: "created",
             boardId: docRef.id,
             actorId: userId,
-            message: `Board "${name}" has been created`,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} created board "${name}"`,
         });
         uniqueMembers.forEach((uid) => {
             emitToUser(uid, "boards:created", { ...board, actorId, actorName });
@@ -132,7 +133,8 @@ const updateBoard = async (req, res) => {
             action: "updated",
             boardId,
             actorId: req.user.id,
-            message: `Board has been updated`,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} updated board`,
         });
         (existingData.members || []).forEach((uid) => {
             emitToUser(uid, "boards:updated", { ...payload, actorId, actorName });
@@ -163,7 +165,9 @@ const deleteBoard = async (req, res) => {
             scope: "board",
             action: "deleted",
             boardId,
-            message: `Board has been deleted`,
+            actorId: req.user?.id,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} deleted a board`,
         });
         members.forEach((uid) => {
             emitToUser(uid, "boards:deleted", { id: boardId, actorId, actorName });

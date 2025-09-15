@@ -20,11 +20,32 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
     const fetchTasks = actions?.fetchTasks;
 
     const [currentCard, setCurrentCard] = useState(card || null);
+    // Activities state
+    const [activities, setActivities] = useState([]);
+    const [activitiesLoading, setActivitiesLoading] = useState(false);
     useEffect(() => {
         setCurrentCard(card || null);
     }, [card]);
 
     const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
+
+    const fetchActivities = useCallback(async () => {
+        if (!boardId || !token) return;
+        try {
+            setActivitiesLoading(true);
+            const params = new URLSearchParams();
+            params.set("limit", "50");
+            if (!currentCard?.id) return setActivities([]);
+            const url = `${API_BASE_URL}/boards/${boardId}/cards/${currentCard.id}/activities?${params.toString()}`;
+            const res = await axios.get(url, { headers: authHeaders });
+            const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : [];
+            setActivities(list);
+        } catch (err) {
+            console.error("Failed to fetch activities:", err);
+        } finally {
+            setActivitiesLoading(false);
+        }
+    }, [authHeaders, boardId, currentCard?.id, token]);
 
     const handleSaveDescription = useCallback(
         async (nextDescription) => {
@@ -40,6 +61,11 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         },
         [authHeaders, boardId, currentCard?.id, token]
     );
+
+    // Initial activities fetch and when filter changes
+    useEffect(() => {
+        fetchActivities();
+    }, [fetchActivities]);
 
     // Realtime sync for this specific card (join card room and listen for updates)
     useEffect(() => {
@@ -83,11 +109,19 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
         };
 
         socket.on("connect", handleReconnect);
+        // Activity events broadcasted to board room
+        const onActivity = (evt) => {
+            if (!evt || String(evt.boardId) !== String(boardId)) return;
+            const matches = String(evt.cardId || "") === String(currentCard?.id || "");
+            if (!matches) return;
+            setActivities((prev) => [{ ...evt, id: evt.id || `local-${Date.now()}` }, ...prev].slice(0, 100));
+        };
         socket.on("cards:updated", onCardUpdated);
         socket.on("cards:deleted", onCardDeleted);
         socket.on("tasks:created", onTaskCreated);
         socket.on("tasks:updated", onTaskUpdated);
         socket.on("tasks:deleted", onTaskDeleted);
+        socket.on("activity", onActivity);
 
         return () => {
             socket.off("connect", handleReconnect);
@@ -96,6 +130,7 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
             socket.off("tasks:created", onTaskCreated);
             socket.off("tasks:updated", onTaskUpdated);
             socket.off("tasks:deleted", onTaskDeleted);
+            socket.off("activity", onActivity);
             socket.emit("cards:leave", { boardId, cardId });
         };
     }, [boardId, currentCard?.id, fetchTasks, onClose]);
@@ -656,6 +691,21 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                     border-color: #9ca3af;
                     color: #374151;
                 }
+                .activity-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .activity-item {
+                    background: rgba(255, 255, 255, 0.9);
+                    border: 1px solid rgba(229, 231, 235, 0.6);
+                    border-radius: 12px;
+                    padding: 0.75rem;
+                }
+                .activity-time {
+                    color: #6b7280;
+                    font-size: 12px;
+                }
             `}</style>
             {/* backdrop */}
             <div className="backdrop" onClick={onClose} />
@@ -675,6 +725,32 @@ const CardDetail = ({ card, onClose, boardId, token, boardMembers = [], onTaskCo
                 <DescriptionBox description={currentCard.description} onSave={handleSaveDescription} />
 
                 <Checklist tasks={tasks} taskMembersMap={taskMembersMap} boardMembers={boardMembers} progress={progress} actions={actions} />
+
+                {/* Activity Section */}
+                <div className="section">
+                    <div className="section-header" style={{ marginBottom: "0.75rem" }}>
+                        <Icon icon="material-symbols:activity-history" width={22} /> Activity
+                    </div>
+                    {activitiesLoading ? (
+                        <div className="text-muted">Loading activities...</div>
+                    ) : activities.length === 0 ? (
+                        <div className="text-muted">No activities.</div>
+                    ) : (
+                        <div className="activity-list">
+                            {activities.map((a) => (
+                                <div key={a.id || `${a.scope}-${a.action}-${a.createdAt || Math.random()}`} className="activity-item">
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <Icon icon="mdi:flash-outline" width={18} />
+                                        <div>
+                                            <div style={{ color: "#111827", fontWeight: 500 }}>{a.message || `${a.scope} ${a.action}`}</div>
+                                            <div className="activity-time">{new Date(a.createdAt || Date.now()).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </>
     );

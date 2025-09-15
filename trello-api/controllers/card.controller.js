@@ -70,7 +70,8 @@ const createCard = async (req, res) => {
             boardId,
             cardId: docRef.id,
             actorId: ownerId,
-            message: `Card "${name}" has been created`,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} created card "${name}"`,
         });
         console.log("Card created successfully");
 
@@ -173,7 +174,10 @@ const updateCard = async (req, res) => {
             boardId,
             cardId,
             actorId: ownerId,
-            message: `Card "${payload.name || ""}" has been updated`,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} updated card ${
+                name !== undefined ? `name to "${updatedData.name}"` : description !== undefined ? "description" : status !== undefined ? `status to ${updatedData.status}` : "details"
+            }`,
         });
         res.status(200).json(payload);
     } catch (err) {
@@ -196,7 +200,9 @@ const deleteCard = async (req, res) => {
             action: "deleted",
             boardId,
             cardId,
-            message: `A card has been deleted`,
+            actorId: req.user?.id,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} deleted a card`,
         });
         res.status(204).send();
     } catch (err) {

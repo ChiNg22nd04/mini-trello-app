@@ -63,7 +63,9 @@ const createTask = async (req, res) => {
             boardId,
             cardId,
             taskId: createdTask.id,
-            message: `Task "${title}" has been created`,
+            actorId: req.user?.id,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} added task "${title}"`,
         });
 
         res.status(201).json(createdTask);
@@ -139,7 +141,19 @@ const updateTask = async (req, res) => {
             boardId,
             cardId,
             taskId,
-            message: `A task has been updated`,
+            actorId: req.user?.id,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} updated task${
+                updates?.title
+                    ? ` name to "${updates.title}"`
+                    : updates?.completed !== undefined
+                    ? ` completion to ${!!updates.completed}`
+                    : updates?.status
+                    ? ` status to ${updates.status}`
+                    : updates?.description
+                    ? " description"
+                    : ""
+            }${updates?.addMember ? ` (added member)` : updates?.removeMember ? ` (removed member)` : ""}`,
         });
 
         res.json(updatedTask);
@@ -185,7 +199,9 @@ const deleteTask = async (req, res) => {
             boardId: req.params.boardId,
             cardId,
             taskId,
-            message: `A task has been deleted`,
+            actorId: req.user?.id,
+            actorName: req.user?.username,
+            message: `${req.user?.username || "Someone"} deleted a task`,
         });
 
         res.json({ id: taskId });

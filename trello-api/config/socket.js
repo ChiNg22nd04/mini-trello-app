@@ -49,7 +49,7 @@ function initIO(httpServer) {
             try {
                 // TODO: thay bằng check thực tế trong DB xem user có trong board không
                 const userId = socket.data.userId;
-                const hasAccess = await canAccessBoard(userId, boardId); 
+                const hasAccess = await canAccessBoard(userId, boardId);
                 if (!hasAccess) return socket.emit("boards:join:denied", { boardId });
 
                 socket.join(`board:${boardId}`);
@@ -96,6 +96,24 @@ function getIO() {
 // Helpers emit theo room
 function emitToBoard(boardId, event, payload) {
     try {
+        // Persist activities under the card's collection if available
+        if (event === "activity") {
+            try {
+                const activity = { ...payload, createdAt: payload?.createdAt || Date.now() };
+                const cardId = payload?.cardId;
+                if (cardId) {
+                    db.collection("cards")
+                        .doc(String(cardId))
+                        .collection("activities")
+                        .add(activity)
+                        .catch((err) => {
+                            console.error("[Activity Persist Error]", err?.message || err);
+                        });
+                }
+            } catch (err) {
+                console.error("[Activity Persist Exception]", err?.message || err);
+            }
+        }
         getIO().to(`board:${boardId}`).emit(event, payload);
     } catch (err) {
         console.error(`[Socket Emit Error] ${event} -> board:${boardId}`, { payload, error: err?.message || err });
