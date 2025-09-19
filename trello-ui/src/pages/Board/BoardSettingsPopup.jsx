@@ -41,7 +41,7 @@ const BoardSettingsPopup = ({
                 setLoadingMeta(true);
                 const res = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
                 if (!mounted) return;
-                const createdAt = res?.data?.createdAt || res?.data?.created_at || null;
+                const createdAt = res?.data?.createdAt || res?.data?.createAt || res?.data?.created_at || null;
                 const closed = !!res?.data?.closed;
                 setMeta({ createdAt, closed });
             } catch (err) {
@@ -129,12 +129,45 @@ const BoardSettingsPopup = ({
         </div>
     );
 
-    const formatDateTime = useCallback((iso) => {
-        if (!iso) return "—";
+    const formatDateTime = useCallback((input) => {
+        if (!input) return "—";
         try {
-            return new Date(iso).toLocaleString();
+            let date;
+            // Handle Date instance
+            if (input instanceof Date) {
+                date = input;
+            }
+            // Handle Firestore Timestamp-like objects
+            else if (typeof input === "object" && input !== null) {
+                if (typeof input.toDate === "function") {
+                    date = input.toDate();
+                } else if (typeof input.seconds === "number") {
+                    date = new Date(input.seconds * 1000);
+                } else if (typeof input._seconds === "number") {
+                    date = new Date(input._seconds * 1000);
+                }
+            }
+            // Handle epoch milliseconds
+            else if (typeof input === "number") {
+                date = new Date(input);
+            }
+
+            // Fallback: attempt to parse string (including formats like
+            // "September 4, 2025 at 4:48:07 PM UTC+7"). If parsing fails,
+            // render the original string to avoid "Invalid Date".
+            if (!date) {
+                const parsedMs = Date.parse(String(input));
+                if (!Number.isNaN(parsedMs)) {
+                    date = new Date(parsedMs);
+                }
+            }
+
+            if (!date || Number.isNaN(date.getTime())) {
+                return String(input);
+            }
+            return date.toLocaleString();
         } catch {
-            return String(iso);
+            return String(input);
         }
     }, []);
 
@@ -334,7 +367,7 @@ const BoardSettingsPopup = ({
                 .content {
                     display: grid;
                     gap: 16px;
-                    padding-top: 1.25rem;
+                    padding-top: 1rem;
                 }
                 .meta {
                     display: flex;
@@ -471,7 +504,7 @@ const BoardSettingsPopup = ({
                 .actions {
                     display: flex;
                     gap: 10px;
-                    justify-content: flex-end;
+                    justify-content: space-between;
                     padding-top: 1rem;
                 }
                 .danger {
@@ -515,20 +548,9 @@ const BoardSettingsPopup = ({
                     <TitleEditable value={name} onChange={setName} />
                 </div>
                 <div className="content">
-                    <div className="section">
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <div className="label">Status</div>
-                            <span className={`pill ${meta.closed ? "closed" : ""}`}>
-                                <span style={{ width: 8, height: 8, background: meta.closed ? "#ef4444" : "#10b981", borderRadius: 999 }} />
-                                {meta.closed ? "Closed" : "Open"}
-                            </span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <span className="member-sub" title={meta.createdAt || ""}>
-                                <Icon icon="mdi:clock-outline" width={16} /> {loadingMeta ? "Loading..." : `Created ${formatDateTime(meta.createdAt)}`}
-                            </span>
-                        </div>
-                    </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }} className="member-sub" title={meta.createdAt || ""}>
+                        <Icon icon="mdi:clock-outline" width={16} /> {loadingMeta ? "Loading..." : `Created ${formatDateTime(meta.createdAt)}`}
+                    </span>
 
                     <div className="section">
                         <div className="label" style={{ marginBottom: 10 }}>
@@ -544,19 +566,19 @@ const BoardSettingsPopup = ({
                         {loadingMembers ? <div className="member-sub">Loading members...</div> : <MembersStack list={members} onInvite={() => setShowInvite(true)} />}
                         <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Invite teammates to collaborate on this board.</div>
                     </div>
+                </div>
 
+                <div className="actions">
                     {isOwner && (
-                        <div className={`section ${isOwner ? "danger" : ""}`}>
-                            <div className="label">Danger zone</div>
+                        <div>
                             {!meta.closed && <Button name="Close board" icon="material-symbols:lock-outline" variant="redModern" size="md" onClick={handleCloseBoard} loading={closing} />}
                             {meta.closed && <Button name="Reopen board" icon="material-symbols:lock-open-outline" variant="greenModern" size="md" onClick={handleReopenBoard} loading={reopening} />}
                         </div>
                     )}
-                </div>
-
-                <div className="actions">
-                    <Button name="Save" icon="material-symbols:save" variant="primary" onClick={handleSave} loading={saving} disabled={!name.trim()} />
-                    <Button name="Cancel" icon="material-symbols:close" variant="outline" onClick={onClose} />
+                    <div className="flex">
+                        <Button className="me-2" name="Save" icon="material-symbols:save" variant="primary" onClick={handleSave} loading={saving} disabled={!name.trim()} />
+                        <Button name="Cancel" icon="material-symbols:close" variant="outline" onClick={onClose} />
+                    </div>
                 </div>
 
                 {showInvite && <InvitePopup boardId={boardId} token={token} onClose={() => setShowInvite(false)} />}
