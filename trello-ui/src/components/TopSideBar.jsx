@@ -316,7 +316,7 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                                 <Button
                                     name="Board settings"
                                     icon="material-symbols:settings"
-                                    variant="outline"
+                                    variant="primary"
                                     iconSize={20}
                                     size="md"
                                     style={{ width: "100%", justifyContent: "flex-start" }}
@@ -325,12 +325,13 @@ const TopSideBar = ({ token, boardName = "Board Management", boardId, style = {}
                                         setShowSettings(true);
                                     }}
                                 />
+                                <div className="pb-2"></div>
 
                                 {!isOwner && (
                                     <Button
                                         name="Leave board"
                                         icon="material-symbols:logout-rounded"
-                                        variant="outline"
+                                        variant="redModern"
                                         iconSize={20}
                                         size="md"
                                         style={{ width: "100%", justifyContent: "flex-start" }}
