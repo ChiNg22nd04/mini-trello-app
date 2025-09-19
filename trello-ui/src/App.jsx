@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import axios from "axios";
 
 import LoginPage from "./pages/Login";
 import AuthPage from "./pages/Login/Auth";
@@ -15,6 +16,24 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
 function App() {
+    useEffect(() => {
+        const interceptorId = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                const status = error?.response?.status;
+                if (status === 401) {
+                    try {
+                        localStorage.removeItem("user");
+                        localStorage.removeItem("accessToken");
+                    } catch {}
+                    window.location.href = "/boards";
+                }
+                return Promise.reject(error);
+            }
+        );
+        return () => axios.interceptors.response.eject(interceptorId);
+    }, []);
+
     useEffect(() => {
         const onBoardCreated = (data) => {
             const actor = data?.actorName || "someone";
