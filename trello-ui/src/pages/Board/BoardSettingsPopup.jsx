@@ -6,6 +6,7 @@ import API_BASE_URL from "../../../config/config";
 import { Button } from "../../components";
 import InvitePopup from "./InvitePopup";
 import MembersBar from "../Card/MembersBar";
+import { DescriptionBox } from "../../components";
 
 const BoardSettingsPopup = ({
     boardId,
@@ -327,6 +328,22 @@ const BoardSettingsPopup = ({
                     scrollbar-color: rgba(16, 185, 129, 0.5) rgba(243, 244, 246, 0.5);
                     scroll-behavior: smooth;
                 }
+                .description-area {
+                    background: rgba(255, 255, 255, 0.8);
+                    border: 2px solid #e5e7eb;
+                    border-radius: 12px;
+                    padding: 1rem;
+                    min-height: 80px;
+                    color: #374151;
+                    font-size: 0.875rem;
+                    line-height: 1.5;
+                    transition: all 0.3s ease;
+                }
+
+                .description-area:hover {
+                    border-color: #d1d5db;
+                    background: white;
+                }
                 .header {
                     display: flex;
                     align-items: center;
@@ -392,7 +409,8 @@ const BoardSettingsPopup = ({
                     font-size: 0.9rem;
                 }
                 .input,
-                .textarea {
+                .textarea,
+                .input-field {
                     width: 100%;
                     background: rgba(255, 255, 255, 0.9);
                     border: 2px solid #e5e7eb;
@@ -403,14 +421,16 @@ const BoardSettingsPopup = ({
                     transition: all 0.3s ease;
                 }
                 .input:focus,
-                .textarea:focus {
+                .textarea:focus,
+                .input-field:focus {
                     border-color: #10b981;
                     background: white;
                     box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
                     outline: none;
                     transform: translateY(-1px);
                 }
-                .textarea {
+                .textarea,
+                .input-field {
                     min-height: 100px;
                     resize: vertical;
                 }
@@ -534,12 +554,7 @@ const BoardSettingsPopup = ({
                         <Icon icon="mdi:clock-outline" width={16} /> {loadingMeta ? "Loading..." : `Created ${formatDateTime(meta.createdAt)}`}
                     </span>
 
-                    <div className="section">
-                        <div className="label" style={{ marginBottom: 10 }}>
-                            Description
-                        </div>
-                        <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter description" />
-                    </div>
+                    <DescriptionBox description={description} onSave={setDescription} />
 
                     <div className="section">
                         <div className="label member-sub" style={{ marginBottom: 10 }}>
