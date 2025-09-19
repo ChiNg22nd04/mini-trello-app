@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const Avatar = ({
     src,
@@ -9,9 +9,22 @@ const Avatar = ({
     className = "",
     style = {},
 }) => {
+    const [imgSrc, setImgSrc] = useState(src);
+
+    useEffect(() => {
+        setImgSrc(src);
+    }, [src]);
+
+    const handleError = () => {
+        // Fallback to initials avatar service if external avatar fails
+        const initial = (alt && typeof alt === "string" && alt.length > 0 ? alt.charAt(0) : "U").toUpperCase();
+        const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(initial)}&background=random&color=fff`;
+        if (imgSrc !== fallback) setImgSrc(fallback);
+    };
+
     return (
         <img
-            src={src}
+            src={imgSrc}
             alt={alt}
             className={`rounded-circle ${className}`}
             style={{
@@ -23,6 +36,10 @@ const Avatar = ({
                 boxShadow,
                 ...style,
             }}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={handleError}
+            loading="lazy"
         />
     );
 };

@@ -5,6 +5,7 @@ import AuthPage from "./pages/Login/Auth";
 import BoardPage from "./pages/Board";
 import CardPage from "./pages/Card";
 import GithubCallback from "./pages/Login/GithubCallback";
+import GoogleCallback from "./pages/Login/GoogleCallback";
 import { ToastContainer, toast } from "react-toastify";
 import { socket } from "../config";
 import { useEffect } from "react";
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/auth/verify" element={<AuthPage />} />
 
                 <Route path="/auth/github/callback" element={<GithubCallback />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 {/* <Route path="/github" element={<GithubCallback />} /> */}
 
                 <Route path="/signin" element={<LoginPage />} />

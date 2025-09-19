@@ -21,6 +21,18 @@ function generateAvatar({ email, githubAvatar, username }) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(firstChar)}&background=random&color=fff`;
 }
 
+function mergeLoginMethods(existing, method) {
+    const arr = Array.isArray(existing) ? existing : existing ? [existing] : [];
+    const set = new Set(arr);
+    set.add(method);
+    return Array.from(set);
+}
+
+function computeFinalAvatar({ googlePicture, githubAvatar, email, username, existingAvatar }) {
+    const gravatarOrInitial = generateAvatar({ email, username });
+    return googlePicture || githubAvatar || existingAvatar || gravatarOrInitial;
+}
+
 const githubLogin = (req, res) => {
     const authorizeURL = "https://github.com/login/oauth/authorize";
     const clientID = process.env.GITHUB_CLIENT_ID;
@@ -83,27 +95,56 @@ const githubCallback = async (req, res) => {
         }
 
         const { id, login, avatar_url } = userResponse.data;
-        const uid = id.toString();
-        const userRef = db.collection("users").doc(uid);
-        const userDoc = await userRef.get();
 
-        const avatar = generateAvatar({ email: emailFromApi, githubAvatar: avatar_url, username: login });
+        const usersCollection = db.collection("users");
+        let uid;
+        let userRef;
+        let existingData = null;
 
-        if (!userDoc.exists) {
+        if (emailFromApi) {
+            const byEmail = await usersCollection.where("email", "==", emailFromApi).get();
+            if (!byEmail.empty) {
+                userRef = usersCollection.doc(byEmail.docs[0].id);
+                uid = byEmail.docs[0].id;
+                existingData = byEmail.docs[0].data();
+            }
+        }
+
+        if (!uid) {
+            uid = crypto.randomUUID();
+            userRef = usersCollection.doc(uid);
+        }
+
+        const loginMethods = mergeLoginMethods(existingData?.loginMethods || existingData?.loginMethod, "github");
+        const avatarGithub = avatar_url || existingData?.avatarGithub || "";
+        const finalAvatar = computeFinalAvatar({
+            googlePicture: existingData?.avatarGoogle,
+            githubAvatar: avatarGithub,
+            email: emailFromApi,
+            username: login,
+            existingAvatar: existingData?.avatar,
+        });
+
+        if (!existingData) {
             await userRef.set({
                 uid,
                 githubId: id,
                 username: login,
                 email: emailFromApi || "",
-                avatar,
+                avatarGithub,
+                avatar: finalAvatar,
                 createdAt: new Date(),
                 loginMethod: "github",
+                loginMethods,
             });
-        } else if (!userDoc.data().avatar) {
-            await userRef.update({ avatar });
+        } else {
+            const updates = { githubId: id, username: existingData.username || login, avatarGithub, loginMethod: "github", loginMethods };
+            if (finalAvatar && finalAvatar !== existingData.avatar) updates.avatar = finalAvatar;
+            if (!existingData.email && emailFromApi) updates.email = emailFromApi;
+            await userRef.update(updates);
         }
 
-        const token = jwt.sign({ id: uid, username: login, email: emailFromApi || "", avatar }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: uid, username: login, email: emailFromApi || existingData?.email || "", avatar: finalAvatar }, process.env.JWT_SECRET, {
             expiresIn: "2h",
         });
 
@@ -111,10 +152,10 @@ const githubCallback = async (req, res) => {
         const payload = {
             token,
             user: {
-                id: id.toString(),
+                id: uid,
                 username: login,
-                email: emailFromApi || "",
-                avatar,
+                email: emailFromApi || existingData?.email || "",
+                avatar: finalAvatar,
             },
         };
 
@@ -133,6 +174,162 @@ const githubCallback = async (req, res) => {
         console.error("GitHub Login Error:", err.response?.data || err.message);
         const message = err.response?.data || { msg: err.message };
         res.status(500).json({ msg: "GitHub login failed", details: message });
+    }
+};
+
+// Google OAuth 2.0
+const googleLogin = (req, res) => {
+    const authorizeURL = "https://accounts.google.com/o/oauth2/v2/auth";
+    const clientID = process.env.GOOGLE_CLIENT_ID;
+    const redirectURI = process.env.GOOGLE_REDIRECT_URI;
+
+    // Request OpenID Connect scopes to get email and profile picture
+    const scope = ["openid", "email", "profile"].join(" ");
+    const params = new URLSearchParams({
+        client_id: clientID,
+        redirect_uri: redirectURI,
+        response_type: "code",
+        scope,
+        access_type: "offline",
+        prompt: "consent",
+    });
+
+    const googleOAuthURL = `${authorizeURL}?${params.toString()}`;
+    console.log("googleOAuthURL", googleOAuthURL);
+    res.redirect(googleOAuthURL);
+};
+
+const googleCallback = async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send("No code found");
+
+    try {
+        // Exchange authorization code for tokens
+        const tokenResponse = await axios.post(
+            "https://oauth2.googleapis.com/token",
+            {
+                client_id: process.env.GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                code,
+                grant_type: "authorization_code",
+                redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            },
+            {
+                headers: { "Content-Type": "application/json" },
+            }
+        );
+
+        const accessToken = tokenResponse.data.access_token;
+        const idToken = tokenResponse.data.id_token;
+
+        if (!accessToken && !idToken) {
+            console.error("No tokens from Google:", tokenResponse.data);
+            return res.status(401).json({ msg: "No tokens received from Google", details: tokenResponse.data });
+        }
+
+        // Fetch user info using access token
+        let userInfo;
+        try {
+            const userInfoResp = await axios.get("https://openidconnect.googleapis.com/v1/userinfo", {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            userInfo = userInfoResp.data;
+        } catch (e) {
+            // Fallback: decode id_token if userinfo endpoint fails
+            if (idToken) {
+                const parts = idToken.split(".");
+                if (parts.length === 3) {
+                    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));
+                    userInfo = payload || {};
+                }
+            }
+        }
+
+        const sub = userInfo?.sub;
+        const email = userInfo?.email || "";
+        const name = userInfo?.name || (email ? email.split("@")[0] : "User");
+        const picture = userInfo?.picture || "";
+
+        if (!sub) {
+            return res.status(500).json({ msg: "Google user info missing 'sub'" });
+        }
+
+        const usersCollection = db.collection("users");
+        let uid;
+        let userRef;
+        let existing = null;
+
+        if (email) {
+            const byEmail = await usersCollection.where("email", "==", email).get();
+            if (!byEmail.empty) {
+                userRef = usersCollection.doc(byEmail.docs[0].id);
+                uid = byEmail.docs[0].id;
+                existing = byEmail.docs[0].data();
+            }
+        }
+
+        if (!uid) {
+            uid = crypto.randomUUID();
+            userRef = usersCollection.doc(uid);
+        }
+
+        const loginMethods = mergeLoginMethods(existing?.loginMethods || existing?.loginMethod, "google");
+        const avatarGoogle = picture || existing?.avatarGoogle || "";
+        const finalAvatar = computeFinalAvatar({
+            googlePicture: avatarGoogle,
+            githubAvatar: existing?.avatarGithub,
+            email,
+            username: name,
+            existingAvatar: existing?.avatar,
+        });
+
+        if (!existing) {
+            await userRef.set({
+                uid,
+                googleSub: sub,
+                username: name,
+                email: email || "",
+                avatarGoogle,
+                avatar: finalAvatar,
+                createdAt: new Date(),
+                loginMethod: "google",
+                loginMethods,
+            });
+        } else {
+            const updates = { googleSub: sub, username: existing.username || name, avatarGoogle, loginMethod: "google", loginMethods };
+            if (!existing.email && email) updates.email = email;
+            if (finalAvatar && finalAvatar !== existing.avatar) updates.avatar = finalAvatar;
+            await userRef.update(updates);
+        }
+
+        const token = jwt.sign({ id: uid, username: name, email: email || existing?.email || "", avatar: finalAvatar }, process.env.JWT_SECRET, {
+            expiresIn: "2h",
+        });
+
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+        const payload = {
+            token,
+            user: {
+                id: uid,
+                username: name,
+                email: email || existing?.email || "",
+                avatar: finalAvatar,
+            },
+        };
+
+        const accept = req.get("Accept") || "";
+        if (accept.includes("text/html")) {
+            const url = new URL(`${frontendUrl}/auth/google/callback`);
+            url.searchParams.set("token", token);
+            url.searchParams.set("user", encodeURIComponent(JSON.stringify(payload.user)));
+            return res.redirect(url.toString());
+        }
+
+        return res.json(payload);
+    } catch (err) {
+        console.error("Google Login Error:", err.response?.data || err.message);
+        const message = err.response?.data || { msg: err.message };
+        res.status(500).json({ msg: "Google login failed", details: message });
     }
 };
 
@@ -201,7 +398,8 @@ const verifyMagicCode = async (req, res) => {
         if (userQuery.empty) {
             uid = crypto.randomUUID();
             username = email.split("@")[0];
-            avatar = generateAvatar({ email, username });
+            const gravatar = generateAvatar({ email, username });
+            avatar = gravatar;
 
             await usersCollection.doc(uid).set({
                 uid,
@@ -210,20 +408,31 @@ const verifyMagicCode = async (req, res) => {
                 avatar,
                 createdAt: new Date().toISOString(),
                 loginMethod: "email-code",
+                loginMethods: ["email-code"],
             });
 
             getIO().emit("new-user", { uid, username, avatar });
             console.log("Emitting new-user:", { uid, username, avatar });
         } else {
             const userDoc = userQuery.docs[0];
-            uid = userDoc.data().uid || userDoc.id;
-            username = userDoc.data().username;
-            avatar = userDoc.data().avatar;
+            uid = userDoc.id;
+            const data = userDoc.data();
+            username = data.username || email.split("@")[0];
+            const gravatar = generateAvatar({ email, username });
+            const finalAvatar = computeFinalAvatar({
+                googlePicture: data.avatarGoogle,
+                githubAvatar: data.avatarGithub,
+                email,
+                username,
+                existingAvatar: data.avatar,
+            });
+            avatar = finalAvatar;
 
-            if (!avatar) {
-                avatar = generateAvatar({ email, username });
-                await usersCollection.doc(uid).update({ avatar });
-            }
+            const loginMethods = mergeLoginMethods(data.loginMethods || data.loginMethod, "email-code");
+            const updates = { loginMethod: "email-code", loginMethods };
+            if (finalAvatar && finalAvatar !== data.avatar) updates.avatar = finalAvatar;
+            if (!data.username) updates.username = username;
+            await usersCollection.doc(uid).update(updates);
         }
 
         await docRef.update({ used: true });
@@ -250,6 +459,8 @@ const verifyMagicCode = async (req, res) => {
 module.exports = {
     githubLogin,
     githubCallback,
+    googleLogin,
+    googleCallback,
     sendMagicCode,
     verifyMagicCode,
 };

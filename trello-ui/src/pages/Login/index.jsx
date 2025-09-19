@@ -32,6 +32,10 @@ const LoginPage = () => {
         window.location.href = `${API_BASE_URL}/github`;
     };
 
+    const handleGoogleLogin = () => {
+        window.location.href = `${API_BASE_URL}/google`;
+    };
+
     const isValidEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
@@ -244,8 +248,11 @@ const LoginPage = () => {
                         <span className="small">or continue with</span>
                     </div>
 
-                    {/* GitHub Button */}
-                    <Button name="GitHub" icon="mdi:github" color="#24292e" style={{ width: "100%" }} variant="outline" iconSize={20} size="md" onClick={handleGithubLogin} />
+                    {/* OAuth Buttons */}
+                    <div className="d-grid gap-2">
+                        <Button name="GitHub" icon="mdi:github" color="#24292e" style={{ width: "100%" }} variant="outline" iconSize={20} size="md" onClick={handleGithubLogin} />
+                        <Button name="Google" icon="mdi:google" color="#ea4335" style={{ width: "100%" }} variant="outline" iconSize={20} size="md" onClick={handleGoogleLogin} />
+                    </div>
 
                     {/* Terms */}
                     <div className="text-center mt-4">

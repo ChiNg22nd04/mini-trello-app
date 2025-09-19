@@ -39,6 +39,7 @@ const Header = ({ style = {} }) => {
     }, [open]);
 
     const avatar = user?.avatar;
+    console.log("avatar", avatar);
 
     return (
         <header
