@@ -43,9 +43,12 @@ const BoardSettingsPopup = ({
                 setLoadingMeta(true);
                 const res = await axios.get(`${API_BASE_URL}/boards/${boardId}`, auth);
                 if (!mounted) return;
-                const createdAt = res?.data?.createdAt || res?.data?.createAt || res?.data?.created_at || null;
-                const closed = !!res?.data?.closed;
+                const data = res?.data || {};
+                const createdAt = data?.createdAt || data?.createAt || data?.created_at || null;
+                const closed = !!data?.closed;
                 setMeta({ createdAt, closed });
+                if (typeof data?.name === "string") setName(data.name);
+                if (typeof data?.description === "string") setDescription(data.description || "");
             } catch (err) {
                 console.error("Failed to fetch board info", err);
             } finally {

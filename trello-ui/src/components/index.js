@@ -9,6 +9,5 @@ import Avatar from "./Avatar";
 import DueDropdown from "./DueDropdown";
 import DescriptionBox from "./DescriptionBox";
 import Button from "./Button";
-import TextareaSection from "./TextareaSection";
 
-export { BoardCard, Header, CreateBoardForm, ConfirmDialog, TopSideBar, UserMenu, UserMeta, Avatar, DueDropdown, DescriptionBox, Button, CreateBoardForm as CreateForm, TextareaSection };
+export { BoardCard, Header, CreateBoardForm, ConfirmDialog, TopSideBar, UserMenu, UserMeta, Avatar, DueDropdown, DescriptionBox, Button, CreateBoardForm as CreateForm };

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API_BASE_URL } from "../../../config";
@@ -69,12 +70,12 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: rgba(0, 0, 0, 0.6);
+                    background: rgba(0, 0, 0, 0.35);
                     backdrop-filter: blur(8px);
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    z-index: 2000;
+                    z-index: 3000;
                     animation: fadeIn 0.3s ease-out;
                 }
 
@@ -305,52 +306,66 @@ const InvitePopup = ({ boardId, token, onClose }) => {
                 }
             `}</style>
 
-            <div className="backdrop" onClick={onClose}>
-                <div className="invite-popup" onClick={(e) => e.stopPropagation()}>
-                    <button className="close-btn" onClick={onClose}>
-                        <Icon icon="mdi:close" width="20" height="20" />
-                    </button>
+            {typeof document !== "undefined"
+                ? createPortal(
+                      <div className="backdrop" onClick={onClose}>
+                          <div className="invite-popup" onClick={(e) => e.stopPropagation()}>
+                              <button className="close-btn" onClick={onClose}>
+                                  <Icon icon="mdi:close" width="20" height="20" />
+                              </button>
 
-                    {/* Header */}
-                    <div style={{ textAlign: "center", marginBottom: "1rem" }}>
-                        <h2 className="title-gradient">Invite to Board</h2>
-                        <p style={{ color: "#6b7280", fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>Send an invitation to collaborate on this board</p>
-                    </div>
+                              {/* Header */}
+                              <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+                                  <h2 className="title-gradient">Invite to Board</h2>
+                                  <p style={{ color: "#6b7280", fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>Send an invitation to collaborate on this board</p>
+                              </div>
 
-                    {/* Message Alert */}
-                    {message && (
-                        <div className={`message-alert ${messageType}`}>
-                            <Icon icon={messageType === "success" ? "mdi:check-circle" : "mdi:alert-circle"} width="16" height="16" />
-                            <span>{message}</span>
-                        </div>
-                    )}
+                              {/* Message Alert */}
+                              {message && (
+                                  <div className={`message-alert ${messageType}`}>
+                                      <Icon icon={messageType === "success" ? "mdi:check-circle" : "mdi:alert-circle"} width="16" height="16" />
+                                      <span>{message}</span>
+                                  </div>
+                              )}
 
-                    {/* Email Input */}
-                    <div className="input-container">
-                        <input
-                            type="email"
-                            className="email-input"
-                            placeholder="Enter email address"
-                            value={email}
-                            onChange={(e) => {
-                                setEmail(e.target.value);
-                                if (message) {
-                                    setMessage("");
-                                }
-                            }}
-                            onFocus={() => setFocus(true)}
-                            onBlur={() => setFocus(false)}
-                            onKeyPress={handleKeyPress}
-                            disabled={isLoading}
-                        />
-                        <div className={`input-icon ${focus ? "focus" : ""} ${isValidEmail(email) ? "valid" : ""}`}>
-                            {isValidEmail(email) ? <Icon icon="mdi:check-circle" width="22" height="22" /> : <Icon icon="mdi:mail" width="22" height="22" />}
-                        </div>
-                    </div>
+                              {/* Email Input */}
+                              <div className="input-container">
+                                  <input
+                                      type="email"
+                                      className="email-input"
+                                      placeholder="Enter email address"
+                                      value={email}
+                                      onChange={(e) => {
+                                          setEmail(e.target.value);
+                                          if (message) {
+                                              setMessage("");
+                                          }
+                                      }}
+                                      onFocus={() => setFocus(true)}
+                                      onBlur={() => setFocus(false)}
+                                      onKeyPress={handleKeyPress}
+                                      disabled={isLoading}
+                                  />
+                                  <div className={`input-icon ${focus ? "focus" : ""} ${isValidEmail(email) ? "valid" : ""}`}>
+                                      {isValidEmail(email) ? <Icon icon="mdi:check-circle" width="22" height="22" /> : <Icon icon="mdi:mail" width="22" height="22" />}
+                                  </div>
+                              </div>
 
-                    <Button style={{ width: "100%" }} name="Send Invitation" icon="mdi:send" variant="primary" iconSize={20} size="md" onClick={handleInvite} disabled={isLoading || !email.trim()} />
-                </div>
-            </div>
+                              <Button
+                                  style={{ width: "100%" }}
+                                  name="Send Invitation"
+                                  icon="mdi:send"
+                                  variant="primary"
+                                  iconSize={20}
+                                  size="md"
+                                  onClick={handleInvite}
+                                  disabled={isLoading || !email.trim()}
+                              />
+                          </div>
+                      </div>,
+                      document.body
+                  )
+                : null}
         </>
     );
 };
