@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import axios from "axios";
 import API_BASE_URL from "../../../config/config";
-import { Button, Avatar } from "../../components";
+import { Button } from "../../components";
 import InvitePopup from "./InvitePopup";
+import MembersBar from "../Card/MembersBar";
 
 const BoardSettingsPopup = ({
     boardId,
@@ -109,25 +110,6 @@ const BoardSettingsPopup = ({
             </h1>
         );
     };
-
-    const MembersStack = ({ list = [], onInvite }) => (
-        <div className="members-list">
-            <div className="avatar-stack">
-                {list.map((m) => (
-                    <div key={m.id || m.userId || m.email} className="avatar-item" title={m.username || m.email || "Member"}>
-                        {m.avatar ? (
-                            <Avatar src={m.avatar} alt={m.username || m.email || "Member"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
-                        ) : (
-                            (m.username?.[0] || m.email?.[0] || "M").toUpperCase()
-                        )}
-                    </div>
-                ))}
-                <button className="add-circle" title="Invite member" onClick={onInvite}>
-                    <Icon icon="material-symbols:add" width={20} />
-                </button>
-            </div>
-        </div>
-    );
 
     const formatDateTime = useCallback((input) => {
         if (!input) return "—";
@@ -434,8 +416,8 @@ const BoardSettingsPopup = ({
                 }
                 .members-list {
                     display: flex;
+                    flex-direction: row;
                     flex-wrap: wrap;
-                    gap: 0;
                     max-height: none;
                     overflow: visible;
                     padding-right: 0;
@@ -563,7 +545,16 @@ const BoardSettingsPopup = ({
                         <div className="label member-sub" style={{ marginBottom: 10 }}>
                             <Icon icon="material-symbols:groups" width={16} /> Members: {Array.isArray(members) ? members.length : 0}
                         </div>
-                        {loadingMembers ? <div className="member-sub">Loading members...</div> : <MembersStack list={members} onInvite={() => setShowInvite(true)} />}
+                        {loadingMembers ? (
+                            <div className="member-sub">Loading members...</div>
+                        ) : (
+                            <div className="members-list" style={{ alignItems: "center" }}>
+                                <MembersBar members={members} size="medium" isShow={false} />
+                                <button style={{ marginLeft: -8 }} className="add-circle" title="Invite member" onClick={() => setShowInvite(true)}>
+                                    <Icon icon="material-symbols:add" width={20} />
+                                </button>
+                            </div>
+                        )}
                         <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Invite teammates to collaborate on this board.</div>
                     </div>
                 </div>
