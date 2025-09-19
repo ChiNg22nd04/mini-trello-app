@@ -90,6 +90,14 @@ const BoardSettingsPopup = ({
                     align-items: center;
                     z-index: 1040;
                 }
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
                 @keyframes slideUp {
                     from {
                         opacity: 0;
@@ -100,40 +108,85 @@ const BoardSettingsPopup = ({
                         transform: translate(-50%, -50%) scale(1);
                     }
                 }
+                @keyframes pulse-custom {
+                    0%,
+                    100% {
+                        transform: scale(1);
+                        opacity: 0.05;
+                    }
+                    50% {
+                        transform: scale(1.02);
+                        opacity: 0.1;
+                    }
+                }
                 .board-settings-modal {
                     position: fixed;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.98));
-                    backdrop-filter: blur(18px);
-                    border: 1px solid rgba(226, 232, 240, 0.9);
-                    box-shadow: 0 20px 60px rgba(2, 6, 23, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.6);
-                    width: 840px;
+                    background: rgba(255, 255, 255, 0.98);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
+                    width: 900px;
                     max-width: 95vw;
                     max-height: 90vh;
                     overflow-y: auto;
                     z-index: 1050;
                     border-radius: 24px;
-                    padding: 0;
-                    animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    padding: 2rem;
+                    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    overflow: hidden;
+                    overflow-y: auto;
+                }
+                .board-settings-modal::before {
+                    content: "";
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.05) 50%, rgba(139, 92, 246, 0.08) 100%);
+                    animation: pulse-custom 6s ease-in-out infinite;
+                    z-index: -1;
+                }
+                .board-settings-modal::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+                .board-settings-modal::-webkit-scrollbar-track {
+                    background: rgba(241, 245, 249, 0.3);
+                    border-radius: 10px;
+                }
+                .board-settings-modal::-webkit-scrollbar-thumb {
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(16, 185, 129, 0.4));
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    background-clip: content-box;
+                    transition: all 0.3s ease;
+                }
+                .board-settings-modal::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(16, 185, 129, 0.7));
+                    background-clip: content-box;
+                }
+                .board-settings-modal {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(241, 245, 249, 0.3);
+                    scroll-behavior: smooth;
                 }
                 .header {
                     display: flex;
                     align-items: center;
-                    justify-content: space-between;
-                    padding: 1rem 1.25rem;
-                    border-bottom: 1px solid #e5e7eb;
-                    background: rgba(255, 255, 255, 0.9);
-                    border-top-left-radius: 24px;
-                    border-top-right-radius: 24px;
+                    gap: 0.75rem;
+                    padding-right: 3rem;
+                    border-right: 1px solid #e5e7eb;
                 }
                 .title {
                     display: flex;
                     align-items: center;
                     gap: 10px;
                     font-weight: 700;
-                    font-size: 1.1rem;
+                    font-size: 1.5rem;
                     color: #0f172a;
                     margin: 0;
                 }
@@ -141,13 +194,20 @@ const BoardSettingsPopup = ({
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     gap: 16px;
-                    padding: 1.25rem;
+                    padding-top: 1.25rem;
                 }
                 .section {
-                    background: #ffffff;
-                    border: 1px solid #e5e7eb;
+                    background: rgba(249, 250, 251, 0.6);
+                    border: 1px solid rgba(229, 231, 235, 0.4);
                     border-radius: 16px;
-                    padding: 1rem;
+                    padding: 1.5rem;
+                    transition: all 0.3s ease;
+                    margin-bottom: 0.25rem;
+                }
+                .section:hover {
+                    background: rgba(249, 250, 251, 0.8);
+                    border-color: rgba(229, 231, 235, 0.6);
+                    transform: translateY(-1px);
                 }
                 .label {
                     font-weight: 600;
@@ -155,52 +215,71 @@ const BoardSettingsPopup = ({
                     font-size: 0.9rem;
                     margin-bottom: 0.5rem;
                 }
-                .input {
-                    width: 100%;
-                    border: 1.5px solid #e5e7eb;
-                    border-radius: 10px;
-                    padding: 0.6rem 0.75rem;
-                    font-size: 0.95rem;
-                    transition: all 0.2s ease;
-                }
-                .input:focus {
-                    outline: none;
-                    border-color: #60a5fa;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-                }
+                .input,
                 .textarea {
                     width: 100%;
-                    min-height: 90px;
-                    border: 1.5px solid #e5e7eb;
-                    border-radius: 10px;
-                    padding: 0.6rem 0.75rem;
+                    background: rgba(255, 255, 255, 0.9);
+                    border: 2px solid #e5e7eb;
+                    border-radius: 12px;
+                    padding: 0.75rem;
                     font-size: 0.95rem;
-                    transition: all 0.2s ease;
+                    color: #374151;
+                    transition: all 0.3s ease;
+                }
+                .input:focus,
+                .textarea:focus {
+                    border-color: #3b82f6;
+                    background: white;
+                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+                    outline: none;
+                    transform: translateY(-1px);
+                }
+                .textarea {
+                    min-height: 100px;
                     resize: vertical;
                 }
                 .actions {
                     display: flex;
                     gap: 10px;
                     justify-content: flex-end;
-                    padding: 1rem 1.25rem;
-                    border-top: 1px solid #e5e7eb;
-                    background: rgba(255, 255, 255, 0.9);
-                    border-bottom-left-radius: 24px;
-                    border-bottom-right-radius: 24px;
+                    padding-top: 1rem;
                 }
                 .danger {
-                    background: linear-gradient(0deg, rgba(254, 242, 242, 0.9), rgba(255, 255, 255, 0.9));
-                    border: 1px solid #fecaca;
+                    background: linear-gradient(0deg, rgba(254, 242, 242, 0.6), rgba(255, 255, 255, 0.6));
+                    border: 1px solid rgba(239, 68, 68, 0.25);
+                }
+                .close-btn {
+                    position: absolute;
+                    top: 1.5rem;
+                    right: 1.5rem;
+                    background: rgba(239, 68, 68, 0.1);
+                    border: none;
+                    border-radius: 12px;
+                    width: 44px;
+                    height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    color: #ef4444;
+                    z-index: 10;
+                }
+                .close-btn:hover {
+                    background: rgba(239, 68, 68, 0.2);
+                    transform: scale(1.1);
                 }
             `}</style>
 
             <div className="backdrop" onClick={onClose} />
             <div className="board-settings-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="close-btn" onClick={onClose}>
+                    <Icon icon="material-symbols:close" width={24} />
+                </button>
                 <div className="header">
                     <h3 className="title">
                         <Icon icon="material-symbols:dashboard-rounded" width={22} /> Board settings
                     </h3>
-                    <Button icon="material-symbols:close" variant="redModern" size="sm" onClick={onClose} />
                 </div>
 
                 <div className="content">
